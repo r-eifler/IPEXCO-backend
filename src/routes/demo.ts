@@ -1,5 +1,5 @@
 import { settings } from 'cluster';
-import { ProjectModel } from './../db_schema/project';
+import { Project, ProjectModel } from './../db_schema/project';
 import { ExecutionSettingsModel } from './../db_schema/execution_settings';
 import { authForward } from './../middleware/auth';
 import { RunStatus } from './../db_schema/run';
@@ -51,20 +51,25 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
         const settingsId = await (ExecutionSettingsModel as any).createDemoDefaultSettings();
         const project = await ProjectModel.findById(req.body.projectId);
 
+        if (!project) {
+            return res.status(403).send('create demo failed');
+        }
 
         let imageFilePath = '';
         if (req.file) {
             imageFilePath = '/uploads/' + req.file.filename;
         }
 
-        // Copy Project Data:
-        const projectData = project?.toJSON();
-        delete projectData?._id;
-        delete projectData?.itemType;
-        delete projectData?.settings;
-
-        demo = new DemoModel(projectData);
+        demo = new DemoModel();
         demo.isNew = true;
+
+        demo.user = project.user;
+        demo.domainFile = project.domainFile;
+        demo.domainSpecification = project.domainSpecification;
+        demo.problemFile = project.problemFile;
+        demo.description = project.description;
+        demo.taskSchema = project.taskSchema;
+        demo.animationSettings = project.animationSettings;
 
         demo.name = req.body.name;
         demo.summaryImage = imageFilePath;
@@ -143,20 +148,26 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
         const settingsId = await (ExecutionSettingsModel as any).createDemoDefaultSettings();
         const project = await ProjectModel.findById(req.body.projectId);
 
+        if (!project) {
+            return res.status(403).send('create demo failed');
+        }
 
         let imageFilePath = '';
         if (req.file) {
             imageFilePath = '/uploads/' + req.file.filename;
         }
 
-        // Copy Project Data:
-        const projectData = project?.toJSON();
-        delete projectData?._id;
-        delete projectData?.itemType;
-        delete projectData?.settings;
 
-        demo = new DemoModel(projectData);
+        demo = new DemoModel();
         demo.isNew = true;
+
+        demo.user = project.user;
+        demo.domainFile = project.domainFile;
+        demo.domainSpecification = project.domainSpecification;
+        demo.problemFile = project.problemFile;
+        demo.description = project.description;
+        demo.taskSchema = project.taskSchema;
+        demo.animationSettings = project.animationSettings;
 
         demo.name = req.body.name;
         demo.summaryImage = imageFilePath;
@@ -244,9 +255,7 @@ demoRouter.put('/', auth, async (req, res) => {
 
 demoRouter.post('/cancel/:id', auth, async (req, res) => {
 
-    const id = mongoose.Types.ObjectId(req.params.id);
-
-    const demo = await DemoModel.findOne({ _id: id });
+    const demo = await DemoModel.findOne({ _id: req.params.id });
 
     if (!demo) {
         return res.status(404).send({ message: 'not found demo' });
@@ -254,7 +263,7 @@ demoRouter.post('/cancel/:id', auth, async (req, res) => {
 
     cancelDemoComputation(demo._id.toString()). then(
         async (canceled) => {
-            await DemoModel.deleteOne({ _id: id });
+            await DemoModel.deleteOne({ _id: req.params.id });
             res.send({
                 successful: canceled,
                 data: demo
@@ -289,8 +298,7 @@ demoRouter.get('', authForward, async (req: any, res) => {
 });
 
 demoRouter.get('/:id', authForward, async (req, res) => {
-    const id = mongoose.Types.ObjectId(req.params.id);
-    const demo = await DemoModel.findOne({ _id: id });
+    const demo = await DemoModel.findOne({ _id: req.params.id });
     if (!demo) { return res.status(404).send({ message: 'Demo not found.' }); }
     res.send({
         data: demo
@@ -299,7 +307,7 @@ demoRouter.get('/:id', authForward, async (req, res) => {
 });
 
 demoRouter.delete('/:id', auth, async (req, res) => {
-    const id = mongoose.Types.ObjectId(req.params.id);
+    const id = req.params.id;
 
     const demo: Demo | null = await DemoModel.findById(id);
     if (!demo) { return res.status(404).send({ message: 'Demo not found.' }); }
@@ -311,7 +319,7 @@ demoRouter.delete('/:id', auth, async (req, res) => {
     deleteResultFile('demo_' + demo._id);
 
     // delete properties
-    const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id.toHexString() });
+    const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
     if (!propertyDeleteResult) { return res.status(404).send({ message: 'Problem during demo deletion occurred' }); }
 
     await ExecutionSettingsModel.deleteOne({ _id: demo.settings });

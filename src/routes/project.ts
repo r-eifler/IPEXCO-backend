@@ -72,7 +72,7 @@ projectRouter.post('/', async (req: any, res) => {
 
 projectRouter.put('/:id', async (req, res) => {
     try {
-        const refId = mongoose.Types.ObjectId(req.params.id);
+        const refId = req.params.id;
         const project: Project | null = await BaseProjectModel.findOne({ _id: refId});
         if (!project) {
             return res.status(403).send('update project failed');
@@ -138,7 +138,7 @@ projectRouter.get('', async (req: any, res) => {
 
 
 projectRouter.get('/:id', async (req, res) => {
-    const id = mongoose.Types.ObjectId(req.params.id);
+    const id = req.params.id;
     const project = await ProjectModel.findOne({ _id: id });
     if (!project) { return res.status(404).send({ message: 'No project found.' }); }
     res.send({
@@ -148,7 +148,7 @@ projectRouter.get('/:id', async (req, res) => {
 });
 
 projectRouter.delete('/:id', async (req, res) => {
-    const id = mongoose.Types.ObjectId(req.params.id);
+    const id = req.params.id;
 
     // delete project
     const projectDoc = await ProjectModel.findOne({ _id: id });
@@ -171,7 +171,7 @@ projectRouter.delete('/:id', async (req, res) => {
     }
 
     // delete properties
-    const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id.toHexString() });
+    const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
     if (!propertyDeleteResult) { return res.status(404).send({ message: 'Problem during project deletion occurred' }); }
 
     await ExecutionSettingsModel.deleteOne({ _id: projectDoc.settings });

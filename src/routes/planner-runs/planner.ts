@@ -102,7 +102,7 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
 
 plannerRouter.post('/mugs/:id', auth, async (req, res) => {
     try {
-        const planRunId =  mongoose.Types.ObjectId(req.params.id);
+        const planRunId =  req.params.id;
         const planRun = await PlanRunModel.findOne({ _id: planRunId}).populate('project');
         if (!planRun) { return res.status(404).send({ message: 'no run found' }); }
 
@@ -158,7 +158,7 @@ plannerRouter.post('/mugs-save/:id', authUserStudy, async (req: any, res) => {
             return res.status(401).send({ message: 'Access denied.' });
         }
 
-        const planRunId =  mongoose.Types.ObjectId(req.params.id);
+        const planRunId =  req.params.id;
         const planRun = await PlanRunModel.findOne({ _id: planRunId}).populate('project');
         if (!planRun) { return res.status(404).send({ message: 'no run found' }); }
 

@@ -40,7 +40,7 @@ pddlFileRouter.post('/', upload.single('content'), async (req, res) => {
     try {
         const file = new FileModel({
             name: req.body.name,
-            path: '/uploads/' + req.file.filename,
+            path: '/uploads/' + req.file?.filename,
             type: req.body.type,
             domain: req.body.domain
         });

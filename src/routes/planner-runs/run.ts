@@ -1,7 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 
-import { ExplanationRunModel, PlanRun, PlanRunModel } from '../../db_schema/run';
+import { ExplanationRun, ExplanationRunModel, PlanRun, PlanRunModel } from '../../db_schema/run';
 import { deleteResultFile } from '../../planner/pddl_file_utils';
 
 
@@ -9,8 +9,8 @@ export const runRouter = express.Router();
 
 runRouter.get('/plan-run', async (req, res) => {
 
-    const projectId =  mongoose.Types.ObjectId(req.query.projectId);
-    const runs = await PlanRunModel.find({ project: projectId.toHexString()}).populate('planProperties').populate('explanationRuns');
+    const projectId : string =  req.query.projectId as string;
+    const runs = await PlanRunModel.find({ project: projectId}).populate('planProperties').populate('explanationRuns');
     if (!runs) { return res.status(404).send({ message: 'No plan-runs found.' }); }
     res.send({
         data: runs
@@ -19,7 +19,7 @@ runRouter.get('/plan-run', async (req, res) => {
 });
 
 runRouter.get('/plan-run/:id', async (req, res) => {
-    const id =  mongoose.Types.ObjectId(req.params.id);
+    const id =  req.params.id;
     const run = await PlanRunModel.findOne({ _id: id}).populate('planProperties').populate('explanationRuns');
     if (!run) { return res.status(404).send({ message: 'No plan-run found.' }); }
     res.send({
@@ -29,34 +29,34 @@ runRouter.get('/plan-run/:id', async (req, res) => {
 });
 
 runRouter.get('/plan-run/position', async (req, res) => {
-    const projectId =  mongoose.Types.ObjectId(req.query.projectId);
-    const position = req.query.projectId(req.query.pos);
+    const projectId : string =  req.query.projectId as string;
+    // const position = req.query.projectId(req.query.pos);
 
-    const runs = await PlanRunModel.find({ project: projectId.toHexString()}).populate('planProperties').populate('explanationRuns');
+    const runs = await PlanRunModel.find({ project: projectId}).populate('planProperties').populate('explanationRuns');
     if (!runs) { return res.status(404).send({ message: 'no run found' }); }
 
     let returnRun: PlanRun;
 
     // first: run has no previous run
-    if (position === 'first') {
-        for (const run of runs) {
-            const planRun: PlanRun = run.toJSON() as PlanRun;
-            if (planRun.previousRun == null) {
-                returnRun = planRun;
-                break;
-            }
-        }
+    // if (position === 'first') {
+    //     for (const run of runs) {
+    //         const planRun: PlanRun = run.toJSON() as PlanRun;
+    //         if (planRun.previousRun == null) {
+    //             returnRun = planRun;
+    //             break;
+    //         }
+    //     }
 
-    }
-    if (position === 'last') {
-        for (const run of runs) {
-            const planRun: PlanRun = run.toJSON() as PlanRun;
-            if (planRun.previousRun == null) {
-                returnRun = planRun;
-                break;
-            }
-        }
-    }
+    // }
+    // if (position === 'last') {
+    //     for (const run of runs) {
+    //         const planRun: PlanRun = run.toJSON() as PlanRun;
+    //         if (planRun.previousRun == null) {
+    //             returnRun = planRun;
+    //             break;
+    //         }
+    //     }
+    // }
 
     res.send({
         data: runs
@@ -65,9 +65,8 @@ runRouter.get('/plan-run/position', async (req, res) => {
 });
 
 runRouter.delete('/plan-run/:id', async (req, res) => {
-    const id = mongoose.Types.ObjectId(req.params.id);
 
-    const planRun: PlanRun | null = await PlanRunModel.findOneAndDelete({ _id: id });
+    const planRun: PlanRun | null = await PlanRunModel.findOneAndDelete({ _id: req.params.id });
     if (!planRun) { return res.status(404).send({ message: 'No plan-run found.' }); }
 
     // delete corresponding log files
@@ -83,8 +82,7 @@ runRouter.delete('/plan-run/:id', async (req, res) => {
 
 
 runRouter.get('/explanation/:id', async (req, res) => {
-    const id =  mongoose.Types.ObjectId(req.params.id);
-    const run = await ExplanationRunModel.findOne({ _id: id}).populate('planProperties');
+    const run = await ExplanationRunModel.findOne({ _id: req.params.id}).populate('planProperties');
     if (!run) { return res.status(404).send({ message: 'no run found' }); }
     res.send({
         data: run
@@ -92,11 +90,12 @@ runRouter.get('/explanation/:id', async (req, res) => {
 });
 
 runRouter.delete('/explanation/:id', async (req, res) => {
-    const id = mongoose.Types.ObjectId(req.params.id);
+    ExplanationRunModel.findOneAndDelete({ _id: req.params.id }, null,
+        async (err: any, expRun: ExplanationRun | null, res: any) => {
 
-    ExplanationRunModel.findOneAndDelete({ _id: id }, async (err, expRun) => {
-
-        if (!expRun) { return res.status(404).send({ message: 'no run found' }); }
+        if (!expRun) { 
+            return res.status(404).send({ message: 'no run found' });
+        }
 
         // delete corresponding log files
         deleteResultFile(expRun.result);

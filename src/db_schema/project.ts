@@ -36,7 +36,7 @@ const BaseProjectSchema = new Schema({
     problemFile: { type: FileSchema, required: true},
     description: { type: String, required: true},
     taskSchema: { type: String, required: false},
-    settings: { type: mongoose.Schema.Types.ObjectId, ref: 'execution-settings' },
+    settings: { type: mongoose.Schema.Types.ObjectId, ref: 'execution-settings' , required: false},
     animationSettings: { type: String, required: false}
 }, baseOptions);
 
