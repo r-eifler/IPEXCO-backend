@@ -4,6 +4,7 @@ import * as jwt from 'jsonwebtoken';
 export interface USUser extends Document{
     prolificId: string;
     userStudyExtId: string;
+    createdAt?: Date;
     userStudy: string;
     token?: string;
     finished?: string;
@@ -15,39 +16,14 @@ export interface USUser extends Document{
 }
 
 const USUserSchema =  new Schema<USUser>({
-    prolificId: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    userStudyExtId: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    userStudy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'user-study'
-    },
-    token: {
-        type: String,
-        required: false
-    },
-    finished: {
-        type: String,
-        required: false
-    },
-    accepted: {
-        type: Boolean,
-        required: false
-    },
-    timeLog: {
-        type: String,
-        required: false
-    },
-    payment: {
-        type: Number,
-        required: false
+    prolificId: {type: String, required: true, trim: true},
+    userStudyExtId: {type: String,required: true,trim: true},
+    userStudy: {type: mongoose.Schema.Types.ObjectId, ref: 'user-study'},
+    token: {type: String,required: false},
+    finished: {type: String, required: false},
+    accepted: {type: Boolean, required: false},
+    timeLog: {type: String, required: false},
+    payment: {type: Number, required: false
     }
 }, { timestamps: true});
 

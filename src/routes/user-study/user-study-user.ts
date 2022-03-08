@@ -10,7 +10,8 @@ export const userStudyUserRouter = express.Router();
 userStudyUserRouter.post('/', async (req, res) => {
 
     try {
-        const user = new USUserModel(req.body);
+        const userData = req.body.data
+        const user = new USUserModel(userData);
         await user.save();
         const token = await user.generateAuthToken();
         res.status(201).send({ user, token });
@@ -24,7 +25,7 @@ userStudyUserRouter.post('/', async (req, res) => {
 userStudyUserRouter.post('/timelog', authUserStudy,  async (req: any, res) => {
 
     try {
-        const timeLog = req.body.timeLog;
+        const timeLog = req.body.data;
         const userStudyUser = req.userStudyUser;
         userStudyUser.timeLog = timeLog;
         userStudyUser.save().then(() => res.send(), (err: any) => console.log(err));
@@ -37,7 +38,7 @@ userStudyUserRouter.post('/timelog', authUserStudy,  async (req: any, res) => {
 userStudyUserRouter.put('/payment', authUserStudy,  async (req: any, res) => {
 
     try {
-        const payment = req.body.payment;
+        const payment = req.body.data;
         const userStudyUser = req.userStudyUser;
         userStudyUser.payment = payment;
         userStudyUser.save().then(() => res.send(), (err: any) => console.log(err));
@@ -48,7 +49,7 @@ userStudyUserRouter.put('/payment', authUserStudy,  async (req: any, res) => {
 
 userStudyUserRouter.put('/:id', auth, async (req, res) => {
     try {
-        const refId = mongoose.Types.ObjectId(req.params.id);
+        const refId = req.params.id;
 
         const usUser: USUser | null = await USUserModel.findOne({ _id: refId});
 

@@ -1,15 +1,19 @@
+import { IterationStep } from './../db_schema/iteration_step';
 import { Project } from './../db_schema/project';
 import 'process';
 import path from 'path';
 import * as child from 'child_process';
 import 'fs';
 
-import { ExplanationRun, PlanRun } from '../db_schema/run';
+import { DepExplanationRun, PlanRun } from '../db_schema/iteration_step';
 import { PlanProperty } from '../db_schema/plan-properties/plan_property';
 import { ExperimentSetting } from './experiment_setting';
 import { readFileSync, writeFileSync } from 'fs';
 import { CallResult, pythonShellCallFD, pythonShellCallSimple } from './python-call';
 import { environment } from '../app';
+import { domain } from 'process';
+import { convert2PDDL } from './pddl_converter';
+import { Task } from '../db_schema/task';
 
 
 export class TranslatorCall{
@@ -60,7 +64,8 @@ export class TranslatorCall{
         child.spawnSync('cp', [path.join(this.runFolder, 'fdr.json'),
             path.join(environment.resultsPath, `task_schema_${this.project._id}.json`)]);
 
-        this.project.taskSchema = environment.serverResultsPath + `/task_schema_${this.project._id}.json`;
+        // this.project.taskSchema = environment.serverResultsPath + `/task_schema_${this.project._id}.json`;
+        // TODO ready contest and write into basetask
     }
 
     tidyUp(): void {
@@ -78,11 +83,9 @@ export class PlannerCall {
         protected plannerSetting: string[],
         protected root: string,
         protected runId: string,
-        protected domainFile: string,
-        protected problemFile: string,
-        protected planProperties: PlanProperty[],
-        protected hardGoals: string[],
-        protected softGoals: string[]) {
+        protected task: Task,
+        protected hardGoals: PlanProperty[],
+        protected softGoals: PlanProperty[]) {
         this.runFolder = path.join(root, String(this.runId));
 
         this.create_experiment_setup();
@@ -91,11 +94,16 @@ export class PlannerCall {
     create_experiment_setup(): void {
 
         child.execSync(`mkdir -p ${this.runFolder}`);
-        const domainFileName = path.basename(this.domainFile);
-        const problemFileName = path.basename(this.problemFile);
 
-        child.execSync(`cp ${path.join(environment.uploadsPath, domainFileName)} ${path.join(this.runFolder, 'domain.pddl')}`);
-        child.execSync(`cp ${path.join(environment.uploadsPath, problemFileName)} ${path.join(this.runFolder, 'problem.pddl')}`);
+        const task_definition: string[] = convert2PDDL(this.task);
+
+        writeFileSync(path.join(this.runFolder, 'domain.pddl'),
+            task_definition[0],
+            'utf8');
+
+        writeFileSync(path.join(this.runFolder, 'problem.pddl'),
+            task_definition[1],
+            'utf8');
 
         writeFileSync(path.join(this.runFolder, 'exp_setting.json'),
             JSON.stringify(this.generate_experiment_setting()),
@@ -105,9 +113,9 @@ export class PlannerCall {
     }
 
     generate_experiment_setting(): ExperimentSetting {
-        const hardGoals: string[] = this.hardGoals;
-        const softGoals: string[] = this.softGoals;
-        const properties: PlanProperty[] = this.planProperties;
+        const hardGoals: string[] = this.hardGoals.map(p => p.name);
+        const softGoals: string[] = this.softGoals.map(p => p.name);
+        const properties: PlanProperty[] = this.hardGoals.concat(this.softGoals);
 
         return { hard_goals: hardGoals, plan_properties: properties, soft_goals: softGoals};
     }
@@ -157,16 +165,15 @@ const plannerSettingOptPlan = ['--search', 'astar(iPDB())'];
 const plannerSettingSatPlan = ['--search', 'lazy_greedy([ff()], preferred=[ff()])'];
 export class PlanCall extends PlannerCall{
 
-    constructor(root: string, private run: PlanRun) {
-        super(plannerSettingOptPlan, root, run._id, (run.project as Project).domainFile.path,
-            (run.project as Project).problemFile.path, run.planProperties, run.hardGoals, []);
+    constructor(root: string, private step: IterationStep) {
+        super(plannerSettingOptPlan, root, step._id, step.taskModification.task, step.hardGoals, step.softGoals);
     }
 
     copy_experiment_results(): void {
         const buffer: Buffer = readFileSync(path.join(this.runFolder, 'sas_plan'));
-        this.run.planString = buffer.toString('utf8');
+        this.step.plan?.result = buffer.toString('utf8');
 
-        this.run.log = environment.serverResultsPath + `/out_${this.runId}.log`;
+        this.step.plan?.log = environment.serverResultsPath + `/out_${this.runId}.log`;
     }
 }
 
@@ -176,16 +183,15 @@ const plannerSettingMUGS = ['--heuristic', 'h=hc(nogoods=false, cache_estimates=
    'mugs_h=mugs_hc(hc=h, all_softgoals=false)', '--search', 'dfs(u_eval=mugs_h)'];
 export class ExplanationCall extends PlannerCall{
 
-    constructor(root: string, project: Project, private run: ExplanationRun) {
-        super(plannerSettingMUGS, root, run._id, project.domainFile.path,
-            project.problemFile.path, run.planProperties, run.hardGoals, run.softGoals);
+    constructor(root: string, step: IterationStep, private depExpRun: DepExplanationRun) {
+        super(plannerSettingMUGS, root, depExpRun._id, step.taskModification.task, depExpRun.hardGoals, depExpRun.softGoals);
     }
 
     copy_experiment_results(): void {
         const buffer: Buffer = readFileSync(path.join(this.runFolder, 'mugs.json'));
-        this.run.result = buffer.toString('utf8');
+        this.depExpRun.result = buffer.toString('utf8');
 
-        this.run.log = environment.serverResultsPath + `/out_${this.runId}.log`;
+        this.depExpRun.log = environment.serverResultsPath + `/out_${this.runId}.log`;
     }
 }
 

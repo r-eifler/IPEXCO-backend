@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { PlanProperty } from './plan-properties/plan_property';
 import { Project } from './project';
-import { TaskRelaxation } from './task_relaxation';
+import { TaskModification } from './task_modification';
 
 export enum RunStatus {
     pending,
@@ -18,7 +18,7 @@ export interface IterationStep extends Document{
     project: Project | string;
     hardGoals: PlanProperty[];
     softGoals: PlanProperty[];
-    relaxations: TaskRelaxation[];
+    taskModification: TaskModification;
     plan: PlanRun | null;
     depExplanations: DepExplanationRun[];
     predecessorStep: IterationStep | null;
@@ -30,6 +30,7 @@ const IterationStepSchema = new Schema({
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
     hardGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     softGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
+    taskModification: [{ type: mongoose.Schema.Types.ObjectId, ref: 'task-modification' }],
     plan: { type: mongoose.Schema.Types.ObjectId, ref: 'plan-run' },
     depExplanations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'dep-explanation-run' }],
     predecessorStep: { type: mongoose.Schema.Types.ObjectId, ref: 'iteration-step', required: false },
@@ -37,7 +38,6 @@ const IterationStepSchema = new Schema({
 
 
 export interface PlanRun extends Document{
-    _id: string;
     createdAt?: Date;
     name: string;
     status: RunStatus;
@@ -97,7 +97,7 @@ const RelaxationExplanationRunSchema = new Schema({
 }, { timestamps: true});
 
 
-export const IterationStepModel = mongoose.model<IterationStep>('iteration-step', PlanRunSchema);
+export const IterationStepModel = mongoose.model<IterationStep>('iteration-step', IterationStepSchema);
 export const PlanRunModel = mongoose.model<PlanRun>('plan-run', PlanRunSchema);
 export const DepExplanationRunModel = mongoose.model<DepExplanationRun>('dep-explanation-run', DepExplanationRunSchema);
 export const RelaxationExplanationRunModel = mongoose.model<RelaxationExplanationRun>('relaxation-explanation-run', RelaxationExplanationRunSchema);

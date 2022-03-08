@@ -1,8 +1,7 @@
-import { settings } from 'cluster';
+import { TaskRelaxationModel } from '../db_schema/task_modification';
 import { Project, ProjectModel } from './../db_schema/project';
-import { ExecutionSettingsModel } from './../db_schema/execution_settings';
 import { authForward } from './../middleware/auth';
-import { RunStatus } from './../db_schema/run';
+import { RunStatus } from '../db_schema/iteration_step';
 import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Demo, DemoModel } from './../db_schema/demo';
 import express from 'express';
@@ -48,14 +47,13 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
     let demo: Demo | null = null;
     try {
 
-        const settingsId = await (ExecutionSettingsModel as any).createDemoDefaultSettings();
         const project = await ProjectModel.findById(req.body.projectId);
 
         if (!project) {
             return res.status(403).send('create demo failed');
         }
 
-        let imageFilePath = '';
+        let imageFilePath = null;
         if (req.file) {
             imageFilePath = '/uploads/' + req.file.filename;
         }
@@ -68,15 +66,16 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
         demo.domainSpecification = project.domainSpecification;
         demo.problemFile = project.problemFile;
         demo.description = project.description;
-        demo.taskSchema = project.taskSchema;
+        demo.baseTask = project.baseTask;
+        demo.settings = project.settings;
         demo.animationSettings = project.animationSettings;
 
         demo.name = req.body.name;
         demo.summaryImage = imageFilePath;
         demo.status = RunStatus.pending;
-        demo.settings = settingsId;
         demo.description = req.body.description;
         demo.taskInfo = req.body.taskInfo;
+        demo.public = false;
 
         if (!demo) {
             return res.status(403).send('create demo failed');
@@ -88,7 +87,7 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
         const planProperties = await PlanPropertyModel.find({ project: project?._id, isUsed: true });
         for (const pp of planProperties) {
             const newPP = new PlanPropertyModel(pp);
-            newPP._id = undefined;
+            delete newPP._id;
             newPP.project = demo._id;
             newPP.isNew = true;
             await newPP.save();
@@ -102,6 +101,8 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
     // Precompute Demo data
     try {
         const planProperties = await PlanPropertyModel.find({ project: demo._id});
+        const taskRelaxations = await TaskRelaxationModel.find({ project: demo._id});
+        // TODO extent demo computation with task relaxations
 
         demo.status = RunStatus.running;
         await demo.save();
@@ -140,19 +141,17 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
 
 demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req, res) => {
 
-    // console.log(req.body);
 
     let demo: Demo | null = null;
     try {
 
-        const settingsId = await (ExecutionSettingsModel as any).createDemoDefaultSettings();
         const project = await ProjectModel.findById(req.body.projectId);
 
         if (!project) {
             return res.status(403).send('create demo failed');
         }
 
-        let imageFilePath = '';
+        let imageFilePath = null;
         if (req.file) {
             imageFilePath = '/uploads/' + req.file.filename;
         }
@@ -166,15 +165,16 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
         demo.domainSpecification = project.domainSpecification;
         demo.problemFile = project.problemFile;
         demo.description = project.description;
-        demo.taskSchema = project.taskSchema;
+        demo.baseTask = project.baseTask;
+        demo.settings = project.settings;
         demo.animationSettings = project.animationSettings;
 
         demo.name = req.body.name;
         demo.summaryImage = imageFilePath;
         demo.status = RunStatus.pending;
-        demo.settings = settingsId;
         demo.description = req.body.description;
         demo.taskInfo = req.body.taskInfo;
+        demo.public = false;
 
         if (!demo) {
             return res.status(403).send('create demo failed');
@@ -186,7 +186,7 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
         const planProperties = await PlanPropertyModel.find({ project: project?._id, isUsed: true });
         for (const pp of planProperties) {
             const newPP = new PlanPropertyModel(pp);
-            newPP._id = undefined;
+            delete newPP._id;
             newPP.project = demo._id;
             newPP.isNew = true;
             await newPP.save();
@@ -211,7 +211,6 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
         demo.status = RunStatus.finished;
         await demo.save();
 
-        // console.log(demo);
         res.send({
             status: true,
             message: 'Demo created',
@@ -219,8 +218,6 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
         });
 
     } catch (ex) {
-        // console.log(ex);
-        // console.log(demo);
         DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
         res.send(ex.message);
     }
@@ -236,9 +233,11 @@ demoRouter.put('/', auth, async (req, res) => {
             return res.status(403).send('Demo not found');
         }
 
-        demo.name = req.body.name;
-        demo.description = req.body.description;
-        demo.taskInfo = req.body.taskInfo;
+        const demoData = req.body.data as Demo;
+
+        demo.name = demoData.name;
+        demo.description = demoData.description;
+        demo.taskInfo = demoData.taskInfo;
 
         await demo.save();
 
@@ -281,17 +280,23 @@ demoRouter.post('/cancel/:id', auth, async (req, res) => {
 demoRouter.get('', authForward, async (req: any, res) => {
 
     try {
-        const allDemos: Demo[] = await DemoModel.find().populate('settings');
-        const demos = allDemos.filter(d => {
-            const p = d.settings.public;
-            d.settings = d.settings._id;
-            return p || (req.user && (d.user as any)._id.toHexString() === req.user._id.toHexString());
+        const allDemos: Demo[] = await DemoModel.find();
+
+        const demos = allDemos.filter(
+            d => {
+                d.public || 
+                (req.user && 
+                    (d.user as any)._id.toHexString() === req.user._id.toHexString());
         });
-        if (!demos) { return res.status(404).send({ message: 'No demos found' }); }
+
+        if (!demos) { 
+            return res.status(404).send({ message: 'No demos found' });
+        }
 
         res.send({
             data: demos
         });
+
     } catch (ex) {
         res.send(ex.message);
     }
@@ -299,7 +304,11 @@ demoRouter.get('', authForward, async (req: any, res) => {
 
 demoRouter.get('/:id', authForward, async (req, res) => {
     const demo = await DemoModel.findOne({ _id: req.params.id });
-    if (!demo) { return res.status(404).send({ message: 'Demo not found.' }); }
+
+    if (!demo) 
+        { return res.status(404).send({ message: 'Demo not found.' }); 
+    }
+
     res.send({
         data: demo
     });
@@ -320,12 +329,14 @@ demoRouter.delete('/:id', auth, async (req, res) => {
 
     // delete properties
     const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
-    if (!propertyDeleteResult) { return res.status(404).send({ message: 'Problem during demo deletion occurred' }); }
-
-    await ExecutionSettingsModel.deleteOne({ _id: demo.settings });
+    if (!propertyDeleteResult) { 
+        return res.status(404).send({ message: 'Problem during demo deletion occurred' });
+    }
 
     const result = await DemoModel.deleteOne({ _id: id });
-    if (!result) { return res.status(404).send({ message: 'Demo deletion failed.' }); }
+    if (!result) { 
+        return res.status(404).send({ message: 'Demo deletion failed.' });
+    }
 
     res.send({
         data: result

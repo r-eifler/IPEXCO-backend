@@ -8,6 +8,7 @@ import { ExperimentSetting } from './experiment_setting';
 import { PythonShell } from 'python-shell';
 import { environment } from '../app';
 import { json } from 'express';
+import { taskSchema } from './pddl_converter';
 
 const runningPythonShells = new Map<string, PythonShell>();
 
@@ -53,11 +54,14 @@ export class DemoComputation {
         child.execSync(`mkdir -p ${this.runFolder}/runs`);
         const domainFileName = path.basename(this.demo.domainFile.path);
         const problemFileName = path.basename(this.demo.problemFile.path);
-        const taskSchemaFileName = path.basename(this.demo.taskSchema);
 
         child.execSync(`cp ${path.join(environment.uploadsPath, domainFileName)} ${path.join(this.runFolder, 'domain.pddl')}`);
         child.execSync(`cp ${path.join(environment.uploadsPath, problemFileName)} ${path.join(this.runFolder, 'problem.pddl')}`);
-        child.execSync(`cp ${path.join(environment.resultsPath, taskSchemaFileName)} ${path.join(this.runFolder, 'task-schema.json')}`);
+
+        writeFileSync(path.join(this.runFolder, 'task-schema.json'),
+            taskSchema(this.demo.baseTask),
+            'utf8');
+
 
         child.execSync(`cp -r ${environment.planner} ${this.runFolder}/fast-downward`);
 
@@ -116,16 +120,17 @@ export class DemoComputation {
                         const resultsFolder = `${this.runFolder}/results/demo.json`;
                         writeFileSync(resultsFolder, results1.join('\n'), 'utf8');
                         this.copy_experiment_results();
-                        this.demo.definition = `${environment.serverResultsPath}/demo_${this.demo._id}`;
+                        this.demo.explanationHierarchy = `${environment.serverResultsPath}/demo_${this.demo._id}`;
 
-                        this.pythonShellCallMaxUtility(optionsMaxUtility).then((results2) => {
-                            console.log(results2);
-                            this.demo.maxUtility = JSON.parse(results2.join('\n'));
-                                resolve(this.demo.maxUtility.value?.toString());
-                        },
-                        (err) => {
-                            reject(err);
-                        });
+                        // this.pythonShellCallMaxUtility(optionsMaxUtility).then((results2) => {
+                        //     console.log(results2);
+                        //     this.demo.maxUtility = JSON.parse(results2.join('\n'));
+                        //         resolve(this.demo.maxUtility.value?.toString());
+                        // },
+                        // (err) => {
+                        //     reject(err);
+                        // });
+                        // TODO
                     },
                     (err) => {
                         reject(err);
@@ -186,7 +191,7 @@ export class DemoPreComputation {
         child.execSync(`mkdir  ${environment.resultsPath}/demo_${this.demo._id}`);
         writeFileSync(`${environment.resultsPath}/demo_${this.demo._id}/demo.json`, this.data, 'utf8');
 
-        this.demo.definition = `${environment.serverResultsPath}/demo_${this.demo._id}`;
+        this.demo.explanationHierarchy = `${environment.serverResultsPath}/demo_${this.demo._id}`;
         // console.log(this.maxUtility);
         this.demo.maxUtility = JSON.parse(this.maxUtility);
     }

@@ -38,15 +38,15 @@ const upload = multer({
 
 pddlFileRouter.post('/', upload.single('content'), async (req, res) => {
     try {
-        const file = new FileModel({
-            name: req.body.name,
-            path: '/uploads/' + req.file?.filename,
-            type: req.body.type,
-            domain: req.body.domain
-        });
+        const fileData = req.body.data as File
+        fileData.path = '/uploads/' + req.file?.filename
+
+        const file = new FileModel(fileData)
+
         if (!file) {
             return res.status(403).send('File could not be saved.');
         }
+
         const data = await file.save();
 
         res.send({
@@ -63,10 +63,15 @@ pddlFileRouter.get('/type/:type', async (req, res) => {
     try {
         const fileType = req.params.type;
         const pddlFiles = await  FileModel.find({ type: fileType });
-        if (!pddlFiles) { return res.status(404).send({ message: 'No PDDL files found.' }); }
+
+        if (!pddlFiles) { 
+            return res.status(404).send({ message: 'No PDDL files found.' });
+        }
+
         res.send({
             data: pddlFiles
         });
+
     } catch (ex) {
         res.send(ex.message);
     }
@@ -74,42 +79,35 @@ pddlFileRouter.get('/type/:type', async (req, res) => {
 
 pddlFileRouter.get('/:id', async (req, res) => {
     try {
-        const id = mongoose.Types.ObjectId(req.params.id);
-        const pddlFile = await FileModel.findOne({ _id: id });
-        if (!pddlFile) { return res.status(404).send({ message: 'No PDDL file found.' }); }
+        const pddlFile = await FileModel.findOne({ _id: req.params.id });
+
+        if (!pddlFile) { 
+            return res.status(404).send({ message: 'No PDDL file found.' });
+        }
+
         res.send({
             data: pddlFile
         });
+
     } catch (ex) {
         res.send(ex.message);
     }
 });
 
-pddlFileRouter.get('/:id/goal-facts', async (req, res) => {
-    try {
-        const id = mongoose.Types.ObjectId(req.params.id);
-
-        const pddlFile: File | null = await FileModel.findOne({ _id: id });
-        if (!pddlFile) { return res.status(404).send({ message: 'No PDDL file found.' }); }
-
-        const goals: string[] = await getGoalFacts(pddlFile);
-        res.send({
-            data: goals
-        });
-    } catch (ex) {
-        res.send(ex.message);
-    }
-});
 
 pddlFileRouter.delete('/:id', async (req, res) => {
     try {
-        const id = mongoose.Types.ObjectId(req.params.id);
-        const pddlFile = await FileModel.deleteOne({ _id: id });
-        if (!pddlFile) { return res.status(404).send({ message: 'No PDDL file found.' }); }
+
+        const pddlFile = await FileModel.deleteOne({ _id: req.params.id });
+
+        if (!pddlFile) { 
+            return res.status(404).send({ message: 'No PDDL file found.' });
+        }
 
         res.send({
             data: pddlFile
         });
+        
     } catch (ex) {
         res.send(ex.message);
     }

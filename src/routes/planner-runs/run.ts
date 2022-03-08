@@ -1,111 +1,143 @@
+import { UserStudyDataModel } from './../../db_schema/user-study/user-study-store';
+import { DepExplanationRunModel, IterationStep, IterationStepModel, RelaxationExplanationRun, RelaxationExplanationRunModel } from './../../db_schema/iteration_step';
 import express from 'express';
 import mongoose from 'mongoose';
 
-import { ExplanationRun, ExplanationRunModel, PlanRun, PlanRunModel } from '../../db_schema/run';
+import { DepExplanationRun, PlanRun} from '../../db_schema/iteration_step';
 import { deleteResultFile } from '../../planner/pddl_file_utils';
+import { deleteDepExplanation, deleteIterationStep, deleteRelaxationExplanation } from '../utils';
+import { authUserStudy } from '../../middleware/auth';
 
 
 export const runRouter = express.Router();
 
-runRouter.get('/plan-run', async (req, res) => {
+runRouter.post('/iter-step', authUserStudy, async (req, res) => {
 
-    const projectId : string =  req.query.projectId as string;
-    const runs = await PlanRunModel.find({ project: projectId}).populate('planProperties').populate('explanationRuns');
-    if (!runs) { return res.status(404).send({ message: 'No plan-runs found.' }); }
-    res.send({
-        data: runs
-    });
+    try {
+        const iterStepData = req.body.data as IterationStep;
+
+        const iterationStep = new IterationStepModel(iterStepData);
+        if (!iterationStep) {
+            return res.status(403).send('Iteration Step could not be created.');
+        }
+        let data = await iterationStep.save();
+
+        if (req.userStudyUser) {
+            const userstudyData = await UserStudyDataModel.findOne({ user: req.userStudyUser._id});
+
+            if (!userstudyData) {
+                return res.status(403).send('Iteration Step could not be created.');
+            }
+
+            userstudyData.demoSteps.push(data);
+            data = await iterationStep.save(); 
+
+        }
+
+        res.send({
+            status: true,
+            message: 'Plan Property is stored.',
+            data
+        });
+    }
+
+    catch (ex) {
+        res.send(ex.message);
+    }
 
 });
 
-runRouter.get('/plan-run/:id', async (req, res) => {
+runRouter.get('/iter-step/:id', async (req, res) => {
     const id =  req.params.id;
-    const run = await PlanRunModel.findOne({ _id: id}).populate('planProperties').populate('explanationRuns');
-    if (!run) { return res.status(404).send({ message: 'No plan-run found.' }); }
-    res.send({
-        data: run
-    });
+    const run = await IterationStepModel.findOne({ _id: id})
+        .populate('hardGoals')
+        .populate('softGoals')
+        .populate('relaxations')
+        .populate('depExplanations');
 
-});
-
-runRouter.get('/plan-run/position', async (req, res) => {
-    const projectId : string =  req.query.projectId as string;
-    // const position = req.query.projectId(req.query.pos);
-
-    const runs = await PlanRunModel.find({ project: projectId}).populate('planProperties').populate('explanationRuns');
-    if (!runs) { return res.status(404).send({ message: 'no run found' }); }
-
-    let returnRun: PlanRun;
-
-    // first: run has no previous run
-    // if (position === 'first') {
-    //     for (const run of runs) {
-    //         const planRun: PlanRun = run.toJSON() as PlanRun;
-    //         if (planRun.previousRun == null) {
-    //             returnRun = planRun;
-    //             break;
-    //         }
-    //     }
-
-    // }
-    // if (position === 'last') {
-    //     for (const run of runs) {
-    //         const planRun: PlanRun = run.toJSON() as PlanRun;
-    //         if (planRun.previousRun == null) {
-    //             returnRun = planRun;
-    //             break;
-    //         }
-    //     }
-    // }
-
-    res.send({
-        data: runs
-    });
-
-});
-
-runRouter.delete('/plan-run/:id', async (req, res) => {
-
-    const planRun: PlanRun | null = await PlanRunModel.findOneAndDelete({ _id: req.params.id });
-    if (!planRun) { return res.status(404).send({ message: 'No plan-run found.' }); }
-
-    // delete corresponding log files
-    if (planRun.log) {
-        deleteResultFile(planRun.log);
+    if (!run) { 
+        return res.status(404).send({ message: 'No iteration step found.' });
     }
 
     res.send({
-        data: planRun
+        data: run
     });
 
 });
 
 
-runRouter.get('/explanation/:id', async (req, res) => {
-    const run = await ExplanationRunModel.findOne({ _id: req.params.id}).populate('planProperties');
-    if (!run) { return res.status(404).send({ message: 'no run found' }); }
+runRouter.delete('/iter-step/:id', async (req, res) => {
+
+    const step: IterationStep | null = await IterationStepModel.findOne({ _id: req.params.id });
+
+    if (!step) {
+        return res.status(404).send({ message: 'No explanation found.' });
+    }
+
+    await deleteIterationStep(step);
+
+    res.send({
+        data: step
+    });
+
+});
+
+
+
+
+runRouter.get('/dep-explanation/:id', async (req, res) => {
+    const run = await DepExplanationRunModel.findOne({ _id: req.params.id})
+        .populate('hardGoals')
+        .populate('softGoals')
+        .populate('relaxationExplanations');
+
+    if (!run) { 
+        return res.status(404).send({ message: 'no explanation found' }); 
+    }
+
     res.send({
         data: run
     });
 });
 
-runRouter.delete('/explanation/:id', async (req, res) => {
-    ExplanationRunModel.findOneAndDelete({ _id: req.params.id }, null,
-        async (err: any, expRun: ExplanationRun | null, res: any) => {
+runRouter.delete('/dep-explanation/:id', async (req, res) => {
+    const depExp: DepExplanationRun | null = await DepExplanationRunModel.findOne({ _id: req.params.id });
 
-        if (!expRun) { 
-            return res.status(404).send({ message: 'no run found' });
-        }
+    if (!depExp) {
+        return res.status(404).send({ message: 'No explanation found.' });
+    }
 
-        // delete corresponding log files
-        deleteResultFile(expRun.result);
-        deleteResultFile(expRun.log);
+    await deleteDepExplanation(depExp);
 
-        const updatedPlanRun = await PlanRunModel.findById(expRun.planRun).populate('explanationRuns').populate('planProperties');
+    res.send({
+        data: depExp
+    });
+});
 
-        res.send({
-            data: updatedPlanRun
-        });
+runRouter.get('/relaxation-explanation/:id', async (req, res) => {
+    const run = await RelaxationExplanationRunModel.findOne({ _id: req.params.id})
+        .populate('dependency');
+
+    if (!run) { 
+        return res.status(404).send({ message: 'no explanation found' }); 
+    }
+
+    res.send({
+        data: run
+    });
+});
+
+runRouter.delete('/relaxation-explanation/:id', async (req, res) => {
+    const relaxExp: RelaxationExplanationRun | null = await RelaxationExplanationRunModel.findOne({ _id: req.params.id });
+
+    if (!relaxExp) {
+        return res.status(404).send({ message: 'No explanation found.' });
+    }
+
+    await deleteRelaxationExplanation(relaxExp);
+
+    res.send({
+        data: relaxExp
     });
 });
 

@@ -8,12 +8,15 @@ export const metaStudyRouter = express.Router();
 
 metaStudyRouter.post('/', auth, async (req: any, res) => {
     try {
-        const metaStudy: MetaStudy = new MetaStudyModel(req.body);
-        metaStudy.user = req.user._id;
+        const metaStudyData = req.body.data
+        metaStudyData.user = req.user._id;
+
+        const metaStudy: MetaStudy = new MetaStudyModel(metaStudyData);
 
         if (!metaStudy) {
             return res.status(403).send('user study failed');
         }
+
         const data = await metaStudy.save();
         res.send({
             status: true,
@@ -30,7 +33,7 @@ metaStudyRouter.post('/', auth, async (req: any, res) => {
 
 metaStudyRouter.put('/:id', auth, async (req, res) => {
     try {
-        const refId = mongoose.Types.ObjectId(req.params.id);
+        const refId = req.params.id;
 
         await MetaStudyModel.replaceOne({ _id: refId}, req.body);
 
@@ -69,10 +72,15 @@ metaStudyRouter.get('/', auth, async (req: any, res) => {
 
 
 metaStudyRouter.get('/:id', async (req: any, res) => {
-    const id = mongoose.Types.ObjectId(req.params.id);
+
+    const id = req.params.id;
+
     const metaStudy = await MetaStudyModel.findOne({ _id: id });
 
-    if (!metaStudy) { return res.status(404).send({ message: 'No user study found.' }); }
+    if (!metaStudy) { 
+        return res.status(404).send({ message: 'No user study found.' });
+    }
+
     res.send({
         data: metaStudy
     });
@@ -80,9 +88,15 @@ metaStudyRouter.get('/:id', async (req: any, res) => {
 });
 
 metaStudyRouter.delete('/:id', auth, async (req, res) => {
-    const id = mongoose.Types.ObjectId(req.params.id);
+
+    const id = req.params.id;
+
     const metaStudy = await MetaStudyModel.deleteOne({ _id: id });
-    if (!metaStudy) { return res.status(404).send({ message: 'No user study found.' }); }
+
+    if (!metaStudy) { 
+        return res.status(404).send({ message: 'No user study found.' });
+    }
+
     res.send({
         data: metaStudy
     });

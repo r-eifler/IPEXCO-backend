@@ -1,4 +1,3 @@
-import { executionSettingsRouter } from './routes/execution_settings';
 import { auth } from './middleware/auth';
 import { userRouter } from './routes/user';
 import createError from 'http-errors';
@@ -26,7 +25,7 @@ import * as dotenv from "dotenv";
 import { metaStudyRouter } from './routes/user-study/meta-study';
 dotenv.config();
 
-console.log('-------- EXPLORE BACK END ---------');
+console.log('-------- XPP BACK END ---------');
 
 export const environment = new Environment();
 
@@ -59,7 +58,6 @@ app.use('/api/meta-study', metaStudyRouter);
 app.use('/api/user-study', userStudyRouter);
 app.use('/api/demo', demoRouter);
 
-app.use('/api/settings', executionSettingsRouter);
 app.use('/api/plan-property', planPropertyRouter);
 
 app.use('/uploads', express.static(path.join(__dirname, 'data/uploads')));
@@ -101,7 +99,7 @@ app.use((req, res, next) => {
 
 // Data base connection
 const port = environment.port || 3000;
-const mongodbURL = process.env.MONGO || 'mongodb://localhost/explore';
+const mongodbURL = process.env.MONGO || 'mongodb://localhost/xpp';
 mongoose.connect(mongodbURL, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
       console.log('connected to DB');
