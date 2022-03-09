@@ -8,7 +8,6 @@ import { writeFileSync } from 'fs';
 import { pythonShellCallSimple } from './python-call';
 import { environment } from '../app';
 import { Task } from '../db_schema/task';
-import { taskSchema } from './pddl_converter';
 
 export class PropertyCheck {
 
@@ -32,7 +31,7 @@ export class PropertyCheck {
         child.execSync(`cp ${path.join(environment.uploadsPath, problemFileName)} ${path.join(this.runFolder, 'problem.pddl')}`);
 
         writeFileSync(path.join(this.runFolder, 'schema.json'),
-            taskSchema(this.task),
+            this.task.taskSchema(),
             'utf8')
 
         writeFileSync(path.join(this.runFolder, 'exp_setting.json'),

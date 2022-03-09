@@ -3,8 +3,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { auth, authForward, authUserStudy } from '../../middleware/auth';
 import { USUser, USUserModel } from '../../db_schema/user-study/user-study-user';
-import {UserStudyData, UserStudyDemoData, UserStudyDataModel
-} from '../../db_schema/user-study/user-study-store';
+import {UserStudyData, UserStudyDataModel} from '../../db_schema/user-study/user-study-store';
 import { DepExplanationRun, PlanRun } from '../../db_schema/iteration_step';
 
 export const userStudyRouter = express.Router();

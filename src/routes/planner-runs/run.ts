@@ -11,7 +11,7 @@ import { authUserStudy } from '../../middleware/auth';
 
 export const runRouter = express.Router();
 
-runRouter.post('/iter-step', authUserStudy, async (req, res) => {
+runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
 
     try {
         const iterStepData = req.body.data as IterationStep;

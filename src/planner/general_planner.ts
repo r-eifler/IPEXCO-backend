@@ -12,7 +12,6 @@ import { readFileSync, writeFileSync } from 'fs';
 import { CallResult, pythonShellCallFD, pythonShellCallSimple } from './python-call';
 import { environment } from '../app';
 import { domain } from 'process';
-import { convert2PDDL } from './pddl_converter';
 import { Task } from '../db_schema/task';
 
 
@@ -64,8 +63,8 @@ export class TranslatorCall{
         child.spawnSync('cp', [path.join(this.runFolder, 'fdr.json'),
             path.join(environment.resultsPath, `task_schema_${this.project._id}.json`)]);
 
-        // this.project.taskSchema = environment.serverResultsPath + `/task_schema_${this.project._id}.json`;
-        // TODO ready contest and write into basetask
+        let taskString = readFileSync(environment.serverResultsPath + `/task_schema_${this.project._id}.json`, 'utf8');
+        this.project.baseTask = JSON.parse(taskString) as Task;
     }
 
     tidyUp(): void {
@@ -95,7 +94,7 @@ export class PlannerCall {
 
         child.execSync(`mkdir -p ${this.runFolder}`);
 
-        const task_definition: string[] = convert2PDDL(this.task);
+        const task_definition: string[] = this.task.toPDDL();
 
         writeFileSync(path.join(this.runFolder, 'domain.pddl'),
             task_definition[0],
@@ -171,9 +170,10 @@ export class PlanCall extends PlannerCall{
 
     copy_experiment_results(): void {
         const buffer: Buffer = readFileSync(path.join(this.runFolder, 'sas_plan'));
-        this.step.plan?.result = buffer.toString('utf8');
-
-        this.step.plan?.log = environment.serverResultsPath + `/out_${this.runId}.log`;
+        if (this.step.plan){
+            this.step.plan.result = buffer.toString('utf8');
+            this.step.plan.log = environment.serverResultsPath + `/out_${this.runId}.log`;
+        }
     }
 }
 

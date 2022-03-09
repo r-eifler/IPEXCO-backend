@@ -8,7 +8,6 @@ import { ExperimentSetting } from './experiment_setting';
 import { PythonShell } from 'python-shell';
 import { environment } from '../app';
 import { json } from 'express';
-import { taskSchema } from './pddl_converter';
 
 const runningPythonShells = new Map<string, PythonShell>();
 
@@ -59,7 +58,7 @@ export class DemoComputation {
         child.execSync(`cp ${path.join(environment.uploadsPath, problemFileName)} ${path.join(this.runFolder, 'problem.pddl')}`);
 
         writeFileSync(path.join(this.runFolder, 'task-schema.json'),
-            taskSchema(this.demo.baseTask),
+            this.demo.baseTask.taskSchema(),
             'utf8');
 
 
