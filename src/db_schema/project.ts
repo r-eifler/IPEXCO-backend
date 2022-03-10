@@ -1,9 +1,7 @@
-import { TaskModification } from './task_modification';
 import { User } from './user';
 import mongoose, { Document, Schema } from 'mongoose';
 import { File, FileSchema } from './file';
-import { PlanProperty } from './plan-properties/plan_property';
-import { Task } from './task';
+import { Task, TaskSchema } from './task';
 
 export enum ProjectType {
     general = 'GENERAL',
@@ -16,27 +14,29 @@ const baseOptions = {
   };
 
 export interface Project extends Document{
-    _id: string;
+    _id?: string;
     name: string;
+    public: boolean;
     user: User;
     domainFile: File;
     domainSpecification: File;
     problemFile: File;
     description: string;
-    baseTask: Task; 
-    settings: string;
+    baseTask?: Task; 
+    settings: any;
     animationSettings: string;
 }
 
 const BaseProjectSchema = new Schema({
     name: { type: String, required: true},
+    public: { type: Boolean, required: true},
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     domainFile: { type: FileSchema, required: true},
     domainSpecification: { type: FileSchema, required: true},
     problemFile: { type: FileSchema, required: true},
     description: { type: String, required: true},
-    baseTask: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
-    settings: { type: String, required: false},
+    baseTask: {type: TaskSchema, required: false},
+    settings: { type: Object, required: false},
     animationSettings: { type: String, required: false}
 }, baseOptions);
 

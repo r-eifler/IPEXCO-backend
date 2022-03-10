@@ -12,49 +12,58 @@ import { deleteIterationStep } from './utils';
 export const projectRouter = express.Router();
 
 
-async function computeAndStoreSchema(project: Project): Promise<Project | null> {
-    try {
-        const planner = new TranslatorCall(environment.experimentsRootPath, project);
-        await planner.executeRun();
+async function computeAndStoreSchema(project: Project): Promise<string> {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const planner = new TranslatorCall(environment.experimentsRootPath, project);
+            await planner.executeRun();
 
-        await ProjectModel.updateOne({ _id: project._id},
-            { $set: { baseTask: project.baseTask} });
+            await project.save();
 
-        return await ProjectModel.findOne({ _id: project._id}).lean();
-    } catch {
-        await ProjectModel.deleteOne({ _id: project._id});
-        return null;
-    }
+            resolve('Task creation successful.');
+        } catch (ex) {
+            console.log(ex.message);
+            reject('Task creation failed.');
+        }
+    });
 }
 
 
 projectRouter.post('/', async (req: any, res) => {
+    let projectId = null;;
     try {
         const projectData: Project = req.body.data as Project;
         projectData.user = req.user._id;
+        projectData.settings = projectData.settings;
+        delete projectData._id;
 
         const projectModel = new ProjectModel(projectData);
 
         if (!projectModel) {
-            return res.status(403).send('Create project failed.');
+            return res.status(404).send('Create project failed.');
         }
 
-        projectModel.save().then(async project => {
+        let newProject: Project | null = await projectModel.save();
 
-            const resProject: Project | null = await computeAndStoreSchema(project);
+        if (!newProject) {
+            return res.status(404).send('Create project failed.');
+        }
+        projectId = newProject._id;
 
-            res.send({
-                status: true,
-                message: 'Project is stored',
-                data: resProject
-            });
-        },
-        reason => {
-            console.log(reason);
+        await computeAndStoreSchema(newProject);
+        
+        res.send({
+            status: true,
+            message: 'Project created',
+            data: newProject
         });
 
     } catch (ex) {
-        res.send(ex.message);
+        console.log(ex.message);
+        if(projectId){
+            await ProjectModel.deleteOne({ _id: projectId });
+        }
+        res.status(404).send(ex.message);
     }
 });
 
@@ -65,14 +74,16 @@ projectRouter.put('/:id', async (req, res) => {
         const project: Project | null = await BaseProjectModel.findOne({ _id: refId});
 
         if (!project) {
-            return res.status(403).send('update project failed');
+            return res.status(404).send('update project failed');
         }
 
-        const projectData: Project = req.body.project as Project;
+        const projectData: Project = req.body.data as Project;
 
         project.name = projectData.name;
         project.description = projectData.description;
         project.animationSettings = projectData.animationSettings;
+        project.settings = projectData.settings;
+        project.public = projectData.public;
 
         await project.save();
 
@@ -106,6 +117,7 @@ projectRouter.get('/:id', async (req, res) => {
     if (!project) { 
         return res.status(404).send({ message: 'No project found.' });
     }
+    //project.settings = JSON.parse(project.settings);
     res.send({
         data: project
     });

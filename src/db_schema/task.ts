@@ -50,15 +50,15 @@ export class Predicat {
 const FactSchema = new Schema({
     name: String,
     negated: Boolean,
-    arguments: [ObjectSchema]
+    arguments: [String]
 });
 
 export class Fact {
     private name: string;
     private negated: boolean;
-    private arguments: Object[];
+    private arguments: string[];
 
-    constructor(name: string, args: Object[], negated=false){
+    constructor(name: string, args: string[], negated=false){
         this.name = name;
         this.arguments = args;
         this.negated = negated;
@@ -66,24 +66,24 @@ export class Fact {
 
     toPDDL(): string {
         return (this.negated ? "! " : "") + "(" + this.name + ' ' + 
-            this.arguments.map(p => p.name).join(' ') + ")"
+            this.arguments.join(' ') + ")"
     }
 }
 
 const ActionSchema = new Schema({
     name: String,
     parameters: [ObjectSchema],
-    precondition: [PredicatSchema],
-    effects: [PredicatSchema]
+    precondition: [FactSchema],
+    effects: [FactSchema]
 });
 
 export class Action {
     private name: string;
     private parameters: Object[];
-    private precondition: Predicat[];
-    private effects: Predicat[];
+    private precondition: Fact[];
+    private effects: Fact[];
 
-    constructor(name: string, parameters: Object[], precondition: Predicat[], effects: Predicat[]){
+    constructor(name: string, parameters: Object[], precondition: Fact[], effects: Fact[]){
         this.name = name;
         this.parameters = parameters;
         this.precondition = precondition;
@@ -99,12 +99,12 @@ export class Action {
     }
 }
 
-const TaskSchema = new Schema({
+export const TaskSchema = new Schema({
     name: String,
     domain: String,
     types: [TypeSchema],
     objects: [ObjectSchema],
-    predicats: [PredicatSchema],
+    predicates: [PredicatSchema],
     initial: [FactSchema],
     goal: [FactSchema],
     actions: [ActionSchema]
@@ -116,7 +116,7 @@ export class Task extends Document {
     domain: string;
     types: Type[];
     objects: Object[];
-    predicats: Predicat[];
+    predicates: Predicat[];
     initial: Fact[];
     goal: Fact[];
     actions: Action[];
@@ -128,7 +128,7 @@ export class Task extends Document {
         this.domain = domain;
         this.types = types;
         this.objects = objects;
-        this.predicats = predicates;
+        this.predicates = predicates;
         this.initial = initial;
         this.goal = goal;
         this.actions = actions;
@@ -139,7 +139,7 @@ export class Task extends Document {
         let d = "(define (domain " + this.domain + ")\n";
         d += "(:requirements :typing :action-costs)\n";
         d += "(:types " + this.types.map(t => t.name + "-" + t.parent).join("\n") + "\n)\n";
-        d += "(predicates: " + this.predicats.map(p => p.toPDDL(true)).join("\n") + "\n)\n";
+        d += "(predicates: " + this.predicates.map(p => p.toPDDL(true)).join("\n") + "\n)\n";
         d += this.actions.map(a => a.toPDDL()).join("\n");
         d += "\n)";
 
@@ -158,4 +158,4 @@ export class Task extends Document {
     }
 }
 
-export const TaskModel = mongoose.model<Task>('task', TaskSchema);
+

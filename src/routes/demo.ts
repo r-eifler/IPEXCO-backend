@@ -238,6 +238,7 @@ demoRouter.put('/', auth, async (req, res) => {
         demo.name = demoData.name;
         demo.description = demoData.description;
         demo.taskInfo = demoData.taskInfo;
+        demo.settings = demoData.settings;
 
         await demo.save();
 

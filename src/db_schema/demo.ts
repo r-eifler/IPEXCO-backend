@@ -9,7 +9,6 @@ export interface Demo  extends Project{
     taskInfo?: string;
     explanationHierarchy: string;
     maxUtility: string;
-    public: boolean;
 }
 
 const DemoSchema = new Schema({
@@ -19,7 +18,6 @@ const DemoSchema = new Schema({
     taskInfo: { type: String, required: false},
     explanationHierarchy: { type: String, required: false},
     maxUtility: { type: String, required: false},
-    public: { type: Boolean, required: true}
 });
 
 export const DemoModel = BaseProjectModel.discriminator<Demo>('demo-project', DemoSchema);

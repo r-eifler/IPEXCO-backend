@@ -1,7 +1,8 @@
+import { Fact } from './../db_schema/task';
 import { IterationStep } from './../db_schema/iteration_step';
 import { Project } from './../db_schema/project';
 import 'process';
-import path from 'path';
+import path, { resolve } from 'path';
 import * as child from 'child_process';
 import 'fs';
 
@@ -13,6 +14,7 @@ import { CallResult, pythonShellCallFD, pythonShellCallSimple } from './python-c
 import { environment } from '../app';
 import { domain } from 'process';
 import { Task } from '../db_schema/task';
+import { rejects } from 'assert';
 
 
 export class TranslatorCall{
@@ -36,35 +38,61 @@ export class TranslatorCall{
         child.execSync(`cp ${path.join(environment.uploadsPath, domainFileName)} ${path.join(this.runFolder, 'domain.pddl')}`);
         child.execSync(`cp ${path.join(environment.uploadsPath, problemFileName)} ${path.join(this.runFolder, 'problem.pddl')}`);
 
-        child.execSync(`cp -r ${environment.planner} ${this.runFolder}/fast-downward`);
+        // child.execSync(`cp -r ${environment.planner} ${this.runFolder}/fast-downward`);
+        child.execSync(`ln -s ${environment.planner} ${this.runFolder}/fast-downward`);
     }
 
-    async executeRun(): Promise<void> {
+    async executeRun(): Promise<string> {
+        return new Promise(async (resolve, reject) => {
+            const addArgs = [this.runFolder, '--build', 'release64', '--translate' , `${this.runFolder}/domain.pddl`,
+                `${this.runFolder}/problem.pddl`];
 
-        const addArgs = [this.runFolder, '--build', 'release64', '--translate' , `${this.runFolder}/domain.pddl`,
-            `${this.runFolder}/problem.pddl`];
+            const options = {
+                mode: 'text',
+                pythonPath: '/usr/bin/python3',
+                pythonOptions: ['-u'],
+                scriptPath: `${this.runFolder}/fast-downward/`,
+                args: addArgs,
+                env: { SPOT_BIN_PATH: environment.spot, LTL2HAO_PATH: environment.ltltkit},
+            };
 
-        const options = {
-            mode: 'text',
-            pythonPath: '/usr/bin/python3',
-            pythonOptions: ['-u'],
-            scriptPath: `${this.runFolder}/fast-downward/`,
-            args: addArgs,
-            env: { SPOT_BIN_PATH: environment.spot, LTL2HAO_PATH: environment.ltltkit},
-        };
+            const results = await pythonShellCallSimple('run_FD.py', options);
+            if (! results){
+                reject('Task computation failed');
+                return;
+            }
 
-        const results = await pythonShellCallSimple('run_FD.py', options);
-        writeFileSync(path.join(environment.resultsPath, `out_${this.project._id}.log`), results.join('\n'), 'utf8');
+            writeFileSync(path.join(environment.resultsPath, `out_${this.project._id}.log`), results.join('\n'), 'utf8');
 
-        this.copy_experiment_results();
+            if (this.copy_experiment_results()){
+                // console.log("copy_experiment_results: succ");
+                resolve("result copy successful");
+                return;
+            }
+            // console.log("copy_experiment_results: fail")
+            reject("result copy failed");
+            return;
+        });
     }
 
-    copy_experiment_results(): void {
+    copy_experiment_results(): boolean {
         child.spawnSync('cp', [path.join(this.runFolder, 'fdr.json'),
             path.join(environment.resultsPath, `task_schema_${this.project._id}.json`)]);
 
-        let taskString = readFileSync(environment.serverResultsPath + `/task_schema_${this.project._id}.json`, 'utf8');
-        this.project.baseTask = JSON.parse(taskString) as Task;
+        let taskString = readFileSync(path.join(environment.resultsPath, `task_schema_${this.project._id}.json`), 'utf8');
+        let jsontask = JSON.parse(taskString);
+        jsontask.initial = jsontask.init;
+        delete jsontask.init;
+        let task = jsontask as Task;
+        // console.log(task);
+        if (task){
+            console.log("Task created ...");
+            this.project.baseTask = task;
+            // console.log(this.project);
+            // console.log(this.project.baseTask);
+            return true;
+        }
+        return false;
     }
 
     tidyUp(): void {
@@ -108,7 +136,8 @@ export class PlannerCall {
             JSON.stringify(this.generate_experiment_setting()),
             'utf8');
 
-        child.execSync(`cp -r ${environment.planner} ${this.runFolder}/fast-downward`);
+        // child.execSync(`cp -r ${environment.planner} ${this.runFolder}/fast-downward`);
+        child.execSync(`ln -s ${environment.planner} ${this.runFolder}/fast-downward`);
     }
 
     generate_experiment_setting(): ExperimentSetting {

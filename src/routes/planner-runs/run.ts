@@ -47,6 +47,21 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
 
 });
 
+
+runRouter.get('/iter-step/', async (req, res) => {
+    const projectId : string = req.query.projectId as string;
+    const steps = await IterationStepModel.find({ project: projectId});
+
+    if (!steps) { 
+        return res.status(404).send({ message: 'ERROR: No step found.' });
+    }
+
+    res.send({
+        data: steps
+    });
+
+});
+
 runRouter.get('/iter-step/:id', async (req, res) => {
     const id =  req.params.id;
     const run = await IterationStepModel.findOne({ _id: id})

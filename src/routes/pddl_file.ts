@@ -38,8 +38,8 @@ const upload = multer({
 
 pddlFileRouter.post('/', upload.single('content'), async (req, res) => {
     try {
-        const fileData = req.body.data as File
-        fileData.path = '/uploads/' + req.file?.filename
+        const fileData = req.body as File;
+        fileData.path = '/uploads/' + req.file?.filename;
 
         const file = new FileModel(fileData)
 
