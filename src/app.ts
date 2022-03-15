@@ -23,6 +23,7 @@ import { Environment } from './environment';
 
 import * as dotenv from "dotenv";
 import { metaStudyRouter } from './routes/user-study/meta-study';
+import { planningTaskRelaxtionRouter } from './routes/planning_task_relaxation';
 dotenv.config();
 
 console.log('-------- XPP BACK END ---------');
@@ -59,6 +60,7 @@ app.use('/api/user-study', userStudyRouter);
 app.use('/api/demo', demoRouter);
 
 app.use('/api/plan-property', planPropertyRouter);
+app.use('/api/planning-task-relaxation', planningTaskRelaxtionRouter);
 
 app.use('/uploads', express.static(path.join(__dirname, 'data/uploads')));
 app.use('/results', express.static(path.join(__dirname, 'data/results')));

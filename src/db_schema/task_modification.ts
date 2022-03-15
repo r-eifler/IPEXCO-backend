@@ -1,28 +1,44 @@
-import { Task } from './task';
+import { Fact, Task, FactSchema } from './task';
 import mongoose, { Document, Schema } from 'mongoose';
 
-export interface TaskModification extends Document {
+export interface TaskUpdates{
+    orgFact: Fact;
+    newFacts: {fact: Fact, value: number}[];
+}
+
+const TaskUpdatesSchema = new Schema({
+    orgFact: FactSchema,
+    newFacts: [{fact: FactSchema, value: Number}],
+});
+
+export interface PlanningTaskRelaxationSpace extends Document{
     _id: string;
     name: string;
     project: string,
-    type: string;
-    isUsed: boolean;
-    task: Task;
-    value: number;
-    upper: TaskModification[];
-    lower: TaskModification[];
-}
+    taskUpdatList: TaskUpdates[];
+  }
 
-const TaskModificationSchema = new Schema({
+const PlanningTaskRelaxationSpaceSchema = new Schema({
     name: { type: String, required: true},
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
-    type: { type: String, required: true},
-    isUsed: { type: Boolean, required: true},
-    task: { type: mongoose.Schema.Types.ObjectId, ref: 'task' },
-    value: { type: Number, required: true},
-    upper: [{ type: mongoose.Schema.Types.ObjectId, ref: 'task-modification' }],
-    lower: [{ type: mongoose.Schema.Types.ObjectId, ref: 'task-modification' }],
+    taskUpdatList: [TaskUpdatesSchema],
 });
 
-export const TaskRelaxationModel = mongoose.model<TaskModification>('task-modification', TaskModificationSchema);
+export const PlanningTaskRelaxationSpaceModel = mongoose.model<PlanningTaskRelaxationSpace>('planning-task-relaxation-space', PlanningTaskRelaxationSpaceSchema);
 
+export interface ModifiedPlanningTask extends Document{
+    _id: string;
+    name: string;
+    project: string,
+    basetask: Task;
+    taskUpdatList: TaskUpdates[];
+  }
+
+const ModifiedPlanningTaskSchema = new Schema({
+    name: { type: String, required: true},
+    project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
+    task: { type: mongoose.Schema.Types.ObjectId, ref: 'task' },
+    upptaskUpdatLister: [TaskUpdatesSchema],
+});
+
+export const ModifiedPlanningTaskModel = mongoose.model<ModifiedPlanningTask>('modified-planning-task', ModifiedPlanningTaskSchema);

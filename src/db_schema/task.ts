@@ -47,7 +47,7 @@ export class Predicat {
     }
 }
 
-const FactSchema = new Schema({
+export const FactSchema = new Schema({
     name: String,
     negated: Boolean,
     arguments: [String]

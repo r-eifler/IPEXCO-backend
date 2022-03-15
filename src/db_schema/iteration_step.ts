@@ -1,7 +1,8 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { PlanProperty } from './plan-properties/plan_property';
 import { Project } from './project';
-import { TaskModification } from './task_modification';
+import { Task } from './task';
+import { ModifiedPlanningTask, TaskModification } from './task_modification';
 
 export enum RunStatus {
     pending,
@@ -18,7 +19,7 @@ export interface IterationStep extends Document{
     project: Project | string;
     hardGoals: PlanProperty[];
     softGoals: PlanProperty[];
-    taskModification: TaskModification;
+    task: ModifiedPlanningTask;
     plan: PlanRun | null;
     depExplanations: DepExplanationRun[];
     predecessorStep: IterationStep | null;
@@ -30,7 +31,7 @@ const IterationStepSchema = new Schema({
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
     hardGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     softGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
-    taskModification: [{ type: mongoose.Schema.Types.ObjectId, ref: 'task-modification' }],
+    task: [{ type: mongoose.Schema.Types.ObjectId, ref: 'modified-planning-task' }],
     plan: { type: mongoose.Schema.Types.ObjectId, ref: 'plan-run' },
     depExplanations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'dep-explanation-run' }],
     predecessorStep: { type: mongoose.Schema.Types.ObjectId, ref: 'iteration-step', required: false },
