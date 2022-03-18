@@ -34,8 +34,9 @@ planningTaskRelaxtionRouter.post('/', auth, async (req, res) => {
 planningTaskRelaxtionRouter.put('/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
+        const relaxationData = req.body.data as PlanningTaskRelaxationSpace;
 
-        await PlanningTaskRelaxationSpaceModel.replaceOne({ _id: refId}, req.body);
+        await PlanningTaskRelaxationSpaceModel.replaceOne({ _id: refId}, relaxationData);
 
         const relaxSpace: PlanningTaskRelaxationSpace | null = await PlanningTaskRelaxationSpaceModel.findOne({ _id: refId}).lean();
 

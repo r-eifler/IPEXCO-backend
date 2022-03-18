@@ -8,6 +8,7 @@ export const planPropertyRouter = express.Router();
 
 planPropertyRouter.post('/', auth, async (req, res) => {
     try {
+        console.log(req.body);
         const planPropertyData = req.body.data as PlanProperty;
 
         const planProperty = new PlanPropertyModel(planPropertyData);
@@ -24,6 +25,7 @@ planPropertyRouter.post('/', auth, async (req, res) => {
     }
 
     catch (ex) {
+        console.log(ex.message);
         res.send(ex.message);
     }
 });
