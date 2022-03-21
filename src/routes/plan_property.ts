@@ -35,7 +35,9 @@ planPropertyRouter.put('/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
 
-        await PlanPropertyModel.replaceOne({ _id: refId}, req.body);
+        const planPropertyData = req.body.data as PlanProperty;
+
+        await PlanPropertyModel.replaceOne({ _id: refId}, planPropertyData);
 
         const planProperty: PlanProperty | null = await PlanPropertyModel.findOne({ _id: refId}).lean();
 

@@ -2,7 +2,13 @@ import mongoose, { Document, Schema } from 'mongoose';
 import { PlanProperty } from './plan-properties/plan_property';
 import { Project } from './project';
 import { Task } from './task';
-import { ModifiedPlanningTask, TaskModification } from './task_modification';
+import { ModifiedPlanningTask} from './task_modification';
+
+export enum StepStatus{
+    unknown,
+    solvable,
+    unsolvable
+  }
 
 export enum RunStatus {
     pending,
@@ -17,6 +23,7 @@ export interface IterationStep extends Document{
     name: string;
     createdAt?: Date;
     project: Project | string;
+    status: StepStatus;
     hardGoals: PlanProperty[];
     softGoals: PlanProperty[];
     task: ModifiedPlanningTask;
