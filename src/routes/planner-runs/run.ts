@@ -15,6 +15,7 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
 
     try {
         const iterStepData = req.body.data as IterationStep;
+        console.log(iterStepData);
 
         const iterationStep = new IterationStepModel(iterStepData);
         if (!iterationStep) {
@@ -42,6 +43,7 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
     }
 
     catch (ex) {
+        console.log(ex.message);
         res.send(ex.message);
     }
 
@@ -50,7 +52,11 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
 
 runRouter.get('/iter-step/', async (req, res) => {
     const projectId : string = req.query.projectId as string;
-    const steps = await IterationStepModel.find({ project: projectId});
+    const steps = await IterationStepModel.find({ project: projectId})
+        .populate('hardGoals')
+        .populate('softGoals')
+        .populate('relaxations')
+        .populate('depExplanations');
 
     if (!steps) { 
         return res.status(404).send({ message: 'ERROR: No step found.' });

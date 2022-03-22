@@ -2,7 +2,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 import { PlanProperty } from './plan-properties/plan_property';
 import { Project } from './project';
 import { Task } from './task';
-import { ModifiedPlanningTask} from './task_modification';
+import { ModifiedPlanningTask, ModifiedPlanningTaskSchema} from './task_modification';
 
 export enum StepStatus{
     unknown,
@@ -38,7 +38,7 @@ const IterationStepSchema = new Schema({
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
     hardGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     softGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
-    task: [{ type: mongoose.Schema.Types.ObjectId, ref: 'modified-planning-task' }],
+    task: [ModifiedPlanningTaskSchema],
     plan: { type: mongoose.Schema.Types.ObjectId, ref: 'plan-run' },
     depExplanations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'dep-explanation-run' }],
     predecessorStep: { type: mongoose.Schema.Types.ObjectId, ref: 'iteration-step', required: false },

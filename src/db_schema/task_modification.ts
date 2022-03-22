@@ -34,11 +34,11 @@ export interface ModifiedPlanningTask extends Document{
     taskUpdatList: TaskUpdates[];
   }
 
-const ModifiedPlanningTaskSchema = new Schema({
+export const ModifiedPlanningTaskSchema = new Schema({
     name: { type: String, required: true},
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
     task: { type: mongoose.Schema.Types.ObjectId, ref: 'task' },
     upptaskUpdatLister: [TaskUpdatesSchema],
 });
 
-export const ModifiedPlanningTaskModel = mongoose.model<ModifiedPlanningTask>('modified-planning-task', ModifiedPlanningTaskSchema);
+// export const ModifiedPlanningTaskModel = mongoose.model<ModifiedPlanningTask>('modified-planning-task', ModifiedPlanningTaskSchema);
