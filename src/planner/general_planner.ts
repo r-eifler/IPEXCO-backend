@@ -1,4 +1,4 @@
-import { Fact } from '../db_schema/base_planning_task';
+import { ModifiedPlanningTask } from './../db_schema/modified_planning_task';
 import { IterationStep } from './../db_schema/iteration_step';
 import { Project } from './../db_schema/project';
 import 'process';
@@ -6,15 +6,13 @@ import path, { resolve } from 'path';
 import * as child from 'child_process';
 import 'fs';
 
-import { DepExplanationRun, PlanRun } from '../db_schema/iteration_step';
+import { DepExplanationRun } from '../db_schema/iteration_step';
 import { PlanProperty } from '../db_schema/plan-properties/plan_property';
 import { ExperimentSetting } from './experiment_setting';
 import { readFileSync, writeFileSync } from 'fs';
 import { CallResult, pythonShellCallFD, pythonShellCallSimple } from './python-call';
 import { environment } from '../app';
-import { domain } from 'process';
 import { PlanningTask } from '../db_schema/planning_task';
-import { rejects } from 'assert';
 
 
 export class TranslatorCall{
@@ -42,7 +40,7 @@ export class TranslatorCall{
         child.execSync(`ln -s ${environment.planner} ${this.runFolder}/fast-downward`);
     }
 
-    async executeRun(): Promise<string> {
+    async executeRun(): Promise<PlanningTask> {
         return new Promise(async (resolve, reject) => {
             const addArgs = [this.runFolder, '--build', 'release64', '--translate' , `${this.runFolder}/domain.pddl`,
                 `${this.runFolder}/problem.pddl`];
@@ -64,18 +62,18 @@ export class TranslatorCall{
 
             writeFileSync(path.join(environment.resultsPath, `out_${this.project._id}.log`), results.join('\n'), 'utf8');
 
-            if (this.copy_experiment_results()){
-                // console.log("copy_experiment_results: succ");
-                resolve("result copy successful");
+            let task = this.copy_experiment_results()
+            if (task){
+                resolve(task);
                 return;
             }
             // console.log("copy_experiment_results: fail")
-            reject("result copy failed");
+            reject(task);
             return;
         });
     }
 
-    copy_experiment_results(): boolean {
+    copy_experiment_results(): PlanningTask | null {
         child.spawnSync('cp', [path.join(this.runFolder, 'fdr.json'),
             path.join(environment.resultsPath, `task_schema_${this.project._id}.json`)]);
 
@@ -83,16 +81,7 @@ export class TranslatorCall{
         let jsontask = JSON.parse(taskString);
         jsontask.initial = jsontask.init;
         delete jsontask.init;
-        let task = jsontask as PlanningTask;
-        // console.log(task);
-        if (task){
-            console.log("Task created ...");
-            this.project.baseTask = task;
-            // console.log(this.project);
-            // console.log(this.project.baseTask);
-            return true;
-        }
-        return false;
+        return new PlanningTask(jsontask);
     }
 
     tidyUp(): void {
@@ -105,14 +94,17 @@ export class TranslatorCall{
 export class PlannerCall {
 
     runFolder: string;
+    protected task : PlanningTask;
 
     constructor(
         protected plannerSetting: string[],
         protected root: string,
         protected runId: string,
-        protected task: PlanningTask,
+        protected modTask: ModifiedPlanningTask,
         protected hardGoals: PlanProperty[],
         protected softGoals: PlanProperty[]) {
+
+        this.task = new PlanningTask(this.modTask.basetask);
         this.runFolder = path.join(root, String(this.runId));
 
         this.create_experiment_setup();
@@ -194,7 +186,7 @@ const plannerSettingSatPlan = ['--search', 'lazy_greedy([ff()], preferred=[ff()]
 export class PlanCall extends PlannerCall{
 
     constructor(root: string, private step: IterationStep) {
-        super(plannerSettingOptPlan, root, step._id, step.task.basetask, step.hardGoals, step.softGoals);
+        super(plannerSettingOptPlan, root, step._id, step.task, step.hardGoals, step.softGoals);
     }
 
     copy_experiment_results(): void {
@@ -213,7 +205,7 @@ const plannerSettingMUGS = ['--heuristic', 'h=hc(nogoods=false, cache_estimates=
 export class ExplanationCall extends PlannerCall{
 
     constructor(root: string, step: IterationStep, private depExpRun: DepExplanationRun) {
-        super(plannerSettingMUGS, root, depExpRun._id, step.task.basetask, depExpRun.hardGoals, depExpRun.softGoals);
+        super(plannerSettingMUGS, root, step._id, step.task, depExpRun.hardGoals, depExpRun.softGoals);
     }
 
     copy_experiment_results(): void {

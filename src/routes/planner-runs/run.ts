@@ -1,11 +1,9 @@
 import { UserStudyDataModel } from './../../db_schema/user-study/user-study-store';
-import { DepExplanationRunModel, IterationStep, IterationStepModel, RelaxationExplanationRun, RelaxationExplanationRunModel } from './../../db_schema/iteration_step';
+import { IterationStep, IterationStepModel, RelaxationExplanationRun } from './../../db_schema/iteration_step';
 import express from 'express';
 import mongoose from 'mongoose';
 
-import { DepExplanationRun, PlanRun} from '../../db_schema/iteration_step';
-import { deleteResultFile } from '../../planner/pddl_file_utils';
-import { deleteDepExplanation, deleteIterationStep, deleteRelaxationExplanation } from '../utils';
+import { deleteIterationStep } from '../utils';
 import { authUserStudy } from '../../middleware/auth';
 
 
@@ -56,7 +54,9 @@ runRouter.get('/iter-step/', async (req, res) => {
         .populate('hardGoals')
         .populate('softGoals')
         .populate('relaxations')
-        .populate('depExplanations');
+        .populate('depExplanations')
+        .populate('task.basetask')
+        .populate('plan.satPlanProperties');
 
     if (!steps) { 
         return res.status(404).send({ message: 'ERROR: No step found.' });
@@ -86,6 +86,35 @@ runRouter.get('/iter-step/:id', async (req, res) => {
 
 });
 
+runRouter.put('/iter-step/:id', async (req, res) => {
+    try {
+        const refId = req.params.id;
+        const step: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+
+        if (!step) {
+            return res.status(404).send('update step failed');
+        }
+
+        const stepData: IterationStep = req.body.data as IterationStep;
+
+        step.status = stepData.status;
+        step.plan = stepData.plan
+        step.depExplanations = stepData.depExplanations
+
+        await step.save();
+
+        res.send({
+            status: true,
+            message: 'Step updated',
+            data: step
+        });
+
+    } catch (ex) {
+        res.send(ex.message);
+    }
+
+});
+
 
 runRouter.delete('/iter-step/:id', async (req, res) => {
 
@@ -104,62 +133,5 @@ runRouter.delete('/iter-step/:id', async (req, res) => {
 });
 
 
-
-
-runRouter.get('/dep-explanation/:id', async (req, res) => {
-    const run = await DepExplanationRunModel.findOne({ _id: req.params.id})
-        .populate('hardGoals')
-        .populate('softGoals')
-        .populate('relaxationExplanations');
-
-    if (!run) { 
-        return res.status(404).send({ message: 'no explanation found' }); 
-    }
-
-    res.send({
-        data: run
-    });
-});
-
-runRouter.delete('/dep-explanation/:id', async (req, res) => {
-    const depExp: DepExplanationRun | null = await DepExplanationRunModel.findOne({ _id: req.params.id });
-
-    if (!depExp) {
-        return res.status(404).send({ message: 'No explanation found.' });
-    }
-
-    await deleteDepExplanation(depExp);
-
-    res.send({
-        data: depExp
-    });
-});
-
-runRouter.get('/relaxation-explanation/:id', async (req, res) => {
-    const run = await RelaxationExplanationRunModel.findOne({ _id: req.params.id})
-        .populate('dependency');
-
-    if (!run) { 
-        return res.status(404).send({ message: 'no explanation found' }); 
-    }
-
-    res.send({
-        data: run
-    });
-});
-
-runRouter.delete('/relaxation-explanation/:id', async (req, res) => {
-    const relaxExp: RelaxationExplanationRun | null = await RelaxationExplanationRunModel.findOne({ _id: req.params.id });
-
-    if (!relaxExp) {
-        return res.status(404).send({ message: 'No explanation found.' });
-    }
-
-    await deleteRelaxationExplanation(relaxExp);
-
-    res.send({
-        data: relaxExp
-    });
-});
 
 

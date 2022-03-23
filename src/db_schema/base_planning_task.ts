@@ -27,9 +27,9 @@ export const PredicatSchema = new Schema({
 });
 
 export class Predicat {
-    private name: string;
-    private negated: boolean;
-    private parameters: Object[];
+    name: string;
+    negated: boolean;
+    parameters: Object[];
 
     constructor(name: string, parameters: Object[], negated=false){
         this.name = name;
@@ -37,12 +37,16 @@ export class Predicat {
         this.negated = negated;
     }
 
+    static fromJSON(json){
+        return new Predicat(json.name, json.parameters, json.negated);
+      }
+
     toPDDL(withType = false): string {
         if (withType){
             return "(" + this.name + ' ' + 
             this.parameters.map(p => p.name + " - " + p.type).join(' ') + ")"
         }
-        return (this.negated ? "! " : "") + "(" + this.name + ' ' + 
+        return (this.negated ? "not " : "") + "(" + this.name + ' ' + 
             this.parameters.map(p => p.name).join(' ') + ")"
     }
 }
@@ -54,9 +58,9 @@ export const FactSchema = new Schema({
 });
 
 export class Fact {
-    private name: string;
-    private negated: boolean;
-    private arguments: string[];
+    name: string;
+    negated: boolean;
+    arguments: string[];
 
     constructor(name: string, args: string[], negated=false){
         this.name = name;
@@ -64,9 +68,13 @@ export class Fact {
         this.negated = negated;
     }
 
+    static fromJSON(json){
+        return new Fact(json.name, json.arguments, json.negated);
+      }
+
     toPDDL(): string {
-        return (this.negated ? "! " : "") + "(" + this.name + ' ' + 
-            this.arguments.join(' ') + ")"
+        return (this.negated ? "(not " : "") + "(" + this.name + ' ' + 
+            this.arguments.join(' ') + (this.negated ? ")) " : ")")
     }
 }
 
@@ -90,11 +98,17 @@ export class Action {
         this.effects = effects;
     }
 
+    static fromJSON(json){
+        return new Action(json.name, json.parameters,
+          json.precondition.map(p => Fact.fromJSON(p)),
+          json.effects.map(e => Fact.fromJSON(e)));
+      }
+
     toPDDL(): string {
         let s = "(:action " + this.name + "\n";
-        s += "\tparameters: " + this.parameters.map(p => "(" + p.name + ")").join(' ') + "\n";
-        s += "\tprecondition: (and " + this.precondition.map(p => p.toPDDL()).join(' ') + ")\n";
-        s += "\teffect: (and " + this.effects.map(p => p.toPDDL()).join(' ') + ")\n"; 
+        s += "\t:parameters (" + this.parameters.map(p => p.name).join(' ') + ")\n";
+        s += "\t:precondition (and " + this.precondition.map(p => p.toPDDL()).join(' ') + ")\n";
+        s += "\t:effect (and " + this.effects.map(p => p.toPDDL()).join(' ') + ")\n"; 
         return s + ")\n";
     }
 }

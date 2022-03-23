@@ -1,12 +1,7 @@
 import { User } from './user';
 import mongoose, { Document, Schema } from 'mongoose';
 import { File, FileSchema } from './file';
-import { PlanningTask, PlanningTaskSchema } from './planning_task';
-
-export enum ProjectType {
-    general = 'GENERAL',
-    demo = 'DEMO'
-}
+import { PlanningTask } from './planning_task';
 
 const baseOptions = {
     discriminatorKey: 'itemType',

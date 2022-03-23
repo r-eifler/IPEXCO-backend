@@ -20,7 +20,7 @@ export class PropertyCheck {
         private planProperties: PlanProperty[],
         private planRun: PlanRun)
     {
-        this.runFolder = path.join(root, String(this.planRun._id));
+        this.runFolder = path.join(root, String(project._id));
 
         child.execSync(`mkdir -p ${this.runFolder}`);
 

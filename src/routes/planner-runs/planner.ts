@@ -1,12 +1,10 @@
 import { UserStudyData } from './../../db_schema/user-study/user-study-store';
-import { IterationStep, IterationStepModel, PlanRunModel } from './../../db_schema/iteration_step';
+import { IterationStep, IterationStepModel, StepStatus } from './../../db_schema/iteration_step';
 import { PlanProperty} from '../../db_schema/plan-properties/plan_property';
 import { PropertyCheck } from '../../planner/property_check';
 import express from 'express';
 
-import {DepExplanationRunModel, PlanRun, RunStatus,
-        DepExplanationRun, RelaxationExplanationRun, RelaxationExplanationRunModel } 
-        from '../../db_schema/iteration_step';
+import { PlanRun, RunStatus, DepExplanationRun } from '../../db_schema/iteration_step';
 import { ExplanationCall, PlanCall } from '../../planner/general_planner';
 import { auth, authUserStudy } from '../../middleware/auth';
 import { Project } from '../../db_schema/project';
@@ -30,25 +28,28 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             iterStep = new IterationStepModel(iterStepData);
         }
 
-        if (! iterStep || ! iterStep.plan){
+        if (! iterStep ){;
             return res.status(403).send('plan can not be computed');
         }
+
+        const planRun: PlanRun = {name: 'Plan ', status:  RunStatus.pending};
+        iterStep.plan = planRun;
 
         try {
             // load project and plan-properties and compute plan
             await iterStep.populate('hardGoals').execPopulate();
             await iterStep.populate('softGoals').execPopulate();
-            await iterStep.populate('task').execPopulate();
+            await iterStep.populate('task.basetask').execPopulate();
 
             const planner = new PlanCall(environment.experimentsRootPath, iterStep);
 
             if (saveRun) {
                 iterStep.plan.status = RunStatus.running;
+
                 await iterStep.save();
             }
 
             const planFound = await planner.executeRun();
-            // console.log('Plan Found: ' + planFound);
             planner.tidyUp();
 
             // let satPlanProperties: PlanProperty[] = [];
@@ -63,12 +64,14 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             // }
 
             iterStep.plan.status = planFound ? RunStatus.finished : RunStatus.noSolution;
+            terStep.status = planFound ? StepStatus.solvable : StepStatus.unsolvable;
             iterStep.plan.satPlanProperties = planFound ? iterStep.hardGoals : [];
 
             if (saveRun) {
                 await iterStep.save();
+                console.log('saved');
             }
-
+            console.log(iterStep);
             res.send({
                 status: true,
                 message: 'run successful',
@@ -76,6 +79,7 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             });
         }
         catch (ex) {
+            console.warn(ex.message);
             iterStep.plan.status = RunStatus.failed;
             if (req.query.save) {
                 await iterStep.save();
@@ -106,28 +110,19 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
             return res.status(404).send({ message: 'no run found' }); 
         }
 
-        const depExpData = req.body as DepExplanationRun;
-        depExpData.status = RunStatus.pending;
+        const depExp = req.body as DepExplanationRun;
+        depExp.status = RunStatus.pending;
 
-        const depExplanationRun = new DepExplanationRunModel(depExpData);
-
-        if (!depExplanationRun) {
-            return res.status(403).send('run could not be stored');
-        }
-
-        await depExplanationRun.save();
-        await depExplanationRun.populate('hardGoals').populate('softGoals').execPopulate();
-
-        iterStep.depExplanations.push(depExplanationRun);
+        iterStep.depExplanations.push(depExp);
         await iterStep.save();
 
-        const planner = new ExplanationCall(environment.experimentsRootPath, iterStep, depExplanationRun);
+        const planner = new ExplanationCall(environment.experimentsRootPath, iterStep, depExp);
         planner.executeRun().then( async () => {
 
             planner.tidyUp();
             
-            depExplanationRun.status = RunStatus.finished;
-            await depExplanationRun.save();
+            depExp.status = RunStatus.finished;
+            await iterStep.save();
 
             res.send({
                 status: true,
@@ -155,24 +150,16 @@ plannerRouter.post('/mugs-save/:id', authUserStudy, async (req: any, res) => {
             return res.status(404).send({ message: 'no run found' }); 
         }
 
-        const depExpData = req.body as DepExplanationRun;
-        depExpData.status = RunStatus.finished;
+        const depExp = req.body as DepExplanationRun;
+        depExp.status = RunStatus.finished;
 
-        const depExplanationRun = new DepExplanationRunModel(depExpData);
-
-        if (!depExplanationRun) {
-            return res.status(403).send('run could not be stored');
-        }
-
-        await depExplanationRun.save();
-
-        iterStep.depExplanations.push(depExplanationRun);
+        iterStep.depExplanations.push(depExp);
         await iterStep.save();
 
         res.send({
             status: true,
             message: 'run saved successfully',
-            data: depExplanationRun,
+            data: iterStep,
         });
     }
     catch (ex) {

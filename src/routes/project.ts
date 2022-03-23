@@ -1,7 +1,8 @@
-import { IterationStep, IterationStepModel, DepExplanationRun } from './../db_schema/iteration_step';
-import {PlanRunModel, DepExplanationRunModel, RelaxationExplanationRunModel} from '../db_schema/iteration_step';
-import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
+import { PlanningTaskModel } from './../db_schema/planning_task';
 import { BaseProjectModel, Project } from './../db_schema/project';
+import { IterationStep, IterationStepModel} from './../db_schema/iteration_step';
+import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
+
 import express from 'express';
 
 import { ProjectModel } from '../db_schema/project';
@@ -16,8 +17,17 @@ async function computeAndStoreSchema(project: Project): Promise<string> {
     return new Promise(async (resolve, reject) => {
         try {
             const planner = new TranslatorCall(environment.experimentsRootPath, project);
-            await planner.executeRun();
+            const planningTask = await planner.executeRun();
 
+            if(! planningTask){
+                reject("task creation failed");
+                return
+            }
+
+            let taskModel = new PlanningTaskModel(planningTask)
+            await taskModel.save();
+
+            project.baseTask = taskModel;
             await project.save();
 
             resolve('Task creation successful.');
@@ -100,7 +110,7 @@ projectRouter.put('/:id', async (req, res) => {
 
 
 projectRouter.get('', async (req: any, res) => {
-    const projects = await ProjectModel.find({ user: req.user._id});
+    const projects = await ProjectModel.find({ user: req.user._id}).populate('baseTask');
     if (!projects) { 
         return res.status(404).send({ message: 'No project found.' });
     }
@@ -113,7 +123,7 @@ projectRouter.get('', async (req: any, res) => {
 
 projectRouter.get('/:id', async (req, res) => {
     const id = req.params.id;
-    const project = await ProjectModel.findOne({ _id: id });
+    const project = await ProjectModel.findOne({ _id: id }).populate('baseTask');;
     if (!project) { 
         return res.status(404).send({ message: 'No project found.' });
     }
@@ -135,7 +145,6 @@ projectRouter.delete('/:id', async (req, res) => {
 
     // Delete iterations 
     const iterations: IterationStep[] = await IterationStepModel.find({ projetc: id});
-    const planRunsDocs = await PlanRunModel.find({ projetc: id});
 
     for (const step of iterations) {
         deleteIterationStep(step)
