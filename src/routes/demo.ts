@@ -1,19 +1,17 @@
-import { Project, ProjectModel } from './../db_schema/project';
+import { ProjectModel } from './../db_schema/project';
 import { authForward } from './../middleware/auth';
 import { RunStatus } from '../db_schema/iteration_step';
 import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Demo, DemoModel } from './../db_schema/demo';
 import express from 'express';
-import mongoose from 'mongoose';
-import { cancelDemoComputation, DemoComputation, DemoPreComputation } from '../planner/demo-computation';
+import { DemoComputation, DemoPreComputation } from '../planner/demo-computation';
 import { auth } from '../middleware/auth';
 
 import multer from 'multer';
 import path from 'path';
 import { deleteResultFile, deleteUploadFile } from '../planner/pddl_file_utils';
-import { User } from '../db_schema/user';
 import { environment } from '../app';
-import { PlanningTaskRelaxationSpaceModel } from '../db_schema/task_modification';
+
 
 export const demoRouter = express.Router();
 
@@ -101,7 +99,7 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
     // Precompute Demo data
     try {
         const planProperties = await PlanPropertyModel.find({ project: demo._id});
-        const taskRelaxations = await PlanningTaskRelaxationSpaceModel.find({ project: demo._id});
+        // const taskRelaxations = await PlanningTaskRelaxationSpaceModel.find({ project: demo._id});
         // TODO extent demo computation with task relaxations
 
         demo.status = RunStatus.running;
@@ -253,29 +251,29 @@ demoRouter.put('/', auth, async (req, res) => {
     }
 });
 
-demoRouter.post('/cancel/:id', auth, async (req, res) => {
+// demoRouter.post('/cancel/:id', auth, async (req, res) => {
 
-    const demo = await DemoModel.findOne({ _id: req.params.id });
+//     const demo = await DemoModel.findOne({ _id: req.params.id });
 
-    if (!demo || ! demo._id) {
-        return res.status(404).send({ message: 'not found demo' });
-    }
+//     if (!demo || ! demo._id) {
+//         return res.status(404).send({ message: 'not found demo' });
+//     }
 
-    cancelDemoComputation(demo._id.toString()). then(
-        async (canceled) => {
-            await DemoModel.deleteOne({ _id: req.params.id });
-            res.send({
-                successful: canceled,
-                data: demo
-    });
-        },
-        (error) => {
-            res.send({
-                successful: false,
-                data: demo
-            });
-        });
-});
+//     cancelDemoComputation(demo._id.toString()). then(
+//         async (canceled) => {
+//             await DemoModel.deleteOne({ _id: req.params.id });
+//             res.send({
+//                 successful: canceled,
+//                 data: demo
+//     });
+//         },
+//         (error) => {
+//             res.send({
+//                 successful: false,
+//                 data: demo
+//             });
+//         });
+// });
 
 
 demoRouter.get('', authForward, async (req: any, res) => {

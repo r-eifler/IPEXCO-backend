@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { PlanProperty } from './plan-properties/plan_property';
 import { Project } from './project';
-import { ModifiedPlanningTask} from './task_modification';
+import { ModifiedPlanningTask} from './planning_task';
 
 export enum StepStatus{
     unknown,

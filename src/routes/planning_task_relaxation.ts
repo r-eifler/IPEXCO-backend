@@ -1,5 +1,5 @@
 import express from 'express';
-import { PlanningTaskRelaxationSpace, PlanningTaskRelaxationSpaceModel } from '../db_schema/task_modification';
+import { PlanningTaskRelaxationSpace, PlanningTaskRelaxationSpaceModel } from '../db_schema/relaxations';
 
 import { auth } from '../middleware/auth';
 

@@ -1,4 +1,4 @@
-import { Fact } from '../db_schema/planning_task';
+import { Fact } from '../db_schema/base_planning_task';
 import { IterationStep } from './../db_schema/iteration_step';
 import { Project } from './../db_schema/project';
 import 'process';
