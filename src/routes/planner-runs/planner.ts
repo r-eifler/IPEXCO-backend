@@ -30,27 +30,15 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             iterStep = new IterationStepModel(iterStepData);
         }
 
-        if (! iterStep){
-            return res.status(403).send('iteration step does not exist');
+        if (! iterStep || ! iterStep.plan){
+            return res.status(403).send('plan can not be computed');
         }
-
-        const plan = new PlanRunModel({name: 'plan', status: RunStatus.pending});
-
-        if (saveRun) {
-            await plan.save();
-        }
-
-        iterStep.plan = plan;
-
-        if (saveRun) {
-            await iterStep.save();
-        }
-        
 
         try {
             // load project and plan-properties and compute plan
             await iterStep.populate('hardGoals').execPopulate();
             await iterStep.populate('softGoals').execPopulate();
+            await iterStep.populate('task').execPopulate();
 
             const planner = new PlanCall(environment.experimentsRootPath, iterStep);
 
@@ -75,10 +63,9 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             // }
 
             iterStep.plan.status = planFound ? RunStatus.finished : RunStatus.noSolution;
-            // iterStep.plan.satPlanProperties = satPlanProperties;
+            iterStep.plan.satPlanProperties = planFound ? iterStep.hardGoals : [];
 
             if (saveRun) {
-                await plan.save();
                 await iterStep.save();
             }
 

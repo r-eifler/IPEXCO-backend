@@ -58,7 +58,7 @@ export class DemoComputation {
         child.execSync(`cp ${path.join(environment.uploadsPath, problemFileName)} ${path.join(this.runFolder, 'problem.pddl')}`);
 
         writeFileSync(path.join(this.runFolder, 'task-schema.json'),
-            this.demo.baseTask.taskSchema(),
+            this.demo.baseTask?.taskSchema(),
             'utf8');
 
 
@@ -148,7 +148,11 @@ export class DemoComputation {
                     resolve(results);
                 }
             });
-            runningPythonShells.set(this.demo._id.toString(), shell);
+            if (this.demo._id)
+                runningPythonShells.set(this.demo._id.toString(), shell);
+            else {
+                reject("Id is not set");
+            }
         });
     }
 
@@ -162,7 +166,11 @@ export class DemoComputation {
                     resolve(results);
                 }
             });
-            runningPythonShells.set(this.demo._id.toString(), shell);
+            if (this.demo._id)
+                runningPythonShells.set(this.demo._id.toString(), shell);
+            else {
+                reject("Id is not set");
+            }
         });
     }
 
@@ -172,7 +180,8 @@ export class DemoComputation {
 
     tidyUp(): void {
         child.execSync(`rm -r ${this.runFolder}`);
-        runningPythonShells.delete(this.demo._id);
+        if (this.demo._id)
+            runningPythonShells.delete(this.demo._id);
     }
 }
 

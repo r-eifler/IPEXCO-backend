@@ -7,7 +7,7 @@ import * as child from 'child_process';
 import { writeFileSync } from 'fs';
 import { pythonShellCallSimple } from './python-call';
 import { environment } from '../app';
-import { Task } from '../db_schema/task';
+import { PlanningTask } from '../db_schema/planning_task';
 
 export class PropertyCheck {
 
@@ -16,7 +16,7 @@ export class PropertyCheck {
     constructor(
         protected root: string,
         private project: Project,
-        private task: Task,
+        private task: PlanningTask,
         private planProperties: PlanProperty[],
         private planRun: PlanRun)
     {

@@ -99,7 +99,7 @@ export class Action {
     }
 }
 
-export const TaskSchema = new Schema({
+export const PlanningTaskSchema = new Schema({
     name: String,
     domain: String,
     types: [TypeSchema],
@@ -111,7 +111,7 @@ export const TaskSchema = new Schema({
 });
 
 
-export class Task extends Document {
+export class PlanningTask extends Document {
     name: string;
     domain: string;
     types: Type[];
@@ -157,5 +157,7 @@ export class Task extends Document {
         return JSON.stringify(this);
     }
 }
+
+export const PlanningTaskModel = mongoose.model<PlanningTask>('planning-task', PlanningTaskSchema);
 
 

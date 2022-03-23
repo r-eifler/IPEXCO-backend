@@ -1,4 +1,3 @@
-import { TaskRelaxationModel } from '../db_schema/task_modification';
 import { Project, ProjectModel } from './../db_schema/project';
 import { authForward } from './../middleware/auth';
 import { RunStatus } from '../db_schema/iteration_step';
@@ -14,6 +13,7 @@ import path from 'path';
 import { deleteResultFile, deleteUploadFile } from '../planner/pddl_file_utils';
 import { User } from '../db_schema/user';
 import { environment } from '../app';
+import { PlanningTaskRelaxationSpaceModel } from '../db_schema/task_modification';
 
 export const demoRouter = express.Router();
 
@@ -77,7 +77,7 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
         demo.taskInfo = req.body.taskInfo;
         demo.public = false;
 
-        if (!demo) {
+        if (!demo || ! demo._id) {
             return res.status(403).send('create demo failed');
         }
 
@@ -101,7 +101,7 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
     // Precompute Demo data
     try {
         const planProperties = await PlanPropertyModel.find({ project: demo._id});
-        const taskRelaxations = await TaskRelaxationModel.find({ project: demo._id});
+        const taskRelaxations = await PlanningTaskRelaxationSpaceModel.find({ project: demo._id});
         // TODO extent demo computation with task relaxations
 
         demo.status = RunStatus.running;
@@ -176,7 +176,7 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
         demo.taskInfo = req.body.taskInfo;
         demo.public = false;
 
-        if (!demo) {
+        if (!demo || ! demo._id) {
             return res.status(403).send('create demo failed');
         }
 
@@ -257,7 +257,7 @@ demoRouter.post('/cancel/:id', auth, async (req, res) => {
 
     const demo = await DemoModel.findOne({ _id: req.params.id });
 
-    if (!demo) {
+    if (!demo || ! demo._id) {
         return res.status(404).send({ message: 'not found demo' });
     }
 

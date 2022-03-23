@@ -1,4 +1,4 @@
-import { Fact, Task, FactSchema } from './task';
+import { Fact, PlanningTask, FactSchema } from './planning_task';
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface TaskUpdates{
@@ -30,15 +30,15 @@ export interface ModifiedPlanningTask extends Document{
     _id: string;
     name: string;
     project: string,
-    basetask: Task;
+    basetask: PlanningTask;
     taskUpdatList: TaskUpdates[];
   }
 
 export const ModifiedPlanningTaskSchema = new Schema({
     name: { type: String, required: true},
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
-    task: { type: mongoose.Schema.Types.ObjectId, ref: 'task' },
+    basetask: { type: mongoose.Schema.Types.ObjectId, ref: 'planning-task' },
     upptaskUpdatLister: [TaskUpdatesSchema],
 });
 
-// export const ModifiedPlanningTaskModel = mongoose.model<ModifiedPlanningTask>('modified-planning-task', ModifiedPlanningTaskSchema);
+export const ModifiedPlanningTaskModel = mongoose.model<ModifiedPlanningTask>('modified-planning-task', ModifiedPlanningTaskSchema);

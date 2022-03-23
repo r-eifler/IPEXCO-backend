@@ -1,4 +1,4 @@
-import { Fact } from './../db_schema/task';
+import { Fact } from '../db_schema/planning_task';
 import { IterationStep } from './../db_schema/iteration_step';
 import { Project } from './../db_schema/project';
 import 'process';
@@ -13,7 +13,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { CallResult, pythonShellCallFD, pythonShellCallSimple } from './python-call';
 import { environment } from '../app';
 import { domain } from 'process';
-import { Task } from '../db_schema/task';
+import { PlanningTask } from '../db_schema/planning_task';
 import { rejects } from 'assert';
 
 
@@ -83,7 +83,7 @@ export class TranslatorCall{
         let jsontask = JSON.parse(taskString);
         jsontask.initial = jsontask.init;
         delete jsontask.init;
-        let task = jsontask as Task;
+        let task = jsontask as PlanningTask;
         // console.log(task);
         if (task){
             console.log("Task created ...");
@@ -110,7 +110,7 @@ export class PlannerCall {
         protected plannerSetting: string[],
         protected root: string,
         protected runId: string,
-        protected task: Task,
+        protected task: PlanningTask,
         protected hardGoals: PlanProperty[],
         protected softGoals: PlanProperty[]) {
         this.runFolder = path.join(root, String(this.runId));
@@ -194,7 +194,7 @@ const plannerSettingSatPlan = ['--search', 'lazy_greedy([ff()], preferred=[ff()]
 export class PlanCall extends PlannerCall{
 
     constructor(root: string, private step: IterationStep) {
-        super(plannerSettingOptPlan, root, step._id, step.taskModification.task, step.hardGoals, step.softGoals);
+        super(plannerSettingOptPlan, root, step._id, step.task.basetask, step.hardGoals, step.softGoals);
     }
 
     copy_experiment_results(): void {
@@ -213,7 +213,7 @@ const plannerSettingMUGS = ['--heuristic', 'h=hc(nogoods=false, cache_estimates=
 export class ExplanationCall extends PlannerCall{
 
     constructor(root: string, step: IterationStep, private depExpRun: DepExplanationRun) {
-        super(plannerSettingMUGS, root, depExpRun._id, step.taskModification.task, depExpRun.hardGoals, depExpRun.softGoals);
+        super(plannerSettingMUGS, root, depExpRun._id, step.task.basetask, depExpRun.hardGoals, depExpRun.softGoals);
     }
 
     copy_experiment_results(): void {
