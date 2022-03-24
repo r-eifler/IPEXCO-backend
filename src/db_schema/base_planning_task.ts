@@ -37,7 +37,7 @@ export class Predicat {
         this.negated = negated;
     }
 
-    static fromJSON(json){
+    static fromJSON(json: Predicat){
         return new Predicat(json.name, json.parameters, json.negated);
       }
 
@@ -68,7 +68,7 @@ export class Fact {
         this.negated = negated;
     }
 
-    static fromJSON(json){
+    static fromJSON(json: Fact){
         return new Fact(json.name, json.arguments, json.negated);
       }
 
@@ -98,7 +98,7 @@ export class Action {
         this.effects = effects;
     }
 
-    static fromJSON(json){
+    static fromJSON(json: Action){
         return new Action(json.name, json.parameters,
           json.precondition.map(p => Fact.fromJSON(p)),
           json.effects.map(e => Fact.fromJSON(e)));

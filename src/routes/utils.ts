@@ -4,7 +4,7 @@ import { deleteResultFile } from '../planner/pddl_file_utils';
 
 
 export async function deleteIterationStep(step: IterationStep) {
-    if (step.plan) {
+    if (step.plan && step.plan.log) {
         deleteResultFile(step.plan.log);
     }
     step.delete();

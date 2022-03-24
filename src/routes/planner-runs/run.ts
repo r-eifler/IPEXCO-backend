@@ -19,7 +19,13 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
         if (!iterationStep) {
             return res.status(403).send('Iteration Step could not be created.');
         }
-        let data = await iterationStep.save();
+        await iterationStep.save();
+        await iterationStep.populate('hardGoals').execPopulate();
+        await iterationStep.populate('softGoals').execPopulate();
+        await iterationStep.populate('relaxations').execPopulate();
+        await iterationStep.populate('depExplanations').execPopulate();
+        await iterationStep.populate('task.basetask').execPopulate();
+        await iterationStep.populate('plan.satPlanProperties').execPopulate();
 
         if (req.userStudyUser) {
             const userstudyData = await UserStudyDataModel.findOne({ user: req.userStudyUser._id});
@@ -28,15 +34,14 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
                 return res.status(403).send('Iteration Step could not be created.');
             }
 
-            userstudyData.demoSteps.push(data);
-            data = await iterationStep.save(); 
-
+            userstudyData.demoSteps.push(iterationStep);
+            await userstudyData.save(); 
         }
 
         res.send({
             status: true,
             message: 'Plan Property is stored.',
-            data
+            data: iterationStep
         });
     }
 

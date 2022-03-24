@@ -64,7 +64,7 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             // }
 
             iterStep.plan.status = planFound ? RunStatus.finished : RunStatus.noSolution;
-            terStep.status = planFound ? StepStatus.solvable : StepStatus.unsolvable;
+            iterStep.status = planFound ? StepStatus.solvable : StepStatus.unsolvable;
             iterStep.plan.satPlanProperties = planFound ? iterStep.hardGoals : [];
 
             if (saveRun) {
