@@ -1,5 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { TypeSchema, ObjectSchema, PredicatSchema, FactSchema, Action, ActionSchema, Fact, Predicat, Type, Object } from './base_planning_task';
+import { InitFactUpdate } from './relaxations';
 
 
 export const PlanningTaskSchema = new Schema({
@@ -61,18 +62,6 @@ export class PlanningTask{
         return JSON.stringify(this);
     }
 }
-
-// export interface PlanningTaskI extends Document {
-//     _id? : string;
-//     name: string;
-//     domain: string;
-//     types: Type[];
-//     objects: Object[];
-//     predicates: Predicat[];
-//     initial: Fact[];
-//     goal: Fact[];
-//     actions: Action[];
-// }
 
 export const PlanningTaskModel = mongoose.model<PlanningTask>('planning-task', PlanningTaskSchema);
 

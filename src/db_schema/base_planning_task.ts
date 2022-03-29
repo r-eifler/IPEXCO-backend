@@ -70,11 +70,19 @@ export class Fact {
 
     static fromJSON(json: Fact){
         return new Fact(json.name, json.arguments, json.negated);
-      }
+    }
+
+    static fromObject(o: Fact){
+        return new Fact(o.name, o.arguments, o.negated);
+    }
 
     toPDDL(): string {
         return (this.negated ? "(not " : "") + "(" + this.name + ' ' + 
             this.arguments.join(' ') + (this.negated ? ")) " : ")")
+    }
+
+    equals(f: Fact): boolean {
+        return this.name == f.name && JSON.stringify(this.arguments) === JSON.stringify(f.arguments)
     }
 }
 

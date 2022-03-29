@@ -104,7 +104,8 @@ export class PlannerCall {
         protected hardGoals: PlanProperty[],
         protected softGoals: PlanProperty[]) {
 
-        this.task = new PlanningTask(this.modTask.basetask);
+        console.log("Planner Call constructor");
+        this.task = this.modTask.getUpdatedPlanningTask();
         this.runFolder = path.join(root, String(this.runId));
 
         this.create_experiment_setup();
@@ -186,7 +187,7 @@ const plannerSettingSatPlan = ['--search', 'lazy_greedy([ff()], preferred=[ff()]
 export class PlanCall extends PlannerCall{
 
     constructor(root: string, private step: IterationStep) {
-        super(plannerSettingOptPlan, root, step._id, step.task, step.hardGoals, step.softGoals);
+        super(plannerSettingOptPlan, root, step._id, ModifiedPlanningTask.fromObject(step.task), step.hardGoals, step.softGoals);
     }
 
     copy_experiment_results(): void {
@@ -205,7 +206,7 @@ const plannerSettingMUGS = ['--heuristic', 'h=hc(nogoods=false, cache_estimates=
 export class ExplanationCall extends PlannerCall{
 
     constructor(root: string, step: IterationStep, private depExpRun: DepExplanationRun) {
-        super(plannerSettingMUGS, root, step._id, step.task, depExpRun.hardGoals, depExpRun.softGoals);
+        super(plannerSettingMUGS, root, step._id, ModifiedPlanningTask.fromObject(step.task), depExpRun.hardGoals, depExpRun.softGoals);
     }
 
     copy_experiment_results(): void {

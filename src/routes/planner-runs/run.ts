@@ -14,15 +14,13 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
     try {
         const iterStepData = req.body.data as IterationStep;
         console.log(iterStepData);
+        console.log(iterStepData.task.initUpdates);
 
         const iterationStep = new IterationStepModel(iterStepData);
         if (!iterationStep) {
             return res.status(403).send('Iteration Step could not be created.');
         }
         await iterationStep.save();
-        await iterationStep.populate('hardGoals').execPopulate();
-        await iterationStep.populate('softGoals').execPopulate();
-        await iterationStep.populate('relaxations').execPopulate();
         await iterationStep.populate('depExplanations').execPopulate();
         await iterationStep.populate('task.basetask').execPopulate();
         await iterationStep.populate('plan.satPlanProperties').execPopulate();
@@ -37,10 +35,10 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
             userstudyData.demoSteps.push(iterationStep);
             await userstudyData.save(); 
         }
-
+        console.log(iterationStep.task.initUpdates);
         res.send({
             status: true,
-            message: 'Plan Property is stored.',
+            message: 'Iteration Step is stored.',
             data: iterationStep
         });
     }
@@ -56,9 +54,6 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
 runRouter.get('/iter-step/', async (req, res) => {
     const projectId : string = req.query.projectId as string;
     const steps = await IterationStepModel.find({ project: projectId})
-        .populate('hardGoals')
-        .populate('softGoals')
-        .populate('relaxations')
         .populate('depExplanations')
         .populate('task.basetask')
         .populate('plan.satPlanProperties');
@@ -76,10 +71,9 @@ runRouter.get('/iter-step/', async (req, res) => {
 runRouter.get('/iter-step/:id', async (req, res) => {
     const id =  req.params.id;
     const run = await IterationStepModel.findOne({ _id: id})
-        .populate('hardGoals')
-        .populate('softGoals')
-        .populate('relaxations')
-        .populate('depExplanations');
+        .populate('depExplanations')
+        .populate('task.basetask')
+        .populate('plan.satPlanProperties');
 
     if (!run) { 
         return res.status(404).send({ message: 'No iteration step found.' });

@@ -1,3 +1,4 @@
+import { PlanningTask } from './../../db_schema/planning_task';
 import { UserStudyData } from './../../db_schema/user-study/user-study-store';
 import { IterationStep, IterationStepModel, StepStatus } from './../../db_schema/iteration_step';
 import { PlanProperty} from '../../db_schema/plan-properties/plan_property';
@@ -9,6 +10,7 @@ import { ExplanationCall, PlanCall } from '../../planner/general_planner';
 import { auth, authUserStudy } from '../../middleware/auth';
 import { Project } from '../../db_schema/project';
 import { environment } from '../../app';
+import { ModifiedPlanningTask } from '../../db_schema/modified_planning_task';
 
 
 export const plannerRouter = express.Router();
@@ -32,8 +34,10 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             return res.status(403).send('plan can not be computed');
         }
 
-        const planRun: PlanRun = {name: 'Plan ', status:  RunStatus.pending};
-        iterStep.plan = planRun;
+        if (! iterStep.plan){
+            const planRun: PlanRun = {name: 'Plan ', status:  RunStatus.pending};
+            iterStep.plan = planRun;
+        }
 
         try {
             // load project and plan-properties and compute plan
@@ -71,6 +75,10 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
                 await iterStep.save();
                 console.log('saved');
             }
+
+            await iterStep.depopulate('hardGoals').execPopulate();
+            await iterStep.depopulate('softGoals').execPopulate();
+
             console.log(iterStep);
             res.send({
                 status: true,
@@ -103,18 +111,27 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
         const iterStep = await IterationStepModel.findOne({ _id: stepId})
         .populate('hardGoals')
         .populate('softGoals')
-        .populate('relaxations')
-        .populate('depExplanations');
+        .populate('depExplanations')
+        .populate('task.basetask');
 
         if (!iterStep) { 
             return res.status(404).send({ message: 'no run found' }); 
         }
 
-        const depExp = req.body as DepExplanationRun;
-        depExp.status = RunStatus.pending;
+        console.log(iterStep);
 
-        iterStep.depExplanations.push(depExp);
+        const depExpData = req.body as DepExplanationRun;
+        depExpData.status = RunStatus.running;
+
+        iterStep.depExplanations.push(depExpData);
         await iterStep.save();
+        
+        await iterStep.populate('depExplanations.hardGoals').execPopulate();
+        await iterStep.populate('depExplanations.softGoals').execPopulate();
+
+        const depExp = iterStep.depExplanations[iterStep.depExplanations.length - 1]
+
+        console.log(depExp);
 
         const planner = new ExplanationCall(environment.experimentsRootPath, iterStep, depExp);
         planner.executeRun().then( async () => {
@@ -123,6 +140,9 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
             
             depExp.status = RunStatus.finished;
             await iterStep.save();
+            await iterStep.depopulate('depExplanations.hardGoals').execPopulate();
+            await iterStep.depopulate('depExplanations.softGoals').execPopulate();
+            console.log(iterStep);
 
             res.send({
                 status: true,
@@ -132,6 +152,7 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
         });
     }
     catch (ex) {
+        console.log(ex.message);
         res.send(ex.message);
     }
 });
