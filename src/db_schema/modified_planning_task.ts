@@ -15,9 +15,7 @@ export class ModifiedPlanningTask{
     }
   
     static fromObject(o: ModifiedPlanningTask) {
-      console.log("From Object modified task");
       let task = new ModifiedPlanningTask(o.name, o.basetask, o.initUpdates.map(e => InitFactUpdate.fromObject(e)));
-      console.log("From Object modified task finished");
       if(o._id){
         task._id = o._id
       }
@@ -29,7 +27,6 @@ export class ModifiedPlanningTask{
       let copyTask = new PlanningTask(this.basetask);
       copyTask.initial = copyTask.initial.filter(f => ! this.initUpdates.some(u => u.orgFact.equals(f)));
       this.initUpdates.forEach(u => copyTask.initial.push(u.newFact));
-      console.log(copyTask.initial);
       return copyTask;
   }
   }

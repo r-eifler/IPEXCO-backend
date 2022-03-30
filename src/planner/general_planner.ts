@@ -13,6 +13,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { CallResult, pythonShellCallFD, pythonShellCallSimple } from './python-call';
 import { environment } from '../app';
 import { PlanningTask } from '../db_schema/planning_task';
+import { toConflicts } from './utils';
 
 
 export class TranslatorCall{
@@ -104,7 +105,6 @@ export class PlannerCall {
         protected hardGoals: PlanProperty[],
         protected softGoals: PlanProperty[]) {
 
-        console.log("Planner Call constructor");
         this.task = this.modTask.getUpdatedPlanningTask();
         this.runFolder = path.join(root, String(this.runId));
 
@@ -162,15 +162,14 @@ export class PlannerCall {
 
         const plannerResults : CallResult = await pythonShellCallFD(options);
 
-        if (plannerResults.planFound) {
-            writeFileSync(path.join(environment.resultsPath, `out_${this.runId}.log`), plannerResults.log.join('\n'), 'utf8');
-            this.copy_experiment_results();
-        }
+        writeFileSync(path.join(environment.resultsPath, `out_${this.runId}.log`), plannerResults.log.join('\n'), 'utf8');
+        this.copy_experiment_results(plannerResults.planFound);
+
 
         return plannerResults.planFound;
     }
 
-    copy_experiment_results(): void {
+    copy_experiment_results(plaFound : boolean): void {
         // implement in subclass
     }
 
@@ -190,32 +189,43 @@ export class PlanCall extends PlannerCall{
         super(plannerSettingOptPlan, root, step._id, ModifiedPlanningTask.fromObject(step.task), step.hardGoals, step.softGoals);
     }
 
-    copy_experiment_results(): void {
-        const buffer: Buffer = readFileSync(path.join(this.runFolder, 'sas_plan'));
-        if (this.step.plan){
-            this.step.plan.result = buffer.toString('utf8');
-            this.step.plan.log = environment.serverResultsPath + `/out_${this.runId}.log`;
+    copy_experiment_results(planFound : boolean): void {
+        if (! this.step.plan) {
+            return 
         }
+        this.step.plan.log = environment.serverResultsPath + `/out_${this.runId}.log`;
+        if(! planFound){
+            return
+        }
+        const buffer: Buffer = readFileSync(path.join(this.runFolder, 'sas_plan'));
+        this.step.plan.result = buffer.toString('utf8');
     }
 }
 
 
 
-const plannerSettingMUGS = ['--heuristic', 'h=hc(nogoods=false, cache_estimates=false)', '--heuristic',
-   'mugs_h=mugs_hc(hc=h, all_softgoals=false)', '--search', 'dfs(u_eval=mugs_h)'];
+// const plannerSettingMUGS = ['--translate-options', '--all-goals-as-sas-goal-facts',
+//     '--search-options', '--heuristic', 'h=hc(nogoods=false, cache_estimates=false)', '--heuristic',
+//    'mugs_h=mugs_hc(hc=h, all_softgoals=false)', '--search', 'dfs(u_eval=mugs_h)'];
+const plannerSettingMUGS = ['--translate-options', '--all-goals-as-sas-goal-facts',
+   '--search-options', '--heuristic', 'hmugs=mugs_hmax(all_softgoals=false)', '--search', 'dfs(u_eval=hmugs)'];
 export class ExplanationCall extends PlannerCall{
 
     constructor(root: string, step: IterationStep, private depExpRun: DepExplanationRun) {
         super(plannerSettingMUGS, root, step._id, ModifiedPlanningTask.fromObject(step.task), depExpRun.hardGoals, depExpRun.softGoals);
     }
 
-    copy_experiment_results(): void {
+    copy_experiment_results(planFound : boolean): void {
+
         const buffer: Buffer = readFileSync(path.join(this.runFolder, 'mugs.json'));
-        this.depExpRun.result = buffer.toString('utf8');
+        const MUGSString = buffer.toString('utf8');
+        const json = JSON.parse(MUGSString);
+        this.depExpRun.result = MUGSString
+        this.depExpRun.dependencies = toConflicts(json, this.softGoals);
 
         this.depExpRun.log = environment.serverResultsPath + `/out_${this.runId}.log`;
     }
 }
 
-
+// --translate-options --all-goals-as-sas-goal-facts --search-options --heuristic 'h=hc(nogoods=false, cache_estimates=false)' --heuristic 'mugs_h=mugs_hc(hc=h, all_softgoals=false)' --search 'dfs(u_eval=mugs_h)'
 

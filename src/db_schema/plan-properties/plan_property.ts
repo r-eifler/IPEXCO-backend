@@ -1,6 +1,12 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { ActionSet, ActionSetSchema } from './action_set';
 
+export enum GoalType {
+    goalFact= 'G',
+    LTL = 'LTL',
+    AS = 'AS'
+  }
+
 export interface PlanProperty extends Document {
     _id?: string;
     name: string;

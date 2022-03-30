@@ -118,7 +118,7 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
             return res.status(404).send({ message: 'no run found' }); 
         }
 
-        console.log(iterStep);
+        // console.log(iterStep);
 
         const depExpData = req.body as DepExplanationRun;
         depExpData.status = RunStatus.running;
@@ -131,7 +131,7 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
 
         const depExp = iterStep.depExplanations[iterStep.depExplanations.length - 1]
 
-        console.log(depExp);
+        // console.log(depExp);
 
         const planner = new ExplanationCall(environment.experimentsRootPath, iterStep, depExp);
         planner.executeRun().then( async () => {
@@ -142,7 +142,9 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
             await iterStep.save();
             await iterStep.depopulate('depExplanations.hardGoals').execPopulate();
             await iterStep.depopulate('depExplanations.softGoals').execPopulate();
-            console.log(iterStep);
+            await iterStep.depopulate('hardGoals').execPopulate();
+            await iterStep.depopulate('softGoals').execPopulate();
+            console.log(iterStep.depExplanations[iterStep.depExplanations.length - 1]);
 
             res.send({
                 status: true,

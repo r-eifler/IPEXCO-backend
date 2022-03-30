@@ -1,3 +1,4 @@
+import { PPDependencies, PPDependenciesSchema } from './explanations';
 import { ModifiedPlanningTaskSchema } from './modified_planning_task';
 import mongoose, { Document, Schema } from 'mongoose';
 import { ModifiedPlanningTask } from './modified_planning_task';
@@ -66,6 +67,7 @@ export interface DepExplanationRun{
     softGoals: PlanProperty[];
     log: string;
     result: string;
+    dependencies? : PPDependencies;
     relaxationExplanations: RelaxationExplanationRun[];
 }
 
@@ -76,6 +78,7 @@ const DepExplanationRunSchema = new Schema({
     softGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     log: { type: String, required: false},
     result: { type: String, required: false},
+    dependencies: PPDependenciesSchema,
     relaxationExplanations: [RelaxationExplanationRunSchema],
 }, { timestamps: true});
 
