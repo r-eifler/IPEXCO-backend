@@ -10,6 +10,7 @@ planningTaskRelaxtionRouter.post('/', auth, async (req, res) => {
     try {
         const relaxationData = req.body.data as PlanningTaskRelaxationSpace;
         console.log(relaxationData);
+        console.log(relaxationData.possibleInitFactUpdates);
 
         const relaxSpace = new PlanningTaskRelaxationSpaceModel(relaxationData);
         if (!relaxSpace) {

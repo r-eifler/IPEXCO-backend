@@ -1,6 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { TypeSchema, ObjectSchema, PredicatSchema, FactSchema, Action, ActionSchema, Fact, Predicat, Type, Object } from './base_planning_task';
-import { InitFactUpdate } from './relaxations';
 
 
 export const PlanningTaskSchema = new Schema({
