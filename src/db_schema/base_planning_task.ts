@@ -84,6 +84,13 @@ export class Fact {
     equals(f: Fact): boolean {
         return this.name == f.name && JSON.stringify(this.arguments) === JSON.stringify(f.arguments)
     }
+
+    toString(): string {
+        if (this.negated) {
+            return "! " + this.name + "(" + this.arguments.join(', ') + ")";
+        }
+        return this.name + "(" + this.arguments.join(', ') + ")";
+    }
 }
 
 export const ActionSchema = new Schema({

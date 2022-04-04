@@ -74,7 +74,8 @@ export class DemoComputation {
         return {
             hard_goals: this.planProperties.filter(p => p.globalHardGoal).map(p => p.name),
             plan_properties: this.planProperties,
-            soft_goals: []
+            soft_goals: [],
+            relaxed_tasks: []
         };
     }
 

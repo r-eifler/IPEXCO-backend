@@ -4,6 +4,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 import { ModifiedPlanningTask } from './modified_planning_task';
 import { PlanProperty } from './plan-properties/plan_property';
 import { Project } from './project';
+import { PlanningTaskRelaxationSpace } from './relaxations';
 
 export enum StepStatus{
     unknown,
@@ -43,23 +44,26 @@ export interface RelaxationExplanationRun{
     createdAt?: Date;
     name: string;
     status: RunStatus;
-    dependency: PlanProperty[];
-    log: string;
-    result: string;
+    relaxationSpace: PlanningTaskRelaxationSpace;
+    log?: string;
+    result?: string;
+    dependencies? : PPDependencies[];
 }
 
 const RelaxationExplanationRunSchema = new Schema({
     name: { type: String, required: true},
     status: { type: Number, required: true},
-    dependency: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
+    relaxationSpace: [{ type: mongoose.Schema.Types.ObjectId, ref: 'planning-task-relaxation-space' }],
     log: { type: String, required: false},
     result: { type: String, required: false},
+    dependencies: [PPDependenciesSchema],
 }, { timestamps: true});
 
 
 
 
 export interface DepExplanationRun{
+    _id: string;
     createdAt?: Date;
     name: string;
     status: RunStatus;
@@ -68,7 +72,6 @@ export interface DepExplanationRun{
     log: string;
     result: string;
     dependencies? : PPDependencies;
-    relaxationExplanations: RelaxationExplanationRun[];
 }
 
 const DepExplanationRunSchema = new Schema({
@@ -79,7 +82,6 @@ const DepExplanationRunSchema = new Schema({
     log: { type: String, required: false},
     result: { type: String, required: false},
     dependencies: PPDependenciesSchema,
-    relaxationExplanations: [RelaxationExplanationRunSchema],
 }, { timestamps: true});
 
 
@@ -96,6 +98,7 @@ export interface IterationStep extends Document{
     task: ModifiedPlanningTask;
     plan?: PlanRun;
     depExplanations: DepExplanationRun[];
+    relaxationExplanations: RelaxationExplanationRun[];
     predecessorStep: IterationStep | null;
 }
 
@@ -108,6 +111,7 @@ const IterationStepSchema = new Schema({
     task: ModifiedPlanningTaskSchema,
     plan: PlanRunSchema,
     depExplanations: [DepExplanationRunSchema],
+    relaxationExplanations: [RelaxationExplanationRunSchema],
     predecessorStep: { type: mongoose.Schema.Types.ObjectId, ref: 'iteration-step', required: false },
 }, { timestamps: true});
 

@@ -1,16 +1,14 @@
-import { PlanningTask } from './../../db_schema/planning_task';
-import { UserStudyData } from './../../db_schema/user-study/user-study-store';
-import { IterationStep, IterationStepModel, StepStatus } from './../../db_schema/iteration_step';
+import { IterationStep, IterationStepModel, RelaxationExplanationRun, StepStatus } from './../../db_schema/iteration_step';
 import { PlanProperty} from '../../db_schema/plan-properties/plan_property';
 import { PropertyCheck } from '../../planner/property_check';
 import express from 'express';
 
 import { PlanRun, RunStatus, DepExplanationRun } from '../../db_schema/iteration_step';
-import { ExplanationCall, PlanCall } from '../../planner/general_planner';
+import { ExplanationCall, PlanCall, RelaxExplanationCall } from '../../planner/general_planner';
 import { auth, authUserStudy } from '../../middleware/auth';
 import { Project } from '../../db_schema/project';
 import { environment } from '../../app';
-import { ModifiedPlanningTask } from '../../db_schema/modified_planning_task';
+import { PlanningTaskRelaxationSpaceModel } from '../../db_schema/relaxations';
 
 
 export const plannerRouter = express.Router();
@@ -186,6 +184,65 @@ plannerRouter.post('/mugs-save/:id', authUserStudy, async (req: any, res) => {
         });
     }
     catch (ex) {
+        res.send(ex.message);
+    }
+});
+
+
+plannerRouter.post('/relax_exp/:id', auth, async (req, res) => {
+    try {
+        const stepId =  req.params.id;
+
+        const iterStep: IterationStep | null = await IterationStepModel.findOne({ _id: stepId})
+        .populate('hardGoals')
+        .populate('softGoals')
+        .populate('depExplanations')
+        .populate('task.basetask')
+        .populate('depExplanations.hardGoals')
+        .populate('depExplanations.softGoals');
+
+        if (!iterStep) { 
+            return res.status(404).send({ message: 'no run found' }); 
+        }
+
+        console.log(iterStep);
+
+        const relaxSpaces = await PlanningTaskRelaxationSpaceModel.find({ project: iterStep.project as string});
+
+        for (let relaxationSpace of relaxSpaces) {
+
+            console.log(relaxationSpace);
+
+            let relaxExp :RelaxationExplanationRun = {name: 'relax_exp', status: RunStatus.running, relaxationSpace: relaxationSpace}
+
+            iterStep.relaxationExplanations.push(relaxExp);
+
+            await iterStep.save();
+
+            relaxExp = iterStep.relaxationExplanations[iterStep.relaxationExplanations.length - 1]
+
+            // console.log(depExp);
+
+            const planner = new RelaxExplanationCall(environment.experimentsRootPath, iterStep, relaxExp, relaxationSpace.possibleInitFactUpdates);
+            await planner.executeRun();
+
+            planner.tidyUp();
+
+            relaxExp.status = RunStatus.finished;
+            await iterStep.save();
+        }
+
+        await iterStep.depopulate('hardGoals').execPopulate();
+        await iterStep.depopulate('softGoals').execPopulate();
+
+        res.send({
+            status: true,
+            message: 'run successful',
+            data: iterStep,
+        });
+    }
+    catch (ex) {
+        console.log(ex.message);
         res.send(ex.message);
     }
 });

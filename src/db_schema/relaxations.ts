@@ -66,4 +66,5 @@ const PlanningTaskRelaxationSpaceSchema = new Schema({
     possibleInitFactUpdates: [PossibleInitFactUpdatesSchema],
 });
 
+
 export const PlanningTaskRelaxationSpaceModel = mongoose.model<PlanningTaskRelaxationSpace>('planning-task-relaxation-space', PlanningTaskRelaxationSpaceSchema);

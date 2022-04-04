@@ -44,7 +44,7 @@ export class PropertyCheck {
     }
 
     generate_experiment_setting(): ExperimentSetting {
-        return { hard_goals: [], plan_properties: this.planProperties, soft_goals: []};
+        return { hard_goals: [], plan_properties: this.planProperties, soft_goals: [], relaxed_tasks: []};
     }
 
     async executeRun(): Promise<string[]> {

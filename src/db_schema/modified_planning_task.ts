@@ -22,13 +22,18 @@ export class ModifiedPlanningTask{
       return task;
     }
 
-    getUpdatedPlanningTask(): PlanningTask {
+    getUpdatedPlanningTask(add_updates : FactUpdate[] = []): PlanningTask {
 
       let copyTask = new PlanningTask(this.basetask);
+
       copyTask.initial = copyTask.initial.filter(f => ! this.initUpdates.some(u => u.orgFact.equals(f)));
       this.initUpdates.forEach(u => copyTask.initial.push(u.newFact));
+
+      copyTask.initial = copyTask.initial.filter(f => ! add_updates.some(u => u.orgFact.equals(f)));
+      add_updates.forEach(u => copyTask.initial.push(u.newFact));
+
       return copyTask;
-  }
+    }
   }
 
 export const ModifiedPlanningTaskSchema = new Schema({
