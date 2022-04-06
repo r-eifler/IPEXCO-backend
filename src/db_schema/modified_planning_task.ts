@@ -1,6 +1,7 @@
 import { FactUpdate, FactUpdateSchema } from './relaxations';
 import mongoose, { Document, Schema } from 'mongoose';
 import { PlanningTask } from './planning_task';
+import { Fact } from './base_planning_task';
 
 export class ModifiedPlanningTask{
     _id?: string;
@@ -23,17 +24,24 @@ export class ModifiedPlanningTask{
     }
 
     getUpdatedPlanningTask(add_updates : FactUpdate[] = []): PlanningTask {
-
+      console.log("getUpdatedPlanningTask");
       let copyTask = new PlanningTask(this.basetask);
 
-      copyTask.initial = copyTask.initial.filter(f => ! this.initUpdates.some(u => u.orgFact.equals(f)));
-      this.initUpdates.forEach(u => copyTask.initial.push(u.newFact));
+      let updates = [...this.initUpdates]
+      console.log(updates);
+      updates = updates.filter(f1 => ! add_updates.some(f2 => equalsFact(f2.orgFact, f1.orgFact)));
+      updates = [...updates, ...add_updates];
+      console.log(updates)
 
-      copyTask.initial = copyTask.initial.filter(f => ! add_updates.some(u => u.orgFact.equals(f)));
-      add_updates.forEach(u => copyTask.initial.push(u.newFact));
+      copyTask.initial = copyTask.initial.filter(f => ! updates.some(u => equalsFact(u.orgFact, f)));
+      updates.forEach(u => copyTask.initial.push(u.newFact));
 
       return copyTask;
     }
+  }
+
+  function equalsFact(f1: Fact, f2: Fact): boolean {
+    return f1.name == f2.name && JSON.stringify(f1.arguments) === JSON.stringify(f2.arguments)
   }
 
 export const ModifiedPlanningTaskSchema = new Schema({

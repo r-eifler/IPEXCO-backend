@@ -45,25 +45,30 @@ export function updateMUGSPropsNames(json: any, planProperties: PlanProperty[]):
     return dep;
   }
 
+  function equalsFact(f1: Fact, f2: Fact): boolean {
+    return f1.name == f2.name && JSON.stringify(f1.arguments) === JSON.stringify(f2.arguments)
+  }
+
   export function filterRelaxations(selectedUdpates: FactUpdate[], possibleUpdates: PossibleInitFactUpdates[]): Fact[][]{
     console.log("filter Relaxations");
-    console.log(selectedUdpates);
-    console.log(possibleUpdates);
     let newPossibleUpdates: Fact[][] = [];
     possibleUpdates.forEach(possibleUpdate => {
       let list = [possibleUpdate.orgFact, ...possibleUpdate.updates];
       for (let update of selectedUdpates) {
-        if (! update.orgFact.equals(possibleUpdate.orgFact.fact)){
+        if (! equalsFact(update.orgFact, possibleUpdate.orgFact.fact)){
           continue;
         }
         for (let index = 0; index < list.length; index++){
-          if(update.newFact.equals(list[index].fact)){
+          if(equalsFact(update.newFact, list[index].fact)){
             newPossibleUpdates.push(list.slice(index, list.length).map(e => e.fact));
             return;
           }
         }
       }
-      newPossibleUpdates.push(list.map(e => e.fact));
+      let fact_list = list.map(e => e.fact)
+      console.log("filtered Updates");
+      console.log(fact_list);
+      newPossibleUpdates.push(fact_list);
     })
     return newPossibleUpdates;
   }
@@ -102,10 +107,12 @@ export function updateMUGSPropsNames(json: any, planProperties: PlanProperty[]):
           id: id, 
           name: base_name + '_' + format(fact),
           inits: [factToString(fact)],
-          upper_cover: id < relax.length ? [id + 1] : [],
+          upper_cover: id < relax.length - 1 ? [id + 1] : [],
           lower_cover: id > 0 ? [id - 1] : [],
         });
+        id++;
       }
+      console.log("Relaxed Nodes");
       console.log(nodes);
       return nodes;
     }

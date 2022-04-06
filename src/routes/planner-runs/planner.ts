@@ -226,7 +226,7 @@ plannerRouter.post('/relax_exp/:id', auth, async (req, res) => {
             const planner = new RelaxExplanationCall(environment.experimentsRootPath, iterStep, relaxExp, relaxationSpace.possibleInitFactUpdates);
             await planner.executeRun();
 
-            planner.tidyUp();
+            // planner.tidyUp();
 
             relaxExp.status = RunStatus.finished;
             await iterStep.save();
