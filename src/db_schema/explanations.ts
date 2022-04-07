@@ -1,4 +1,5 @@
 import { Schema } from 'mongoose';
+import { Fact, FactSchema } from './base_planning_task';
 
 
 export interface PPConflict {
@@ -15,4 +16,20 @@ export interface PPDependencies {
 
 export const PPDependenciesSchema = new Schema({
     conflicts: [PPConflictSchema]
+});
+
+export interface RelaxationExplanationNode {
+    name: string;
+    dependencies: PPDependencies;
+    updates: Fact[],
+    lower_cover: number[];
+    upper_cover: number[];
+}
+
+export const RelaxationExplanationNodeSchema = new Schema({
+    name: String,
+    dependencies: PPDependenciesSchema,
+    updates: [FactSchema],
+    lower_cover: [Number],
+    upper_cover: [Number]
 });

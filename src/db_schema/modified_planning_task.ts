@@ -24,14 +24,11 @@ export class ModifiedPlanningTask{
     }
 
     getUpdatedPlanningTask(add_updates : FactUpdate[] = []): PlanningTask {
-      console.log("getUpdatedPlanningTask");
       let copyTask = new PlanningTask(this.basetask);
 
       let updates = [...this.initUpdates]
-      console.log(updates);
       updates = updates.filter(f1 => ! add_updates.some(f2 => equalsFact(f2.orgFact, f1.orgFact)));
       updates = [...updates, ...add_updates];
-      console.log(updates)
 
       copyTask.initial = copyTask.initial.filter(f => ! updates.some(u => equalsFact(u.orgFact, f)));
       updates.forEach(u => copyTask.initial.push(u.newFact));

@@ -1,4 +1,4 @@
-import { PPDependencies, PPDependenciesSchema } from './explanations';
+import { PPDependencies, PPDependenciesSchema, RelaxationExplanationNode, RelaxationExplanationNodeSchema } from './explanations';
 import { ModifiedPlanningTaskSchema } from './modified_planning_task';
 import mongoose, { Document, Schema } from 'mongoose';
 import { ModifiedPlanningTask } from './modified_planning_task';
@@ -47,7 +47,7 @@ export interface RelaxationExplanationRun{
     relaxationSpace: PlanningTaskRelaxationSpace;
     log?: string;
     result?: string;
-    dependencies? : PPDependencies[];
+    dependencies? : RelaxationExplanationNode[];
 }
 
 const RelaxationExplanationRunSchema = new Schema({
@@ -56,7 +56,7 @@ const RelaxationExplanationRunSchema = new Schema({
     relaxationSpace: [{ type: mongoose.Schema.Types.ObjectId, ref: 'planning-task-relaxation-space' }],
     log: { type: String, required: false},
     result: { type: String, required: false},
-    dependencies: [PPDependenciesSchema],
+    dependencies: [RelaxationExplanationNodeSchema],
 }, { timestamps: true});
 
 

@@ -15,6 +15,7 @@ import { environment } from '../app';
 import { PlanningTask } from '../db_schema/planning_task';
 import { filterRelaxations, getAdditionalUpdates, RelaxedTaskNode, toConflicts, toRelaxTaskDefinition } from './utils';
 import { FactUpdate, PossibleInitFactUpdates } from '../db_schema/relaxations';
+import { RelaxationExplanationNode } from '../db_schema/explanations';
 
 
 export class TranslatorCall{
@@ -114,6 +115,7 @@ export class PlannerCall {
         this.runFolder = path.join(root, String(this.runId));
 
         this.create_experiment_setup();
+        console.log("create_experiment_setup: Done")
     }
 
     create_experiment_setup(): void {
@@ -226,7 +228,7 @@ export class ExplanationCall extends PlannerCall{
         const MUGSString = buffer.toString('utf8');
         const json = JSON.parse(MUGSString);
         this.depExpRun.result = MUGSString
-        this.depExpRun.dependencies = toConflicts(json, this.softGoals);
+        this.depExpRun.dependencies = { conflicts: toConflicts(json.MUGS, this.softGoals)};
 
         this.depExpRun.log = environment.serverResultsPath + `/out_${this.runId}.log`;
     }
@@ -250,16 +252,27 @@ export class RelaxExplanationCall extends PlannerCall{
 
         const buffer: Buffer = readFileSync(path.join(this.runFolder, 'mugs.json'));
         const MUGSString = buffer.toString('utf8');
-        this.relaxExpRun.result = MUGSString;
-        const parts = MUGSString.split("|");
-        for (let part of parts.slice(0,parts.length-1)){
-            console.log(part);
-            const json = JSON.parse(part);
-            this.relaxExpRun.dependencies?.push(toConflicts(json, [...this.hardGoals, ...this.softGoals]));
-        }
 
+        this.relaxExpRun.result = MUGSString;
+        const json : {name: string, MUGS: string[][]}[] = JSON.parse(MUGSString).relaxations;
+        console.log(json);
+        let explanationNodes: RelaxationExplanationNode[] = []
+        for(let node of this.relaxedTasks) {
+            let result = json.find(r => r.name == node.name);
+
+            if (!!result) {
+                explanationNodes.push({
+                    name: result.name, 
+                    dependencies: {conflicts: toConflicts(result.MUGS, [...this.hardGoals, ...this.softGoals])},
+                    updates: node.updates,
+                    lower_cover: node.lower_cover,
+                    upper_cover: node.upper_cover
+                });
+            }
+        }
+        this.relaxExpRun.dependencies = explanationNodes;
         this.relaxExpRun.log = environment.serverResultsPath + `/out_${this.runId}.log`;
     }
 }
 
-// --translate-options --all-goals-as-sas-goal-facts' --search-options --heuristic 'hmugs=mugs_hmax(all_softgoals=true)' --search 'dwq_iterated([dfs(u_eval=hmugs)], heu=[hmugs])'
+// --translate-options --all-goals-as-sas-goal-facts --search-options --heuristic 'hmugs=mugs_hmax(all_softgoals=true)' --search 'dwq_iterated([dfs(u_eval=hmugs)], heu=[hmugs])'

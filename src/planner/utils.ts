@@ -4,9 +4,9 @@ import { PPDependencies, PPConflict } from './../db_schema/explanations';
 import { GoalType, PlanProperty } from '../db_schema/plan-properties/plan_property';
 import { FactUpdate, PossibleInitFactUpdates } from '../db_schema/relaxations';
 
-export function updateMUGSPropsNames(json: any, planProperties: PlanProperty[]): string[][] {
+export function updateMUGSPropsNames(json: string[][], planProperties: PlanProperty[]): string[][] {
     const newMUGS = [];
-    for (const mugs of json['MUGS']) {
+    for (const mugs of json) {
       const list = [];
       for (const elem of mugs) {
         if (elem.startsWith('Atom')) {
@@ -26,11 +26,9 @@ export function updateMUGSPropsNames(json: any, planProperties: PlanProperty[]):
     return newMUGS;
   }
   
-  export function toConflicts(json: any, planProperties: PlanProperty[]): PPDependencies {
-  
+  export function toConflicts(json: string[][], planProperties: PlanProperty[]): PPConflict[] {
     const newMUGS = updateMUGSPropsNames(json, planProperties);
-  
-    let dep : PPDependencies = {conflicts: []};
+    let conflicts: PPConflict[] = [];
   
     for (const mugs of newMUGS) {
         let conflict : PPConflict = {elems: []};
@@ -40,9 +38,9 @@ export function updateMUGSPropsNames(json: any, planProperties: PlanProperty[]):
                 conflict.elems.push(pp._id)
             }
         }
-        dep.conflicts.push(conflict);
+        conflicts.push(conflict);
     }
-    return dep;
+    return conflicts;
   }
 
   function equalsFact(f1: Fact, f2: Fact): boolean {
@@ -77,6 +75,7 @@ export function updateMUGSPropsNames(json: any, planProperties: PlanProperty[]):
     id: number;
     name: string;
     inits: string[];
+    updates: Fact[];
     upper_cover: number[];
     lower_cover: number[];
 }
@@ -107,12 +106,13 @@ export function updateMUGSPropsNames(json: any, planProperties: PlanProperty[]):
           id: id, 
           name: base_name + '_' + format(fact),
           inits: [factToString(fact)],
+          updates: [fact],
           upper_cover: id < relax.length - 1 ? [id + 1] : [],
           lower_cover: id > 0 ? [id - 1] : [],
         });
         id++;
       }
-      console.log("Relaxed Nodes");
+      console.log("toRelaxTaskDefinition: Relaxed Nodes");
       console.log(nodes);
       return nodes;
     }
@@ -134,6 +134,7 @@ export function updateMUGSPropsNames(json: any, planProperties: PlanProperty[]):
           id: id, 
           name: base_name + '_' + format(relaxs1[index1]) + '_' + format(relaxs2[index2]),
           inits: [relaxs1[index1].toString(), relaxs2[index2].toString()],
+          updates: [relaxs1[index1], relaxs2[index2]],
           upper_cover: [],
           lower_cover: []
         });
@@ -144,6 +145,7 @@ export function updateMUGSPropsNames(json: any, planProperties: PlanProperty[]):
             id: id, 
             name: base_name + '_' + format(relaxs1[index1]) + '_' + format(relaxs2[index2]),
             inits: [relaxs1[index1].toString(), relaxs2[index2].toString()],
+            updates: [relaxs1[index1], relaxs2[index2]],
             upper_cover: [],
             lower_cover: []
           });
@@ -156,6 +158,7 @@ export function updateMUGSPropsNames(json: any, planProperties: PlanProperty[]):
             id: id, 
             name: base_name + '_' + format(relaxs1[index1]) + '_' + format(relaxs2[index2]),
             inits: [relaxs1[index1].toString(), relaxs2[index2].toString()],
+            updates: [relaxs1[index1], relaxs2[index2]],
             upper_cover: [],
             lower_cover: []
           });
@@ -206,6 +209,7 @@ export function updateMUGSPropsNames(json: any, planProperties: PlanProperty[]):
   }
 
   export function getAdditionalUpdates(possibleUpdates: PossibleInitFactUpdates[]): FactUpdate[] {
+    console.log("getAdditionalUpdates");
     if (possibleUpdates.length == 1) {
       let max_relax = possibleUpdates[0].updates[possibleUpdates[0].updates.length - 1];
       return [new FactUpdate(Fact.fromObject(possibleUpdates[0].orgFact.fact), Fact.fromObject(max_relax.fact))];
