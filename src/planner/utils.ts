@@ -118,89 +118,67 @@ export function updateMUGSPropsNames(json: string[][], planProperties: PlanPrope
     }
 
     if (relaxations.length == 2){
-
+      console.log("DIM: 2");
       let node_map = new Map<string, RelaxedTaskNode>();
 
       let relaxs1 = relaxations[0];
-      let index1 = 0;
-
       let relaxs2 = relaxations[1];
-      let index2 = 0;
 
       let id = 0;
 
-      while(index1 < relaxs1.length && index2 < relaxs2.length){
-        node_map.set(index1 + '_' + index2, {
-          id: id, 
-          name: base_name + '_' + format(relaxs1[index1]) + '_' + format(relaxs2[index2]),
-          inits: [relaxs1[index1].toString(), relaxs2[index2].toString()],
-          updates: [relaxs1[index1], relaxs2[index2]],
-          upper_cover: [],
-          lower_cover: []
-        });
-
-        if (index1 < relaxs1.length){
-          index1++;
+      for(let index1 = 0; index1 < relaxs1.length; index1++){
+        for(let index2 = 0; index2 < relaxs2.length; index2++){
+          console.log("index1: " + index1 + " index2:" + index2);
           node_map.set(index1 + '_' + index2, {
-            id: id, 
+            id: id++, 
             name: base_name + '_' + format(relaxs1[index1]) + '_' + format(relaxs2[index2]),
-            inits: [relaxs1[index1].toString(), relaxs2[index2].toString()],
+            inits: [factToString(relaxs1[index1]), factToString(relaxs2[index2])],
             updates: [relaxs1[index1], relaxs2[index2]],
             upper_cover: [],
             lower_cover: []
           });
-          index1--;
         }
-
-        if (index2 < relaxs2.length){
-          index2++;
-          node_map.set(index1 + '_' + index2, {
-            id: id, 
-            name: base_name + '_' + format(relaxs1[index1]) + '_' + format(relaxs2[index2]),
-            inits: [relaxs1[index1].toString(), relaxs2[index2].toString()],
-            updates: [relaxs1[index1], relaxs2[index2]],
-            upper_cover: [],
-            lower_cover: []
-          });
-          index2--;
-        }
-
-        index1++;
-        index2++;
       }
 
       node_map.forEach((value, key) => {
+        console.log("Key: " + key);
 
         let i1 = parseInt(key.split('_')[0]);
-        let i2 = parseInt(key.split('_')[0]);
+        let i2 = parseInt(key.split('_')[1]);
 
         let k = (i1-1) + '_' + i2;
         let n = node_map.get(k);
         if (n){
+          console.log("lower: " + k);
           value.lower_cover.push(n.id)
         }
 
         k = (i1) + '_' + (i2-1);
         n = node_map.get(k);
         if (n){
+          console.log("lower: " + k);
           value.lower_cover.push(n.id)
         }
 
         k = (i1+1) + '_' + (i2);
         n = node_map.get(k);
         if (n){
+          console.log("upper: " + k);
           value.upper_cover.push(n.id)
         }
 
         k = (i1) + '_' + (i2+1);
         n = node_map.get(k);
         if (n){
+          console.log("upper: " + k);
           value.upper_cover.push(n.id)
         }
 
         nodes.push(value);
       })
 
+      nodes.sort((a,b) => a.id - b.id);
+      console.log(nodes);
       return nodes;
     }
 

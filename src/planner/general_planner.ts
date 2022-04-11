@@ -70,7 +70,6 @@ export class TranslatorCall{
                 resolve(task);
                 return;
             }
-            // console.log("copy_experiment_results: fail")
             reject(task);
             return;
         });
@@ -109,13 +108,10 @@ export class PlannerCall {
         protected softGoals: PlanProperty[],
         additionalTaskUpdates: FactUpdate[] = []) {
 
-        console.log("additionalTaskUpdates");
-        console.log(additionalTaskUpdates);
         this.task = this.modTask.getUpdatedPlanningTask(additionalTaskUpdates);
         this.runFolder = path.join(root, String(this.runId));
 
         this.create_experiment_setup();
-        console.log("create_experiment_setup: Done")
     }
 
     create_experiment_setup(): void {
@@ -255,7 +251,6 @@ export class RelaxExplanationCall extends PlannerCall{
 
         this.relaxExpRun.result = MUGSString;
         const json : {name: string, MUGS: string[][]}[] = JSON.parse(MUGSString).relaxations;
-        console.log(json);
         let explanationNodes: RelaxationExplanationNode[] = []
         for(let node of this.relaxedTasks) {
             let result = json.find(r => r.name == node.name);

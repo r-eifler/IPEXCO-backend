@@ -56,7 +56,6 @@ runRouter.get('/iter-step/', async (req, res) => {
     const steps = await IterationStepModel.find({ project: projectId})
         .populate('depExplanations')
         .populate('task.basetask')
-        .populate('plan.satPlanProperties');
 
     if (!steps) { 
         return res.status(404).send({ message: 'ERROR: No step found.' });
@@ -73,7 +72,6 @@ runRouter.get('/iter-step/:id', async (req, res) => {
     const run = await IterationStepModel.findOne({ _id: id})
         .populate('depExplanations')
         .populate('task.basetask')
-        .populate('plan.satPlanProperties');
 
     if (!run) { 
         return res.status(404).send({ message: 'No iteration step found.' });

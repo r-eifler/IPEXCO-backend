@@ -67,7 +67,7 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
 
             iterStep.plan.status = planFound ? RunStatus.finished : RunStatus.noSolution;
             iterStep.status = planFound ? StepStatus.solvable : StepStatus.unsolvable;
-            iterStep.plan.satPlanProperties = planFound ? iterStep.hardGoals : [];
+            iterStep.plan.satPlanProperties = planFound ? iterStep.hardGoals.map(hg => hg._id) : [];
 
             if (saveRun) {
                 await iterStep.save();
@@ -134,7 +134,7 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
         const planner = new ExplanationCall(environment.experimentsRootPath, iterStep, depExp);
         planner.executeRun().then( async () => {
 
-            planner.tidyUp();
+            // planner.tidyUp();
             
             depExp.status = RunStatus.finished;
             await iterStep.save();
