@@ -9,7 +9,7 @@ const baseOptions = {
   };
 
 export interface Project extends Document{
-    _id?: string;
+    _id: string;
     name: string;
     public: boolean;
     user: User;
@@ -17,7 +17,7 @@ export interface Project extends Document{
     domainSpecification: File;
     problemFile: File;
     description: string;
-    baseTask?: PlanningTask; 
+    baseTask: PlanningTask; 
     settings: any;
     animationSettings: string;
 }

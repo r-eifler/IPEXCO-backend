@@ -1,10 +1,11 @@
+import { RelaxationDimension } from './../db_schema/relaxations';
 import { ModifiedPlanningTask } from './../db_schema/modified_planning_task';
 import { IterationStep, RelaxationExplanationRun } from './../db_schema/iteration_step';
 import { Project } from './../db_schema/project';
 import 'process';
 import path, { resolve } from 'path';
 import * as child from 'child_process';
-import 'fs';
+import fs from 'fs';
 
 import { DepExplanationRun } from '../db_schema/iteration_step';
 import { PlanProperty } from '../db_schema/plan-properties/plan_property';
@@ -14,8 +15,9 @@ import { CallResult, pythonShellCallFD, pythonShellCallSimple } from './python-c
 import { environment } from '../app';
 import { PlanningTask } from '../db_schema/planning_task';
 import { filterRelaxations, getAdditionalUpdates, RelaxedTaskNode, toConflicts, toRelaxTaskDefinition } from './utils';
-import { FactUpdate, PossibleInitFactUpdates } from '../db_schema/relaxations';
+import { FactUpdate } from '../db_schema/relaxations';
 import { RelaxationExplanationNode } from '../db_schema/explanations';
+import { rejects } from 'assert';
 
 
 export class TranslatorCall{
@@ -66,6 +68,8 @@ export class TranslatorCall{
             writeFileSync(path.join(environment.resultsPath, `out_${this.project._id}.log`), results.join('\n'), 'utf8');
 
             let task = this.copy_experiment_results()
+            this.tidyUp();
+
             if (task){
                 resolve(task);
                 return;
@@ -144,12 +148,12 @@ export class PlannerCall {
         return { hard_goals: hardGoals, plan_properties: properties, soft_goals: softGoals, relaxed_tasks: this.relaxedTasks};
     }
 
-    async executeRun(): Promise<boolean> {
+    async executeRun(): Promise<CallResult> {
 
         const addArgs = [this.runFolder,
             '--build', 'release64',
-            '--overall-memory-limit', '400M',
-            '--overall-time-limit', '1m',
+            // '--overall-memory-limit', '2G',
+            // '--overall-time-limit', '30m',
             `${this.runFolder}/domain.pddl`,
             `${this.runFolder}/problem.pddl`,
             `${this.runFolder}/exp_setting.json`, ...this.plannerSetting];
@@ -163,21 +167,36 @@ export class PlannerCall {
             env: { SPOT_BIN_PATH: environment.spot, LTL2HAO_PATH: environment.ltltkit},
         };
 
-        const plannerResults : CallResult = await pythonShellCallFD(options);
+        return new Promise<CallResult>(async (resolve,rejects) => {
+        
+            const plannerResults : CallResult = await pythonShellCallFD(options);
 
-        writeFileSync(path.join(environment.resultsPath, `out_${this.runId}.log`), plannerResults.log.join('\n'), 'utf8');
-        this.copy_experiment_results(plannerResults.planFound);
+            if(plannerResults.log && plannerResults.log.length > 0){
+                let log = plannerResults.log.join('\n');
+                console.log("Planner Log:");
+                // console.log(log);
+                writeFileSync(path.join(environment.resultsPath, `out_${this.runId}.log`), log, 'utf8');
+            }
+            else{
+                console.log("No LOG");
+            }
 
+            if (plannerResults.error == 0)
+                this.copy_experiment_results(plannerResults);
 
-        return plannerResults.planFound;
+            this.tidyUp();
+
+            resolve(plannerResults);
+            return
+        });
     }
 
-    copy_experiment_results(plaFound : boolean): void {
+    copy_experiment_results(result : CallResult): void {
         // implement in subclass
     }
 
     tidyUp(): void {
-        child.execSync(`rm -r ${this.runFolder}`);
+        child.execSync(`rm -fr ${this.runFolder}`);
     }
 }
 
@@ -192,12 +211,12 @@ export class PlanCall extends PlannerCall{
         super(plannerSettingOptPlan, root, step._id, ModifiedPlanningTask.fromObject(step.task), [], step.hardGoals, step.softGoals);
     }
 
-    copy_experiment_results(planFound : boolean): void {
+    copy_experiment_results(result : CallResult): void {
         if (! this.step.plan) {
             return 
         }
         this.step.plan.log = environment.serverResultsPath + `/out_${this.runId}.log`;
-        if(! planFound){
+        if(! result.planFound){
             return
         }
         const buffer: Buffer = readFileSync(path.join(this.runFolder, 'sas_plan'));
@@ -218,15 +237,22 @@ export class ExplanationCall extends PlannerCall{
         super(plannerSettingMUGS, root, step._id, ModifiedPlanningTask.fromObject(step.task), [], depExpRun.hardGoals, depExpRun.softGoals);
     }
 
-    copy_experiment_results(planFound : boolean): void {
+    copy_experiment_results(result : CallResult): void {
 
-        const buffer: Buffer = readFileSync(path.join(this.runFolder, 'mugs.json'));
-        const MUGSString = buffer.toString('utf8');
-        const json = JSON.parse(MUGSString);
-        this.depExpRun.result = MUGSString
-        this.depExpRun.dependencies = { conflicts: toConflicts(json.MUGS, this.softGoals)};
+        const filePath = path.join(this.runFolder, 'mugs.json');
+        if(fs.existsSync(filePath)){
+            const buffer: Buffer = readFileSync(filePath);
+            const MUGSString = buffer.toString('utf8');
+            this.depExpRun.result = MUGSString;
+            const json : {name: string, MUGS: string[][]}[] = JSON.parse(MUGSString).relaxations;
+            this.depExpRun.dependencies = { conflicts: toConflicts(json[0].MUGS, this.softGoals)};
+        }
+        else {
+            console.log("No mugs file!")
+        }
 
-        this.depExpRun.log = environment.serverResultsPath + `/out_${this.runId}.log`;
+        if(result.log && result.log.length > 0)
+            this.depExpRun.log = environment.serverResultsPath + `/out_${this.runId}.log`;
     }
 }
 
@@ -237,37 +263,90 @@ const plannerSettingRelaxExp = ['--translate-options', '--all-goals-as-sas-goal-
    "--search", "dwq_iterated([dfs(u_eval=hmugs)], heu=[hmugs])"];
 export class RelaxExplanationCall extends PlannerCall{
 
-    constructor(root: string, step: IterationStep, private relaxExpRun: RelaxationExplanationRun, possibleUpdates: PossibleInitFactUpdates[]) {
+    constructor(root: string, step: IterationStep, private relaxExpRun: RelaxationExplanationRun, possibleUpdates: RelaxationDimension[]) {
         super(plannerSettingRelaxExp, root, step._id, ModifiedPlanningTask.fromObject(step.task), 
         toRelaxTaskDefinition('', filterRelaxations(step.task.initUpdates, possibleUpdates)), 
         [], [...step.hardGoals, ...step.softGoals],
         getAdditionalUpdates(possibleUpdates));
     }
 
-    copy_experiment_results(planFound : boolean): void {
+    copy_experiment_results(result : CallResult): void {
 
-        const buffer: Buffer = readFileSync(path.join(this.runFolder, 'mugs.json'));
-        const MUGSString = buffer.toString('utf8');
+        const filePath = path.join(this.runFolder, 'relaxation_mugs.json');
+        if(fs.existsSync(filePath)){
+            const buffer: Buffer = readFileSync(filePath);
+            const MUGSString = buffer.toString('utf8');
 
-        this.relaxExpRun.result = MUGSString;
-        const json : {name: string, MUGS: string[][]}[] = JSON.parse(MUGSString).relaxations;
-        let explanationNodes: RelaxationExplanationNode[] = []
-        for(let node of this.relaxedTasks) {
-            let result = json.find(r => r.name == node.name);
+            this.relaxExpRun.result = MUGSString;
+            const json : {name: string, MUGS: string[][]}[] = JSON.parse(MUGSString).relaxations;
+            let explanationNodes: RelaxationExplanationNode[] = []
+            for(let node of this.relaxedTasks) {
+                let result = json.find(r => r.name == node.name);
 
-            if (!!result) {
-                explanationNodes.push({
-                    name: result.name, 
-                    dependencies: {conflicts: toConflicts(result.MUGS, [...this.hardGoals, ...this.softGoals])},
-                    updates: node.updates,
-                    lower_cover: node.lower_cover,
-                    upper_cover: node.upper_cover
-                });
+                if (!!result) {
+                    explanationNodes.push({
+                        name: result.name, 
+                        dependencies: {conflicts: toConflicts(result.MUGS, [...this.hardGoals, ...this.softGoals])},
+                        updates: node.updates,
+                        lower_cover: node.lower_cover,
+                        upper_cover: node.upper_cover
+                    });
+                }
             }
+            this.relaxExpRun.dependencies = explanationNodes;
         }
-        this.relaxExpRun.dependencies = explanationNodes;
-        this.relaxExpRun.log = environment.serverResultsPath + `/out_${this.runId}.log`;
+        else{
+            console.log('mugs.json file does not exist!');
+        }
+
+        if(result.log && result.log.length > 0)
+            this.relaxExpRun.log = environment.serverResultsPath + `/out_${this.runId}.log`;
     }
 }
 
 // --translate-options --all-goals-as-sas-goal-facts --search-options --heuristic 'hmugs=mugs_hmax(all_softgoals=true)' --search 'dwq_iterated([dfs(u_eval=hmugs)], heu=[hmugs])'
+
+
+export class RelaxExplanationDemoCall extends PlannerCall{
+
+    constructor(root: string, id: string, modTask: ModifiedPlanningTask, planProperties: PlanProperty[], private relaxExpRun: RelaxationExplanationRun, possibleUpdates: RelaxationDimension[]) {
+        super(plannerSettingRelaxExp, root, id, modTask, 
+        toRelaxTaskDefinition('', filterRelaxations(modTask.initUpdates, possibleUpdates)), 
+        [], planProperties, getAdditionalUpdates(possibleUpdates));
+    }
+
+    copy_experiment_results(result : CallResult): void {
+
+        const filePath = path.join(this.runFolder, 'relaxation_mugs.json');
+        if(fs.existsSync(filePath)){
+            const buffer: Buffer = readFileSync(filePath);
+            const MUGSString = buffer.toString('utf8');
+            console.log(MUGSString);
+            this.relaxExpRun.result = MUGSString;
+            const json : {name: string, MUGS: string[][]}[] = JSON.parse(MUGSString).relaxations;
+            let explanationNodes: RelaxationExplanationNode[] = []
+            for(let node of this.relaxedTasks) {
+                let result = json.find(r => r.name == node.name);
+
+                if (!!result) {
+                    let mugs = toConflicts(result.MUGS, [...this.hardGoals, ...this.softGoals]);
+                    explanationNodes.push({
+                        name: result.name, 
+                        dependencies: {conflicts: mugs},
+                        updates: node.updates,
+                        lower_cover: node.lower_cover,
+                        upper_cover: node.upper_cover
+                    });
+                }
+            }
+            this.relaxExpRun.dependencies = explanationNodes;
+            // console.log(this.relaxExpRun.dependencies)
+        }
+        else{
+            console.log('mugs.json file does not exist!');
+        }
+
+        if(result.log && result.log.length > 0)
+            this.relaxExpRun.log = environment.serverResultsPath + `/out_${this.runId}.log`;
+    }
+}

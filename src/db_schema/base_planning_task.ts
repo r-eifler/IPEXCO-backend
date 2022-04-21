@@ -121,7 +121,7 @@ export class Action {
 
     toPDDL(): string {
         let s = "(:action " + this.name + "\n";
-        s += "\t:parameters (" + this.parameters.map(p => p.name).join(' ') + ")\n";
+        s += "\t:parameters (" + this.parameters.map(p => (p.name + ' - ' + p.type)).join(' ') + ")\n";
         s += "\t:precondition (and " + this.precondition.map(p => p.toPDDL()).join(' ') + ")\n";
         s += "\t:effect (and " + this.effects.map(p => p.toPDDL()).join(' ') + ")\n"; 
         return s + ")\n";

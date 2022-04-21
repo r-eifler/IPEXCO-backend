@@ -1,3 +1,5 @@
+import { ModifiedPlanningTask } from './../db_schema/modified_planning_task';
+import { PlanningTaskRelaxationSpace, FactUpdate, RelaxationDimension, computePossibleRelaxations } from './../db_schema/relaxations';
 import { Demo } from './../db_schema/demo';
 import { PlanProperty } from '../db_schema/plan-properties/plan_property';
 
@@ -7,7 +9,9 @@ import * as child from 'child_process';
 import { ExperimentSetting } from './experiment_setting';
 import { PythonShell } from 'python-shell';
 import { environment } from '../app';
-import { json } from 'express';
+import { filterRelaxations, RelaxedTaskNode, toRelaxTaskDefinition } from './utils';
+import { RelaxationExplanationRun, RunStatus } from '../db_schema/iteration_step';
+import { RelaxExplanationDemoCall } from './general_planner';
 
 const runningPythonShells = new Map<string, PythonShell>();
 
@@ -34,156 +38,77 @@ export function cancelDemoComputation(demoId: string): Promise<boolean> {
     });
 }
 
+
+
 export class DemoComputation {
 
     runFolder: string;
+    possibleRelaxations: FactUpdate[][];
+    currentRelaxation: number =  0; 
+    currentRelaxationSpace: number = 0;
 
     constructor(
         private root: string,
         private demo: Demo,
-        private planProperties: PlanProperty[]) {
+        private planProperties: PlanProperty[],
+        private taskRelaxations: PlanningTaskRelaxationSpace[]) {
+
+        console.log("------------------- DemoComputation ------------------------");
         this.runFolder = path.join(root, String(this.demo._id));
-
-        this.create_experiment_setup();
+        this.possibleRelaxations = computePossibleRelaxations(this.taskRelaxations);
+        console.log(this.possibleRelaxations);
+        console.log("#possibleRelaxations: " + this.possibleRelaxations.length);
+        console.log("#planProperties: " + this.planProperties.length);
     }
 
-    create_experiment_setup(): void {
-
-        child.execSync(`mkdir -p ${this.runFolder}/results`);
-        child.execSync(`mkdir -p ${this.runFolder}/runs`);
-        const domainFileName = path.basename(this.demo.domainFile.path);
-        const problemFileName = path.basename(this.demo.problemFile.path);
-
-        child.execSync(`cp ${path.join(environment.uploadsPath, domainFileName)} ${path.join(this.runFolder, 'domain.pddl')}`);
-        child.execSync(`cp ${path.join(environment.uploadsPath, problemFileName)} ${path.join(this.runFolder, 'problem.pddl')}`);
-
-        writeFileSync(path.join(this.runFolder, 'task-schema.json'),
-            this.demo.baseTask?.taskSchema(),
-            'utf8');
-
-
-        child.execSync(`cp -r ${environment.planner} ${this.runFolder}/fast-downward`);
-
-        writeFileSync(path.join(this.runFolder, 'plan-properties.json'),
-            JSON.stringify(this.generate_experiment_setting()),
-            'utf8');
-
+    hasNextRun(): boolean {
+        return this.currentRelaxation < this.possibleRelaxations.length &&
+            this.currentRelaxationSpace <  this.taskRelaxations.length;
     }
 
-    generate_experiment_setting(): ExperimentSetting {
-        return {
-            hard_goals: this.planProperties.filter(p => p.globalHardGoal).map(p => p.name),
-            plan_properties: this.planProperties,
-            soft_goals: [],
-            relaxed_tasks: []
-        };
-    }
+    async executeNextRun(): Promise<boolean> {
 
-    async executeRun(): Promise<string> {
+        console.log("-------------------------------------------");
+        console.log("#relaxation: " + this.currentRelaxation + " #space: " + this.currentRelaxationSpace);
 
-        const addArgsDemo = [
-            `${this.runFolder}/runs`,
-            `${this.runFolder}/domain.pddl`,
-            `${this.runFolder}/problem.pddl`,
-            `${this.runFolder}/task-schema.json`,
-            `${this.runFolder}/plan-properties.json`,
-            `${this.runFolder}/results`
-        ];
+        let initUpdates = this.possibleRelaxations[this.currentRelaxation];
+        // console.log("------ Updates -------");
+        // initUpdates.forEach(u => console.log(u.newFact.toString()));
+        // console.log("-------------");
+        let modTask = new ModifiedPlanningTask('', this.demo.baseTask, initUpdates);
 
-        const optionsDemo = {
-            mode: 'text',
-            pythonPath: '/usr/bin/python3',
-            pythonOptions: ['-u'],
-            scriptPath: environment.demoGenerator,
-            args: addArgsDemo,
-            env: { PLANNER: `${this.runFolder}/fast-downward/`, PROPERTYCHECKER: environment.propertyChecker, PATH: environment.path,
-                SPOT_BIN_PATH: environment.spot, LTL2HAO_PATH: environment.ltltkit},
-        };
+        let relaxationSpace = this.taskRelaxations[this.currentRelaxationSpace];
+        let relaxExpRun : RelaxationExplanationRun = {
+            name: 'relax_exp', 
+            status: RunStatus.running, 
+            relaxationSpace: relaxationSpace,
+        }
 
-        const addArgsDMaxUtility = [
-            `${this.runFolder}/plan-properties.json`,
-            `${this.runFolder}/results/demo.json`
-        ];
+        const planner = new RelaxExplanationDemoCall(environment.experimentsRootPath,
+            this.demo._id, modTask, this.planProperties, relaxExpRun, relaxationSpace.dimensions);
 
-        const optionsMaxUtility = {
-            mode: 'text',
-            pythonPath: '/usr/bin/python3',
-            pythonOptions: ['-u'],
-            scriptPath: environment.maxUtility,
-            args: addArgsDMaxUtility,
-            env: { PATH: environment.path},
-        };
+        this.demo.completion = ((this.currentRelaxation + 1) * (this.currentRelaxationSpace + 1)) /
+            this.possibleRelaxations.length * this.taskRelaxations.length;
 
-        return  new Promise<string>(
-            async (resolve, reject) => {
-                this.pythonShellCallDemo(optionsDemo).then((results1) => {
-                        const resultsFolder = `${this.runFolder}/results/demo.json`;
-                        writeFileSync(resultsFolder, results1.join('\n'), 'utf8');
-                        this.copy_experiment_results();
-                        this.demo.explanationHierarchy = `${environment.serverResultsPath}/demo_${this.demo._id}`;
-
-                        // this.pythonShellCallMaxUtility(optionsMaxUtility).then((results2) => {
-                        //     console.log(results2);
-                        //     this.demo.maxUtility = JSON.parse(results2.join('\n'));
-                        //         resolve(this.demo.maxUtility.value?.toString());
-                        // },
-                        // (err) => {
-                        //     reject(err);
-                        // });
-                        // TODO
-                    },
-                    (err) => {
-                        reject(err);
-                    });
-            });
-
-    }
-
-    pythonShellCallDemo(options: any): Promise<string[]> {
-        return new Promise((resolve, reject) => {
-            // @ts-ignore
-            const shell: PythonShell = PythonShell.run('main.py', options, (err: any, results: any) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(results);
+        return new Promise<boolean>(async (resolve,rejects) => {
+            let callResult = await planner.executeRun();
+            if(callResult.error == 0){
+                this.currentRelaxationSpace = (this.currentRelaxationSpace + 1) % this.taskRelaxations.length;
+                if (this.currentRelaxationSpace  == 0) {
+                    this.demo.explanations.push({initUpdates, relaxationExplanations: [relaxExpRun]})
+                    this.currentRelaxation++;
                 }
-            });
-            if (this.demo._id)
-                runningPythonShells.set(this.demo._id.toString(), shell);
-            else {
-                reject("Id is not set");
-            }
-        });
-    }
-
-    pythonShellCallMaxUtility(options: any): Promise<string[]> {
-        return new Promise((resolve, reject) => {
-            // @ts-ignore
-            const shell: PythonShell = PythonShell.run('main.py', options, (err: any, results: any) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(results);
+                else{
+                    this.demo.explanations[this.demo.explanations.length - 1].relaxationExplanations.push(relaxExpRun);
                 }
-            });
-            if (this.demo._id)
-                runningPythonShells.set(this.demo._id.toString(), shell);
-            else {
-                reject("Id is not set");
             }
+            
+            resolve(callResult.error == 0);
+            return;
         });
+
     }
 
-    copy_experiment_results(): void {
-        child.execSync(`cp -r ${this.runFolder}/results/ ${environment.resultsPath}/demo_${this.demo._id}`);
-    }
-
-    tidyUp(): void {
-        child.execSync(`rm -r ${this.runFolder}`);
-        if (this.demo._id)
-            runningPythonShells.delete(this.demo._id);
-    }
 }
 
 
@@ -200,7 +125,7 @@ export class DemoPreComputation {
         child.execSync(`mkdir  ${environment.resultsPath}/demo_${this.demo._id}`);
         writeFileSync(`${environment.resultsPath}/demo_${this.demo._id}/demo.json`, this.data, 'utf8');
 
-        this.demo.explanationHierarchy = `${environment.serverResultsPath}/demo_${this.demo._id}`;
+        // this.demo.explanationHierarchy = `${environment.serverResultsPath}/demo_${this.demo._id}`;
         // console.log(this.maxUtility);
         this.demo.maxUtility = JSON.parse(this.maxUtility);
     }

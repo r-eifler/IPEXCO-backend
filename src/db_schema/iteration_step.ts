@@ -28,7 +28,7 @@ export interface PlanRun{
     status: RunStatus;
     log?: string;
     result?: string;
-    satPlanProperties?: PlanProperty[];
+    satPlanProperties?: string[];
 }
 
 const PlanRunSchema = new Schema({
@@ -50,7 +50,7 @@ export interface RelaxationExplanationRun{
     dependencies? : RelaxationExplanationNode[];
 }
 
-const RelaxationExplanationRunSchema = new Schema({
+export const RelaxationExplanationRunSchema = new Schema({
     name: { type: String, required: true},
     status: { type: Number, required: true},
     relaxationSpace: [{ type: mongoose.Schema.Types.ObjectId, ref: 'planning-task-relaxation-space' }],
@@ -97,7 +97,7 @@ export interface IterationStep extends Document{
     softGoals: PlanProperty[];
     task: ModifiedPlanningTask;
     plan?: PlanRun;
-    depExplanations: DepExplanationRun[];
+    depExplanation: DepExplanationRun;
     relaxationExplanations: RelaxationExplanationRun[];
     predecessorStep: IterationStep | null;
 }
@@ -110,7 +110,7 @@ const IterationStepSchema = new Schema({
     softGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     task: ModifiedPlanningTaskSchema,
     plan: PlanRunSchema,
-    depExplanations: [DepExplanationRunSchema],
+    depExplanation: DepExplanationRunSchema,
     relaxationExplanations: [RelaxationExplanationRunSchema],
     predecessorStep: { type: mongoose.Schema.Types.ObjectId, ref: 'iteration-step', required: false },
 }, { timestamps: true});

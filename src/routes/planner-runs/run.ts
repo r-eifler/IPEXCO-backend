@@ -96,7 +96,7 @@ runRouter.put('/iter-step/:id', async (req, res) => {
 
         step.status = stepData.status;
         step.plan = stepData.plan
-        step.depExplanations = stepData.depExplanations
+        step.depExplanation = stepData.depExplanation
 
         await step.save();
 

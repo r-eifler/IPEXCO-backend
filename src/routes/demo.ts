@@ -11,6 +11,7 @@ import multer from 'multer';
 import path from 'path';
 import { deleteResultFile, deleteUploadFile } from '../planner/pddl_file_utils';
 import { environment } from '../app';
+import { PlanningTaskRelaxationSpaceModel } from '../db_schema/relaxations';
 
 
 export const demoRouter = express.Router();
@@ -40,6 +41,33 @@ const upload = multer({
     fileFilter
 });
 
+
+async function computeDemo(demoGen: DemoComputation, demo: Demo): Promise<void>{
+    try {
+        while(demoGen.hasNextRun()){
+            console.log("Next Demo Computation Run");
+            // console.log(demo.explanations);
+            let succ = await demoGen.executeNextRun();
+            if (! succ) {
+                await DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
+                return;
+            }
+            console.log("Completion: " + demo.completion);
+            if (demo.completion == 1){
+                demo.status = RunStatus.finished;
+            }
+            await demo.save();
+            
+            // if(demo.explanations[demo.explanations.length-1].relaxationExplanations)
+            //     console.log(demo.explanations[demo.explanations.length-1].relaxationExplanations[0]);
+        }
+        return;
+    } catch (ex) {
+        console.log(ex.message);
+        DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
+    }
+}
+
 demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
 
     let demo: Demo | null = null;
@@ -53,85 +81,106 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
 
         let imageFilePath = null;
         if (req.file) {
+            console.log("save image");
             imageFilePath = '/uploads/' + req.file.filename;
         }
 
-        demo = new DemoModel();
-        demo.isNew = true;
+        let demoData = { 
+            name: req.body.name,
+            user: project.user,
+            summaryImage: imageFilePath,
+            domainFile: project.domainFile,
+            problemFile: project.problemFile,
+            settings: JSON.stringify(project.settings),
+            baseTask: project.baseTask,
+            domainSpecification: project.domainSpecification,
+            status: RunStatus.pending,
+            completion: 0.0,
+            description: req.body.description,
+            introduction: req.body.introduction,
+            taskInfo: req.body.taskInfo,
+            public: false
+        }
 
-        demo.user = project.user;
-        demo.domainFile = project.domainFile;
-        demo.domainSpecification = project.domainSpecification;
-        demo.problemFile = project.problemFile;
-        demo.description = project.description;
-        demo.baseTask = project.baseTask;
-        demo.settings = project.settings;
-        demo.animationSettings = project.animationSettings;
+        console.log(demoData);
 
-        demo.name = req.body.name;
-        demo.summaryImage = imageFilePath;
-        demo.status = RunStatus.pending;
-        demo.description = req.body.description;
-        demo.taskInfo = req.body.taskInfo;
-        demo.public = false;
+        demo = new DemoModel(demoData);
 
-        if (!demo || ! demo._id) {
+        if (!demo) {
+            console.log("create demo failed");
             return res.status(403).send('create demo failed');
         }
 
         await demo.save();
+        await demo.populate('baseTask').execPopulate();
+
+        // console.log(demo);
 
         // copy plan-properties
         const planProperties = await PlanPropertyModel.find({ project: project?._id, isUsed: true });
         for (const pp of planProperties) {
-            const newPP = new PlanPropertyModel(pp);
-            delete newPP._id;
-            newPP.project = demo._id;
-            newPP.isNew = true;
+            let ppData = {
+                name: pp.name,
+                type: pp.type,
+                formula: pp.formula,
+                actionSets: pp.actionSets,
+                naturalLanguageDescription: pp.naturalLanguageDescription,
+                project: demo._id,
+                isUsed: pp.isUsed,
+                globalHardGoal: pp.globalHardGoal,
+                value: pp.value,
+            };
+            const newPP = new PlanPropertyModel(ppData);
             await newPP.save();
         }
 
+
+        // copy relaxation spaces
+        const relaxationSpaces = await PlanningTaskRelaxationSpaceModel.find({ project: project?._id});
+        for (const space of relaxationSpaces) {
+            let spaceData = {
+                name: space.name,
+                project: demo._id,
+                dimensions: space.dimensions
+            };
+            const newSpace = new PlanningTaskRelaxationSpaceModel(spaceData);
+            await newSpace.save();
+        }
+
     } catch (ex) {
-        res.send(ex.message);
+        console.log(ex.message);
+        res.status(403).send(ex.message);
         return;
     }
 
-    // Precompute Demo data
+    // Pre-compute demo data
     try {
+        console.log("Precompute demo");
         const planProperties = await PlanPropertyModel.find({ project: demo._id});
-        // const taskRelaxations = await PlanningTaskRelaxationSpaceModel.find({ project: demo._id});
-        // TODO extent demo computation with task relaxations
+        console.log("#planProperties: " + planProperties.length);
+        const taskRelaxations = await PlanningTaskRelaxationSpaceModel.find({ project: demo._id});
+        console.log("#relaxationSpaces: " + taskRelaxations.length);
 
         demo.status = RunStatus.running;
         await demo.save();
 
-        const demoGen = new DemoComputation(environment.experimentsRootPath, demo, planProperties);
+        const demoGen = new DemoComputation(environment.experimentsRootPath, demo, planProperties, taskRelaxations);
 
-        demoGen.executeRun().then(
-            async (maxUtility) => {
-                if (!demo) {
-                    return res.status(403).send('create demo failed');
-                }
-                demo.status = RunStatus.finished;
-                await demo.save();
-                demoGen.tidyUp();
-            },
-            async (err) => {
-                console.log(err);
-                await DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
-                demoGen.tidyUp();
-            }
-        );
+        computeDemo(demoGen, demo);
+        console.log("computeDemo ...")
+
+        // console.log(demo);
 
         res.send({
             status: true,
-            message: 'Demo created',
+            message: 'demo computation is running',
             data: demo
         });
 
     } catch (ex) {
+        console.log(ex.message);
         DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
-        res.send(ex.message);
+        res.status(403).send(ex.message);
     }
 });
 
@@ -278,16 +327,14 @@ demoRouter.put('/', auth, async (req, res) => {
 
 demoRouter.get('', authForward, async (req: any, res) => {
 
+    console.log(req.user._id.toString());
     try {
         const allDemos: Demo[] = await DemoModel.find();
-
+        console.log("#allDemos: " + allDemos.length);
         const demos = allDemos.filter(
-            d => {
-                d.public || 
-                (req.user && 
-                    (d.user as any)._id.toHexString() === req.user._id.toHexString());
-        });
-
+            d => d.public || (req.user && d.user.toString() == req.user._id.toString())
+        );
+        console.log("#demos: " + demos.length);
         if (!demos) { 
             return res.status(404).send({ message: 'No demos found' });
         }

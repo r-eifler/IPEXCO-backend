@@ -42,7 +42,7 @@ export class PlanningTask{
         // domain
         let d = "(define (domain " + this.domain + ")\n";
         d += "(:requirements :typing :action-costs)\n";
-        d += "(:types " + this.types.map(t => t.name + " - " + t.parent).join("\n") + "\n)\n";
+        d += "(:types " + this.types.filter(t => t.name != 'object').map(t => t.name + " - " + t.parent).join("\n") + "\n)\n";
         d += "(:predicates " + this.predicates.map(p => p.toPDDL(true)).join("\n") + "\n)\n";
         d += this.actions.map(a => a.toPDDL()).join("\n");
         d += "\n)";
@@ -50,7 +50,7 @@ export class PlanningTask{
         let p = "(define (problem " + this.name + ")\n";
         p += "(:domain " + this.domain + ")\n";
         p += "(:objects \n" + this.objects.map(o => o.name + " - " + o.type).join("\n") + "\n)\n";
-        p += "(:init\n " + this.initial.map(f => f.toPDDL()).join("\n") + "\n)\n";
+        p += "(:init\n " + this.initial.map(f => f.toPDDL()).sort().join("\n") + "\n)\n";
         p += "(:goal (and " + this.goal.map(p => p.toPDDL()).join("\n") + ")\n";
         p += "\n))";
 

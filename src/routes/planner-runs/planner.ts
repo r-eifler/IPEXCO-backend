@@ -1,3 +1,4 @@
+import { CallResult } from './../../planner/python-call';
 import { IterationStep, IterationStepModel, RelaxationExplanationRun, StepStatus } from './../../db_schema/iteration_step';
 import { PlanProperty} from '../../db_schema/plan-properties/plan_property';
 import { PropertyCheck } from '../../planner/property_check';
@@ -16,6 +17,7 @@ export const plannerRouter = express.Router();
 plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
 
     const saveRun: boolean = req.query.save ? JSON.parse(req.query.save) : false;
+    console.log("Save run: " + saveRun);
     const iterStepData = req.body.data;
 
     try {
@@ -45,14 +47,13 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
 
             const planner = new PlanCall(environment.experimentsRootPath, iterStep);
 
-            if (saveRun) {
-                iterStep.plan.status = RunStatus.running;
+            iterStep.plan.status = RunStatus.running;
 
+            if (saveRun) {
                 await iterStep.save();
             }
 
-            const planFound = await planner.executeRun();
-            planner.tidyUp();
+            const callResult = await planner.executeRun();
 
             // let satPlanProperties: PlanProperty[] = [];
             // if (planFound) {
@@ -65,9 +66,9 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             //     propertyChecker.tidyUp();
             // }
 
-            iterStep.plan.status = planFound ? RunStatus.finished : RunStatus.noSolution;
-            iterStep.status = planFound ? StepStatus.solvable : StepStatus.unsolvable;
-            iterStep.plan.satPlanProperties = planFound ? iterStep.hardGoals.map(hg => hg._id) : [];
+            iterStep.plan.status = callResult.planFound ? RunStatus.finished : RunStatus.noSolution;
+            iterStep.status = callResult.planFound ? StepStatus.solvable : StepStatus.unsolvable;
+            iterStep.plan.satPlanProperties = callResult.planFound ? iterStep.hardGoals.filter(hg => !!hg._id).map(hg => hg._id) : [];
 
             if (saveRun) {
                 await iterStep.save();
@@ -77,6 +78,7 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             await iterStep.depopulate('hardGoals').execPopulate();
             await iterStep.depopulate('softGoals').execPopulate();
 
+            console.log("Final Iteration Step");
             console.log(iterStep);
             res.send({
                 status: true,
@@ -109,7 +111,6 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
         const iterStep = await IterationStepModel.findOne({ _id: stepId})
         .populate('hardGoals')
         .populate('softGoals')
-        .populate('depExplanations')
         .populate('task.basetask');
 
         if (!iterStep) { 
@@ -121,35 +122,35 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
         const depExpData = req.body as DepExplanationRun;
         depExpData.status = RunStatus.running;
 
-        iterStep.depExplanations.push(depExpData);
+        iterStep.depExplanation = depExpData;
         await iterStep.save();
         
-        await iterStep.populate('depExplanations.hardGoals').execPopulate();
-        await iterStep.populate('depExplanations.softGoals').execPopulate();
+        await iterStep.populate('depExplanation.hardGoals').execPopulate();
+        await iterStep.populate('depExplanation.softGoals').execPopulate();
 
-        const depExp = iterStep.depExplanations[iterStep.depExplanations.length - 1]
+        const depExp = iterStep.depExplanation
 
-        // console.log(depExp);
+        console.log(depExp);
 
         const planner = new ExplanationCall(environment.experimentsRootPath, iterStep, depExp);
-        planner.executeRun().then( async () => {
+        let succesful = await planner.executeRun()
+        planner.tidyUp();
+        
+        depExp.status = succesful ? RunStatus.finished : RunStatus.failed;
 
-            // planner.tidyUp();
-            
-            depExp.status = RunStatus.finished;
-            await iterStep.save();
-            await iterStep.depopulate('depExplanations.hardGoals').execPopulate();
-            await iterStep.depopulate('depExplanations.softGoals').execPopulate();
-            await iterStep.depopulate('hardGoals').execPopulate();
-            await iterStep.depopulate('softGoals').execPopulate();
-            console.log(iterStep.depExplanations[iterStep.depExplanations.length - 1]);
+        await iterStep.save();
+        await iterStep.depopulate('depExplanation.hardGoals').execPopulate();
+        await iterStep.depopulate('depExplanation.softGoals').execPopulate();
+        await iterStep.depopulate('hardGoals').execPopulate();
+        await iterStep.depopulate('softGoals').execPopulate();
+        console.log(iterStep.depExplanation);
 
-            res.send({
-                status: true,
-                message: 'run successful',
-                data: iterStep,
-            });
+        res.send({
+            status: true,
+            message: 'run executed',
+            data: iterStep,
         });
+
     }
     catch (ex) {
         console.log(ex.message);
@@ -174,7 +175,7 @@ plannerRouter.post('/mugs-save/:id', authUserStudy, async (req: any, res) => {
         const depExp = req.body as DepExplanationRun;
         depExp.status = RunStatus.finished;
 
-        iterStep.depExplanations.push(depExp);
+        iterStep.depExplanation = depExp;
         await iterStep.save();
 
         res.send({
@@ -223,12 +224,12 @@ plannerRouter.post('/relax_exp/:id', auth, async (req, res) => {
 
             // console.log(depExp);
 
-            const planner = new RelaxExplanationCall(environment.experimentsRootPath, iterStep, relaxExp, relaxationSpace.possibleInitFactUpdates);
-            await planner.executeRun();
+            const planner = new RelaxExplanationCall(environment.experimentsRootPath, iterStep, relaxExp, relaxationSpace.dimensions);
+            let succesful = await planner.executeRun();
 
-            planner.tidyUp();
+            // planner.tidyUp();
 
-            relaxExp.status = RunStatus.finished;
+            relaxExp.status = succesful ? RunStatus.finished : RunStatus.failed;
             await iterStep.save();
         }
 

@@ -1,8 +1,9 @@
+import { RelaxationDimension } from './../db_schema/relaxations';
 import { ModifiedPlanningTask } from './../db_schema/modified_planning_task';
 import { Fact } from './../db_schema/base_planning_task';
 import { PPDependencies, PPConflict } from './../db_schema/explanations';
 import { GoalType, PlanProperty } from '../db_schema/plan-properties/plan_property';
-import { FactUpdate, PossibleInitFactUpdates } from '../db_schema/relaxations';
+import { FactUpdate } from '../db_schema/relaxations';
 
 export function updateMUGSPropsNames(json: string[][], planProperties: PlanProperty[]): string[][] {
     const newMUGS = [];
@@ -47,8 +48,12 @@ export function updateMUGSPropsNames(json: string[][], planProperties: PlanPrope
     return f1.name == f2.name && JSON.stringify(f1.arguments) === JSON.stringify(f2.arguments)
   }
 
-  export function filterRelaxations(selectedUdpates: FactUpdate[], possibleUpdates: PossibleInitFactUpdates[]): Fact[][]{
-    console.log("filter Relaxations");
+  export function filterRelaxations(selectedUdpates: FactUpdate[], possibleUpdates: RelaxationDimension[]): Fact[][]{
+    // console.log("--------------------------- filterRelaxations")
+    // selectedUdpates.forEach(su => console.log(su));
+    // console.log("---------------------------")
+    // possibleUpdates[0].updates.forEach(pu => console.log(pu.fact));
+    // console.log("---------------------------")
     let newPossibleUpdates: Fact[][] = [];
     possibleUpdates.forEach(possibleUpdate => {
       let list = [possibleUpdate.orgFact, ...possibleUpdate.updates];
@@ -64,10 +69,9 @@ export function updateMUGSPropsNames(json: string[][], planProperties: PlanPrope
         }
       }
       let fact_list = list.map(e => e.fact)
-      console.log("filtered Updates");
-      console.log(fact_list);
       newPossibleUpdates.push(fact_list);
     })
+    // newPossibleUpdates[0].forEach(pu => console.log(pu));
     return newPossibleUpdates;
   }
 
@@ -93,9 +97,6 @@ export function updateMUGSPropsNames(json: string[][], planProperties: PlanPrope
 
   export function toRelaxTaskDefinition(base_name: string, relaxations: Fact[][]) {
 
-    console.log("toRelaxTaskDefinition");
-    console.log(relaxations);
-
     let nodes : RelaxedTaskNode[] = [];
 
     if (relaxations.length == 1){
@@ -112,13 +113,13 @@ export function updateMUGSPropsNames(json: string[][], planProperties: PlanPrope
         });
         id++;
       }
-      console.log("toRelaxTaskDefinition: Relaxed Nodes");
-      console.log(nodes);
+
+      // console.log(nodes);
       return nodes;
     }
 
     if (relaxations.length == 2){
-      console.log("DIM: 2");
+
       let node_map = new Map<string, RelaxedTaskNode>();
 
       let relaxs1 = relaxations[0];
@@ -128,7 +129,7 @@ export function updateMUGSPropsNames(json: string[][], planProperties: PlanPrope
 
       for(let index1 = 0; index1 < relaxs1.length; index1++){
         for(let index2 = 0; index2 < relaxs2.length; index2++){
-          console.log("index1: " + index1 + " index2:" + index2);
+
           node_map.set(index1 + '_' + index2, {
             id: id++, 
             name: base_name + '_' + format(relaxs1[index1]) + '_' + format(relaxs2[index2]),
@@ -141,7 +142,7 @@ export function updateMUGSPropsNames(json: string[][], planProperties: PlanPrope
       }
 
       node_map.forEach((value, key) => {
-        console.log("Key: " + key);
+
 
         let i1 = parseInt(key.split('_')[0]);
         let i2 = parseInt(key.split('_')[1]);
@@ -149,28 +150,25 @@ export function updateMUGSPropsNames(json: string[][], planProperties: PlanPrope
         let k = (i1-1) + '_' + i2;
         let n = node_map.get(k);
         if (n){
-          console.log("lower: " + k);
+
           value.lower_cover.push(n.id)
         }
 
         k = (i1) + '_' + (i2-1);
         n = node_map.get(k);
         if (n){
-          console.log("lower: " + k);
           value.lower_cover.push(n.id)
         }
 
         k = (i1+1) + '_' + (i2);
         n = node_map.get(k);
         if (n){
-          console.log("upper: " + k);
           value.upper_cover.push(n.id)
         }
 
         k = (i1) + '_' + (i2+1);
         n = node_map.get(k);
         if (n){
-          console.log("upper: " + k);
           value.upper_cover.push(n.id)
         }
 
@@ -178,7 +176,6 @@ export function updateMUGSPropsNames(json: string[][], planProperties: PlanPrope
       })
 
       nodes.sort((a,b) => a.id - b.id);
-      console.log(nodes);
       return nodes;
     }
 
@@ -186,11 +183,10 @@ export function updateMUGSPropsNames(json: string[][], planProperties: PlanPrope
     return [];
   }
 
-  export function getAdditionalUpdates(possibleUpdates: PossibleInitFactUpdates[]): FactUpdate[] {
-    console.log("getAdditionalUpdates");
+  export function getAdditionalUpdates(possibleUpdates: RelaxationDimension[]): FactUpdate[] {
     if (possibleUpdates.length == 1) {
       let max_relax = possibleUpdates[0].updates[possibleUpdates[0].updates.length - 1];
-      return [new FactUpdate(Fact.fromObject(possibleUpdates[0].orgFact.fact), Fact.fromObject(max_relax.fact))];
+      return [{orgFact: Fact.fromObject(possibleUpdates[0].orgFact.fact), newFact: Fact.fromObject(max_relax.fact)}];
     }
     return [];
   }

@@ -16,7 +16,7 @@ export class ModifiedPlanningTask{
     }
   
     static fromObject(o: ModifiedPlanningTask) {
-      let task = new ModifiedPlanningTask(o.name, o.basetask, o.initUpdates.map(e => FactUpdate.fromObject(e)));
+      let task = new ModifiedPlanningTask(o.name, o.basetask, o.initUpdates);
       if(o._id){
         task._id = o._id
       }
@@ -25,13 +25,14 @@ export class ModifiedPlanningTask{
 
     getUpdatedPlanningTask(add_updates : FactUpdate[] = []): PlanningTask {
       let copyTask = new PlanningTask(this.basetask);
-
       let updates = [...this.initUpdates]
-      updates = updates.filter(f1 => ! add_updates.some(f2 => equalsFact(f2.orgFact, f1.orgFact)));
-      updates = [...updates, ...add_updates];
+      if(add_updates && add_updates.length > 0){
+        updates = updates.filter(f1 => ! add_updates.some(f2 => equalsFact(f2.orgFact, f1.orgFact)));
+        updates = [...updates, ...add_updates];
+      }
 
       copyTask.initial = copyTask.initial.filter(f => ! updates.some(u => equalsFact(u.orgFact, f)));
-      updates.forEach(u => copyTask.initial.push(u.newFact));
+      updates.forEach(u => copyTask.initial.push(Fact.fromObject(u.newFact)));
 
       return copyTask;
     }
