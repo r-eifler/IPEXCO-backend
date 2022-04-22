@@ -271,10 +271,11 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
 });
 
 
-demoRouter.put('/', auth, async (req, res) => {
+demoRouter.put('/:id', auth, async (req, res) => {
 
     try {
-        const demo: Demo | null = await DemoModel.findById(req.body._id);
+        const refId = req.params.id;
+        const demo: Demo | null = await DemoModel.findById(refId);
 
         if (!demo) {
             return res.status(403).send('Demo not found');
