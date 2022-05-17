@@ -18,7 +18,7 @@ export interface UserStudyData extends Document{
     user: string;
     createdAt?: Date;
     userStudy: string;
-    finished?: string;
+    finished?: boolean;
     accepted?: boolean;
     timeLog?: string;
     payment?: number;

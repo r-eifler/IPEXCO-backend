@@ -66,11 +66,14 @@ userStudyDataRouter.put('/:id', auth, async (req, res) => {
 });
 
 
-userStudyDataRouter.get('/:id', auth, async (req: any, res) => {
+userStudyDataRouter.get('/', auth, async (req: any, res) => {
     try {
-        const refIdUserStudy = req.params.id;
+        //TODO find only matching datapoints
+        const refIdUserStudy : string = req.query.userStudyId as string;
+        console.log("Study ID: " + refIdUserStudy);
         const allData: UserStudyData[] = await UserStudyDataModel.find();
 
+        // console.log(allData);
         console.log("#allDataPoints: " + allData.length);
         const dataPoints = allData.filter(
             s => (s.userStudy.toString() == refIdUserStudy)
