@@ -91,7 +91,7 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
             summaryImage: imageFilePath,
             domainFile: project.domainFile,
             problemFile: project.problemFile,
-            settings: JSON.stringify(project.settings),
+            settings: project.settings,
             baseTask: project.baseTask,
             domainSpecification: project.domainSpecification,
             status: RunStatus.pending,
@@ -282,6 +282,8 @@ demoRouter.put('/:id', auth, async (req, res) => {
         }
 
         const demoData = req.body.data as Demo;
+        console.log("update Demo settings");
+        console.log(demoData.settings);
 
         demo.name = demoData.name;
         demo.description = demoData.description;

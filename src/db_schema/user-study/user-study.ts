@@ -28,13 +28,30 @@ const MetaStudySchema = new Schema({
 export const MetaStudyModel = mongoose.model<MetaStudy>('meta-study', MetaStudySchema);
 
 
+export enum UserStudyStepType {
+    description,
+    form,
+    demo,
+  }
+  
+  export interface UserStudyStep {
+    type: UserStudyStepType;
+    content: string;
+  }
+
+  const UserStudyStepSchema = new Schema({
+    type: { type: Number, required: true},
+    content: { type: String, required: true},
+});
+
+
 export interface UserStudy extends Document{
     name: string;
     user: string;
     description: string;
     startDate: string;
     endDate: string;
-    steps: string;
+    steps: UserStudyStep[];
     available: boolean;
     redirectUrl?: string;
 }
@@ -46,7 +63,7 @@ const UserStudySchema = new Schema({
     description: { type: String, required: true},
     startDate: { type: String, required: true},
     endDate: { type: String, required: true},
-    steps: { type: String, required: true},
+    steps: [{ type: UserStudyStepSchema, required: true}],
     available: { type: Boolean, required: true},
     redirectUrl: { type: String, required: false},
 });

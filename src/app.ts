@@ -24,6 +24,7 @@ import { Environment } from './environment';
 import * as dotenv from "dotenv";
 import { metaStudyRouter } from './routes/user-study/meta-study';
 import { planningTaskRelaxtionRouter } from './routes/planning_task_relaxation';
+import { userStudyDataRouter } from './routes/user-study/user-study-data';
 dotenv.config();
 
 console.log('-------- XPP BACK END ---------');
@@ -53,10 +54,12 @@ app.use(sassMiddleware({
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/users', userRouter);
-app.use('/api/user-study-users', userStudyUserRouter);
 
+app.use('/api/user-study-users', userStudyUserRouter);
 app.use('/api/meta-study', metaStudyRouter);
 app.use('/api/user-study', userStudyRouter);
+app.use('/api/user-study-data', userStudyDataRouter);
+
 app.use('/api/demo', demoRouter);
 
 app.use('/api/plan-property', planPropertyRouter);
@@ -67,12 +70,13 @@ app.use('/results', express.static(path.join(__dirname, 'data/results')));
 app.use('/images', express.static(path.join(__dirname, 'data/images')));
 
 app.use('/api/planner', plannerRouter);
+app.use('/api/run', runRouter);
 
 app.use(auth);
 app.use('/', indexRouter);
 app.use('/api/pddl-file', pddlFileRouter);
 app.use('/api/project', projectRouter);
-app.use('/api/run', runRouter);
+
 
 
 

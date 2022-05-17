@@ -1,7 +1,6 @@
-import { UserStudyDataModel } from './../../db_schema/user-study/user-study-store';
-import { IterationStep, IterationStepModel, RelaxationExplanationRun } from './../../db_schema/iteration_step';
+import { UserStudyDataModel, UserStudyDemoData } from './../../db_schema/user-study/user-study-store';
+import { IterationStep, IterationStepModel } from './../../db_schema/iteration_step';
 import express from 'express';
-import mongoose from 'mongoose';
 
 import { deleteIterationStep } from '../utils';
 import { authUserStudy } from '../../middleware/auth';
@@ -12,6 +11,7 @@ export const runRouter = express.Router();
 runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
 
     try {
+        console.log("create iter step");
         const iterStepData = req.body.data as IterationStep;
         console.log(iterStepData);
         console.log(iterStepData.task.initUpdates);
@@ -26,16 +26,24 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
         await iterationStep.populate('plan.satPlanProperties').execPopulate();
 
         if (req.userStudyUser) {
-            const userstudyData = await UserStudyDataModel.findOne({ user: req.userStudyUser._id});
+            console.log("Save for user study ...");
+            const userStudyData = await UserStudyDataModel.findOne({ user: req.userStudyUser._id});
 
-            if (!userstudyData) {
+            if (!userStudyData) {
                 return res.status(403).send('Iteration Step could not be created.');
             }
 
-            userstudyData.demoSteps.push(iterationStep);
-            await userstudyData.save(); 
+            if(userStudyData.demosData.length == 0 ||
+                userStudyData.demosData[userStudyData.demosData.length - 1].demo != iterationStep.project){
+                    let demoData: UserStudyDemoData = {demo: iterationStep.project as string, iterationSteps: []}
+                    userStudyData.demosData.push(demoData);
+            }
+
+            userStudyData.demosData[userStudyData.demosData.length - 1].iterationSteps.push(iterationStep);
+            console.log(userStudyData)
+            await userStudyData.save(); 
         }
-        console.log(iterationStep.task.initUpdates);
+        
         res.send({
             status: true,
             message: 'Iteration Step is stored.',
@@ -51,7 +59,7 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
 });
 
 
-runRouter.get('/iter-step/', async (req, res) => {
+runRouter.get('/iter-step/', authUserStudy, async (req, res) => {
     const projectId : string = req.query.projectId as string;
     const steps = await IterationStepModel.find({ project: projectId})
         .populate('depExplanations')
@@ -67,7 +75,7 @@ runRouter.get('/iter-step/', async (req, res) => {
 
 });
 
-runRouter.get('/iter-step/:id', async (req, res) => {
+runRouter.get('/iter-step/:id', authUserStudy, async (req, res) => {
     const id =  req.params.id;
     const run = await IterationStepModel.findOne({ _id: id})
         .populate('depExplanations')
@@ -83,7 +91,7 @@ runRouter.get('/iter-step/:id', async (req, res) => {
 
 });
 
-runRouter.put('/iter-step/:id', async (req, res) => {
+runRouter.put('/iter-step/:id', authUserStudy, async (req, res) => {
     try {
         const refId = req.params.id;
         const step: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
@@ -113,7 +121,7 @@ runRouter.put('/iter-step/:id', async (req, res) => {
 });
 
 
-runRouter.delete('/iter-step/:id', async (req, res) => {
+runRouter.delete('/iter-step/:id', authUserStudy, async (req, res) => {
 
     const step: IterationStep | null = await IterationStepModel.findOne({ _id: req.params.id });
 
