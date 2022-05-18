@@ -34,7 +34,7 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
             }
 
             if(userStudyData.demosData.length == 0 ||
-                userStudyData.demosData[userStudyData.demosData.length - 1].demo != iterationStep.project){
+                userStudyData.demosData[userStudyData.demosData.length - 1].demo.toString() != iterationStep.project.toString()){
                     let demoData: UserStudyDemoData = {demo: iterationStep.project as string, iterationSteps: []}
                     userStudyData.demosData.push(demoData);
             }

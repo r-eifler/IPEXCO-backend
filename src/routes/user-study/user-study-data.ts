@@ -71,7 +71,9 @@ userStudyDataRouter.get('/', auth, async (req: any, res) => {
         //TODO find only matching datapoints
         const refIdUserStudy : string = req.query.userStudyId as string;
         console.log("Study ID: " + refIdUserStudy);
-        const allData: UserStudyData[] = await UserStudyDataModel.find();
+        const allData: UserStudyData[] = await UserStudyDataModel.find()
+            .populate('user')
+            .populate('demosData.iterationSteps');
 
         // console.log(allData);
         console.log("#allDataPoints: " + allData.length);
