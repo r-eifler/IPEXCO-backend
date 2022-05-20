@@ -13,7 +13,9 @@ userStudyDataRouter.put('/', authUserStudy, async (req, res) => {
         const userStudyUser = req.userStudyUser;
         const newMetaData: UserStudyData = req.body.data;
 
-        const metaData: UserStudyData | null = await UserStudyDataModel.findOne({ user: userStudyUser._id});
+        const metaData: UserStudyData | null = await UserStudyDataModel.findOne({ user: userStudyUser._id})
+            .populate('user')
+            .populate('demosData.iterationSteps');;
 
         if (!metaData) {
             return res.status(403).send('update user failed');
@@ -42,7 +44,9 @@ userStudyDataRouter.put('/:id', auth, async (req, res) => {
         const refId = req.params.id;
         const newMetaData: UserStudyData = req.body.data;
 
-        const metaData: UserStudyData | null = await UserStudyDataModel.findOne({ _id: refId});
+        const metaData: UserStudyData | null = await UserStudyDataModel.findOne({ _id: refId})
+            .populate('user')
+            .populate('demosData.iterationSteps');
 
         if (!metaData) {
             return res.status(403).send('update user failed');

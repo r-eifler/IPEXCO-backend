@@ -40,10 +40,11 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
             }
 
             userStudyData.demosData[userStudyData.demosData.length - 1].iterationSteps.push(iterationStep);
-            console.log(userStudyData)
+            // console.log(userStudyData)
             await userStudyData.save(); 
         }
-        
+        console.log("------------------ New Iteration Step ---------------")
+        console.log(iterationStep)
         res.send({
             status: true,
             message: 'Iteration Step is stored.',
@@ -105,8 +106,12 @@ runRouter.put('/iter-step/:id', authUserStudy, async (req, res) => {
         step.status = stepData.status;
         step.plan = stepData.plan
         step.depExplanation = stepData.depExplanation
+        step.relaxationExplanations = stepData.relaxationExplanations
 
         await step.save();
+
+        console.log("------------------ Updated Iteration Step ---------------")
+        console.log(step)
 
         res.send({
             status: true,
