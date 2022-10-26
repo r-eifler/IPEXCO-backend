@@ -185,6 +185,48 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
 });
 
 
+demoRouter.post('/:id/image', auth, upload.single('summaryImage'), async (req, res) => {
+
+
+        
+
+    try {
+        const refId = req.params.id;
+        const demo: Demo | null = await DemoModel.findById(refId);
+
+        if (!demo) {
+            return res.status(403).send('Demo not found');
+        }
+
+        const demoData = req.body.data as Demo;
+
+        let imageFilePath = null;
+        if (req.file) {
+            imageFilePath = '/uploads/' + req.file.filename;
+            console.log("new image: " + imageFilePath);
+
+            if(demo.summaryImage){
+                deleteUploadFile(demo.summaryImage);
+            }
+            demo.summaryImage = imageFilePath;
+        }
+
+        await demo.save();
+
+        res.send({
+            status: true,
+            message: 'Demo updated',
+            data: demo
+        });
+        console.log(res);
+    } catch (ex) {
+        console.log(ex);
+        res.send(ex.message);
+        return;
+    }
+});
+
+
 
 demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req, res) => {
 

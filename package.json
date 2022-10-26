@@ -4,12 +4,8 @@
   "description": "",
   "main": "dist/out-tsc/app.js",
   "scripts": {
-    "test": "test",
-    "run-debug": "nodemon --watch 'src/**/*.ts' --exec 'ts-node src/app.ts'",
-    "run": "nodemon --watch 'src/**/*.ts' --exec 'ts-node src/app.ts'",
     "debug": "tsc; node --inspect-brk dist/out-tsc/app.js",
-    "debug2": "node --inspect-brk --require ts-node/register src/app.ts",
-    "start2": "tsc; node dist/out-tsc/app.js",
+    "start": "tsc; node dist/out-tsc/app.js",
     "build": "tsc"
   },
   "repository": {
