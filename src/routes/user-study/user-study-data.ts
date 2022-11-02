@@ -10,7 +10,7 @@ export const userStudyDataRouter = express.Router();
 
 userStudyDataRouter.put('/', authUserStudy, async (req, res) => {
     try {
-        const userStudyUser = req.userStudyUser;
+        const userStudyUser = (req as any).userStudyUser;
         const newMetaData: UserStudyData = req.body.data;
 
         const metaData: UserStudyData | null = await UserStudyDataModel.findOne({ user: userStudyUser._id})

@@ -8,7 +8,7 @@ export enum GoalType {
   }
 
 export interface PlanProperty extends Document {
-    _id?: string;
+    _id: string;
     name: string;
     project: string;
     type: string;
