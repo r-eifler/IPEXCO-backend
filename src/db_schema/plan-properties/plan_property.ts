@@ -18,6 +18,9 @@ export interface PlanProperty extends Document {
     isUsed: boolean;
     globalHardGoal: boolean;
     value: number;
+    color: string;
+    icon: string;
+    class: string;
 }
 
 const PlanPropertySchema = new Schema({
@@ -29,7 +32,10 @@ const PlanPropertySchema = new Schema({
     naturalLanguageDescription: { type: String, required: true},
     isUsed: { type: Boolean, required: true},
     globalHardGoal: { type: Boolean, required: true},
-    value: { type: Number, required: true}
+    value: { type: Number, required: true},
+    color: { type: String, required: true},
+    icon: { type: String, required: true},
+    class: { type: String, required: true},
 });
 
 export const PlanPropertyModel = mongoose.model<PlanProperty>('plan-property', PlanPropertySchema);
