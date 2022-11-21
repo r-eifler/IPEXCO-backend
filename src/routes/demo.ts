@@ -129,6 +129,9 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
                 isUsed: pp.isUsed,
                 globalHardGoal: pp.globalHardGoal,
                 value: pp.value,
+                class: pp.class,
+                icon: pp.icon,
+                color: pp.color
             };
             const newPP = new PlanPropertyModel(ppData);
             await newPP.save();
