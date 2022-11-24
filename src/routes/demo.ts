@@ -377,7 +377,7 @@ demoRouter.get('', authForward, async (req: any, res) => {
 
     console.log(req.user._id.toString());
     try {
-        const allDemos: Demo[] = await DemoModel.find();
+        const allDemos: Demo[] = await DemoModel.find().populate('baseTask');;
         console.log("#allDemos: " + allDemos.length);
         const demos = allDemos.filter(
             d => d.public || (req.user && d.user.toString() == req.user._id.toString())
