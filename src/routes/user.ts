@@ -18,6 +18,7 @@ userRouter.post('/', async (req, res) => {
         const token = await user.generateAuthToken();
         res.status(201).send({ user: { name: user.name}, token });
     } catch (error) {
+        console.log(error);
         res.status(400).send(error);
     }
 });
@@ -45,6 +46,7 @@ userRouter.post('/login', authForward, async(req: any, res: Response) => {
             user,
             token });
     } catch (error) {
+        console.log(error);
         res.status(400).send(error);
     }
 
@@ -66,6 +68,7 @@ userRouter.post('/logout', authForward, async (req: any, res) => {
 
         res.send();
     } catch (error) {
+        console.log(error);
         res.status(500).send(error);
     }
 });

@@ -44,24 +44,32 @@ const upload = multer({
 
 async function computeDemo(demoGen: DemoComputation, demo: Demo): Promise<void>{
     try {
-        while(demoGen.hasNextRun()){
-            console.log("Next Demo Computation Run");
-            // console.log(demo.explanations);
-            let succ = await demoGen.executeNextRun();
-            if (! succ) {
-                await DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
-                return;
+        if(demoGen.hasRelaxations()){
+            while(demoGen.hasNextRun()){
+                console.log("Next Demo Computation Run");
+                // console.log(demo.explanations);
+                let succ = await demoGen.executeNextRun();
+                if (! succ) {
+                    await DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
+                    return;
+                }
+                console.log("Completion: " + demo.completion);
+                if (demo.completion == 1){
+                    demo.status = RunStatus.finished;
+                }
+                await demo.save();
             }
-            console.log("Completion: " + demo.completion);
-            if (demo.completion == 1){
-                demo.status = RunStatus.finished;
-            }
-            await demo.save();
-            
-            // if(demo.explanations[demo.explanations.length-1].relaxationExplanations)
-            //     console.log(demo.explanations[demo.explanations.length-1].relaxationExplanations[0]);
+        } else{
+            let succ = await demoGen.executeSimpleRun();
+                if (! succ) {
+                    await DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
+                    return;
+                }
+                if (demo.completion == 1){
+                    demo.status = RunStatus.finished;
+                }
+                await demo.save();
         }
-        return;
     } catch (ex) {
         console.log(ex.message);
         DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
@@ -169,8 +177,8 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
 
         const demoGen = new DemoComputation(environment.experimentsRootPath, demo, planProperties, taskRelaxations);
 
-        computeDemo(demoGen, demo);
         console.log("computeDemo ...")
+        computeDemo(demoGen, demo);
 
         // console.log(demo);
 

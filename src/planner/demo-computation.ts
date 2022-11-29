@@ -1,17 +1,15 @@
 import { ModifiedPlanningTask } from './../db_schema/modified_planning_task';
-import { PlanningTaskRelaxationSpace, FactUpdate, RelaxationDimension, computePossibleRelaxations } from './../db_schema/relaxations';
+import { PlanningTaskRelaxationSpace, FactUpdate, computePossibleRelaxations } from './../db_schema/relaxations';
 import { Demo } from './../db_schema/demo';
 import { PlanProperty } from '../db_schema/plan-properties/plan_property';
 
 import path from 'path';
 import { writeFileSync } from 'fs';
 import * as child from 'child_process';
-import { ExperimentSetting } from './experiment_setting';
 import { PythonShell } from 'python-shell';
 import { environment } from '../app';
-import { filterRelaxations, RelaxedTaskNode, toRelaxTaskDefinition } from './utils';
-import { RelaxationExplanationRun, RunStatus } from '../db_schema/iteration_step';
-import { RelaxExplanationDemoCall } from './general_planner';
+import { DepExplanationRun, RelaxationExplanationRun, RunStatus } from '../db_schema/iteration_step';
+import { ExplanationDemoCall, RelaxExplanationDemoCall } from './general_planner';
 
 const runningPythonShells = new Map<string, PythonShell>();
 
@@ -61,9 +59,38 @@ export class DemoComputation {
         console.log("#planProperties: " + this.planProperties.length);
     }
 
+    hasRelaxations(): boolean {
+        return this.possibleRelaxations.length > 0;
+    }
+
     hasNextRun(): boolean {
         return this.currentRelaxation < this.possibleRelaxations.length &&
             this.currentRelaxationSpace <  this.taskRelaxations.length;
+    }
+
+    async executeSimpleRun(): Promise<boolean> {
+
+        console.log("----------------- Simple Computation: no relaxations --------------------------");
+
+        let conflictExpRun : DepExplanationRun = {
+            name: 'conflict_exp', 
+            status: RunStatus.running, 
+            hardGoals: this.planProperties.filter(pp => pp.isUsed && pp.globalHardGoal),
+            softGoals: this.planProperties.filter(pp => pp.isUsed && !pp.globalHardGoal)
+        }
+
+        const planner = new ExplanationDemoCall(environment.experimentsRootPath, this.demo, conflictExpRun);
+
+        this.demo.completion = 1;
+
+        return new Promise<boolean>(async (resolve,rejects) => {
+            let callResult = await planner.executeRun();
+            //TODO make this simpler
+            this.demo.conflictExplanation = conflictExpRun;
+            resolve(callResult.error == 0);
+            return;
+        });
+
     }
 
     async executeNextRun(): Promise<boolean> {

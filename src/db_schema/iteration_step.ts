@@ -63,18 +63,17 @@ export const RelaxationExplanationRunSchema = new Schema({
 
 
 export interface DepExplanationRun{
-    _id: string;
     createdAt?: Date;
     name: string;
     status: RunStatus;
     hardGoals: PlanProperty[];
     softGoals: PlanProperty[];
-    log: string;
-    result: string;
+    log?: string;
+    result?: string;
     dependencies? : PPDependencies;
 }
 
-const DepExplanationRunSchema = new Schema({
+export const DepExplanationRunSchema = new Schema({
     name: { type: String, required: true},
     status: { type: Number, required: true},
     hardGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],

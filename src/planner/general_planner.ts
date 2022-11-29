@@ -18,6 +18,7 @@ import { filterRelaxations, getAdditionalUpdates, RelaxedTaskNode, toConflicts, 
 import { FactUpdate } from '../db_schema/relaxations';
 import { RelaxationExplanationNode } from '../db_schema/explanations';
 import { rejects } from 'assert';
+import { Demo } from '../db_schema/demo';
 
 
 export class TranslatorCall{
@@ -106,13 +107,11 @@ export class PlannerCall {
         protected plannerSetting: string[],
         protected root: string,
         protected runId: string,
-        protected modTask: ModifiedPlanningTask,
-        protected relaxedTasks: RelaxedTaskNode[],
+        protected planningTask: PlanningTask,
         protected hardGoals: PlanProperty[],
-        protected softGoals: PlanProperty[],
-        additionalTaskUpdates: FactUpdate[] = []) {
+        protected softGoals: PlanProperty[]) {
 
-        this.task = this.modTask.getUpdatedPlanningTask(additionalTaskUpdates);
+        this.task = planningTask;
         this.runFolder = path.join(root, String(this.runId));
 
         this.create_experiment_setup();
@@ -145,7 +144,7 @@ export class PlannerCall {
         const softGoals: string[] = this.softGoals.map(p => p.name);
         const properties: PlanProperty[] = this.hardGoals.concat(this.softGoals);
 
-        return { hard_goals: hardGoals, plan_properties: properties, soft_goals: softGoals, relaxed_tasks: this.relaxedTasks};
+        return { hard_goals: hardGoals, plan_properties: properties, soft_goals: softGoals, relaxed_tasks: []};
     }
 
     async executeRun(): Promise<CallResult> {
@@ -201,11 +200,37 @@ export class PlannerCall {
 }
 
 
+export class PlannerCallModifiedTask extends PlannerCall {
+
+
+    constructor(
+        protected plannerSetting: string[],
+        protected root: string,
+        protected runId: string,
+        protected modTask: ModifiedPlanningTask,
+        protected relaxedTasks: RelaxedTaskNode[],
+        protected hardGoals: PlanProperty[],
+        protected softGoals: PlanProperty[],
+        additionalTaskUpdates: FactUpdate[] = []) {
+        super(plannerSetting, root, runId, modTask.getUpdatedPlanningTask(additionalTaskUpdates), hardGoals, softGoals)
+
+        this.create_experiment_setup();
+    }
+
+    generate_experiment_setting(): ExperimentSetting {
+        const hardGoals: string[] = this.hardGoals.map(p => p.name);
+        const softGoals: string[] = this.softGoals.map(p => p.name);
+        const properties: PlanProperty[] = this.hardGoals.concat(this.softGoals);
+
+        return { hard_goals: hardGoals, plan_properties: properties, soft_goals: softGoals, relaxed_tasks: this.relaxedTasks};
+    }
+}
+
 
 // const plannerSettingOptPlan = ['--search', 'astar(hmax())'];
 const plannerSettingOptPlan = ['--search', 'astar(iPDB())'];
 const plannerSettingSatPlan = ['--search', 'lazy_greedy([ff()], preferred=[ff()])'];
-export class PlanCall extends PlannerCall{
+export class PlanCall extends PlannerCallModifiedTask{
 
     constructor(root: string, private step: IterationStep) {
         super(plannerSettingOptPlan, root, step._id, ModifiedPlanningTask.fromObject(step.task), [], step.hardGoals, step.softGoals);
@@ -234,7 +259,32 @@ const plannerSettingMUGS = ['--translate-options', '--all-goals-as-sas-goal-fact
 export class ExplanationCall extends PlannerCall{
 
     constructor(root: string, step: IterationStep, private depExpRun: DepExplanationRun) {
-        super(plannerSettingMUGS, root, step._id, ModifiedPlanningTask.fromObject(step.task), [], depExpRun.hardGoals, depExpRun.softGoals);
+        super(plannerSettingMUGS, root, step._id, new PlanningTask(step.task.basetask), depExpRun.hardGoals, depExpRun.softGoals);
+    }
+
+    copy_experiment_results(result : CallResult): void {
+
+        const filePath = path.join(this.runFolder, 'mugs.json');
+        if(fs.existsSync(filePath)){
+            const buffer: Buffer = readFileSync(filePath);
+            const MUGSString = buffer.toString('utf8');
+            this.depExpRun.result = MUGSString;
+            const json : {name: string, MUGS: string[][]}[] = JSON.parse(MUGSString).relaxations;
+            this.depExpRun.dependencies = { conflicts: toConflicts(json[0].MUGS, this.softGoals)};
+        }
+        else {
+            console.log("No mugs file!")
+        }
+
+        if(result.log && result.log.length > 0)
+            this.depExpRun.log = environment.serverResultsPath + `/out_${this.runId}.log`;
+    }
+}
+
+export class ExplanationDemoCall extends PlannerCall{
+
+    constructor(root: string, demo: Demo, private depExpRun: DepExplanationRun) {
+        super(plannerSettingMUGS, root, demo._id, new PlanningTask(demo.baseTask), depExpRun.hardGoals, depExpRun.softGoals);
     }
 
     copy_experiment_results(result : CallResult): void {
@@ -261,7 +311,7 @@ export class ExplanationCall extends PlannerCall{
 const plannerSettingRelaxExp = ['--translate-options', '--all-goals-as-sas-goal-facts',
    '--search-options', "--heuristic", "hmugs=mugs_hmax(all_softgoals=false)",
    "--search", "dwq_iterated([dfs(u_eval=hmugs)], heu=[hmugs])"];
-export class RelaxExplanationCall extends PlannerCall{
+export class RelaxExplanationCall extends PlannerCallModifiedTask{
 
     constructor(root: string, step: IterationStep, private relaxExpRun: RelaxationExplanationRun, possibleUpdates: RelaxationDimension[]) {
         super(plannerSettingRelaxExp, root, step._id, ModifiedPlanningTask.fromObject(step.task), 
@@ -307,7 +357,7 @@ export class RelaxExplanationCall extends PlannerCall{
 // --translate-options --all-goals-as-sas-goal-facts --search-options --heuristic 'hmugs=mugs_hmax(all_softgoals=true)' --search 'dwq_iterated([dfs(u_eval=hmugs)], heu=[hmugs])'
 
 
-export class RelaxExplanationDemoCall extends PlannerCall{
+export class RelaxExplanationDemoCall extends PlannerCallModifiedTask{
 
     constructor(root: string, id: string, modTask: ModifiedPlanningTask, planProperties: PlanProperty[], private relaxExpRun: RelaxationExplanationRun, possibleUpdates: RelaxationDimension[]) {
         super(plannerSettingRelaxExp, root, id, modTask, 
