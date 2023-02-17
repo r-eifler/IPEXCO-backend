@@ -35,6 +35,7 @@ export class TranslatorCall{
 
     create_experiment_setup(): void {
 
+        child.execSync(`rm -rf ${this.runFolder}`);
         child.execSync(`mkdir -p ${this.runFolder}`);
         const domainFileName = path.basename(this.project.domainFile.path);
         const problemFileName = path.basename(this.project.problemFile.path);
@@ -119,6 +120,7 @@ export class PlannerCall {
 
     create_experiment_setup(): void {
 
+        child.execSync(`rm -rf ${this.runFolder}`);
         child.execSync(`mkdir -p ${this.runFolder}`);
 
         const task_definition: string[] = this.task.toPDDL();
