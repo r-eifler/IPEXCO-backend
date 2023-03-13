@@ -166,7 +166,7 @@ export class DemoPreComputation {
         }
 
         let jsonData = JSON.parse(this.data)
-        conflictExpRun.result = jsonData.MUGS;
+        conflictExpRun.result = this.data;
         conflictExpRun.dependencies = { conflicts: toConflicts(jsonData.MUGS, conflictExpRun.softGoals)};
 
         this.demo.completion = 1;
