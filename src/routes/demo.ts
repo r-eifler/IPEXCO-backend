@@ -256,6 +256,7 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
             imageFilePath = '/uploads/' + req.file.filename;
         }
 
+        console.log(req.body)
 
         demo = new DemoModel();
         demo.isNew = true;
@@ -268,6 +269,8 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
         demo.baseTask = project.baseTask;
         demo.settings = project.settings;
         demo.animationSettings = project.animationSettings;
+
+        demo.completion = 0;
 
         demo.name = req.body.name;
         demo.summaryImage = imageFilePath;
@@ -283,17 +286,30 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
         await demo.save();
 
         // copy plan-properties
+        // copy plan-properties
         const planProperties = await PlanPropertyModel.find({ project: project?._id, isUsed: true });
         for (const pp of planProperties) {
-            const newPP = new PlanPropertyModel(pp);
-            delete newPP._id;
-            newPP.project = demo._id;
-            newPP.isNew = true;
+            let ppData = {
+                name: pp.name,
+                type: pp.type,
+                formula: pp.formula,
+                actionSets: pp.actionSets,
+                naturalLanguageDescription: pp.naturalLanguageDescription,
+                project: demo._id,
+                isUsed: pp.isUsed,
+                globalHardGoal: pp.globalHardGoal,
+                value: pp.value,
+                class: pp.class,
+                icon: pp.icon,
+                color: pp.color
+            };
+            const newPP = new PlanPropertyModel(ppData);
             await newPP.save();
         }
 
     } catch (ex) {
-        res.send(ex.message);
+        res.status(500).send(ex.message);
+        console.log(ex.message);
         return;
     }
 
@@ -306,20 +322,27 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
         const demoData = req.body.demoData;
         const maxUtility = req.body.maxUtility;
 
-        const demoGen = new DemoPreComputation(demo, demoData, maxUtility);
+        console.log("store uploaded demo");
+        const planProperties = await PlanPropertyModel.find({ project: demo._id});
+        console.log("#planProperties: " + planProperties.length);
+
+        const demoGen = new DemoPreComputation(demo, planProperties, demoData, maxUtility);
         demoGen.store();
+        
         demo.status = RunStatus.finished;
         await demo.save();
 
+        console.log(demo)
         res.send({
             status: true,
-            message: 'Demo created',
+            message: 'Demo uploaded',
             data: demo
         });
 
     } catch (ex) {
         DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
-        res.send(ex.message);
+        res.status(500).send(ex.message);
+        console.log(ex.message);
     }
 });
 

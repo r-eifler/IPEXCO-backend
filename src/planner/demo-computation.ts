@@ -10,6 +10,7 @@ import { PythonShell } from 'python-shell';
 import { environment } from '../app';
 import { DepExplanationRun, RelaxationExplanationRun, RunStatus } from '../db_schema/iteration_step';
 import { ExplanationDemoCall, RelaxExplanationDemoCall } from './general_planner';
+import { toConflicts } from './utils';
 
 const runningPythonShells = new Map<string, PythonShell>();
 
@@ -144,17 +145,33 @@ export class DemoPreComputation {
 
     constructor(
         private demo: Demo,
+        private planProperties: PlanProperty[],
         private data: string,
         private maxUtility: string) {
     }
 
     store() {
+        //TODO add computation of max utility
+
         child.execSync(`mkdir  ${environment.resultsPath}/demo_${this.demo._id}`);
         writeFileSync(`${environment.resultsPath}/demo_${this.demo._id}/demo.json`, this.data, 'utf8');
 
-        // this.demo.explanationHierarchy = `${environment.serverResultsPath}/demo_${this.demo._id}`;
-        // console.log(this.maxUtility);
-        this.demo.maxUtility = JSON.parse(this.maxUtility);
+        console.log("----------------- Simple Upload: no relaxations --------------------------");
+
+        let conflictExpRun : DepExplanationRun = {
+            name: 'conflict_exp', 
+            status: RunStatus.running, 
+            hardGoals: this.planProperties.filter(pp => pp.isUsed && pp.globalHardGoal),
+            softGoals: this.planProperties.filter(pp => pp.isUsed && !pp.globalHardGoal)
+        }
+
+        let jsonData = JSON.parse(this.data)
+        conflictExpRun.result = jsonData.MUGS;
+        conflictExpRun.dependencies = { conflicts: toConflicts(jsonData.MUGS, conflictExpRun.softGoals)};
+
+        this.demo.completion = 1;
+        this.demo.conflictExplanation = conflictExpRun;
+
     }
 
 
