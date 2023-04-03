@@ -1,4 +1,4 @@
-# Iterative Planning Tool with Explanations - BACKEND
+# IPEXCO - Iterative Planning Tool with Explanations of Conflicts- BACKEND
 
 TODO
 
@@ -8,4 +8,4 @@ TODO
 
 ## Docker
 
-`https://hub.docker.com/r/eifler/xpp-iter-planning-tool`
+`https://hub.docker.com/r/eifler/ipexco`
