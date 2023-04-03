@@ -408,7 +408,7 @@ demoRouter.get('', authForward, async (req: any, res) => {
 
     console.log(req.user._id.toString());
     try {
-        const allDemos: Demo[] = await DemoModel.find().populate('baseTask');;
+        const allDemos: Demo[] = await DemoModel.find().populate('baseTask');
         console.log("#allDemos: " + allDemos.length);
         const demos = allDemos.filter(
             d => d.public || (req.user && d.user.toString() == req.user._id.toString())
@@ -428,7 +428,7 @@ demoRouter.get('', authForward, async (req: any, res) => {
 });
 
 demoRouter.get('/:id', authForward, async (req, res) => {
-    const demo = await DemoModel.findOne({ _id: req.params.id });
+    const demo = await DemoModel.findOne({ _id: req.params.id }).populate('baseTask');
 
     if (!demo) 
         { return res.status(404).send({ message: 'Demo not found.' }); 
