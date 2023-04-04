@@ -1,0 +1,21 @@
+version: "3"
+services:
+  app:
+    container_name: IPEXCO
+    restart: always
+    image: ipexco
+    volumes:
+      - <absolute path to folder to store uploaded and generated files>:/usr/src/app/dist/out-tsc/data
+    ports:
+      - "3000:3000"
+    env_file:
+        - docker.env
+    links:
+      - mongo
+  mongo:
+    container_name: mongo
+    image: mongo
+    volumes:
+      - <absolute path to folder to store database data>:/data/db
+    ports:
+      - "27017:27017"
