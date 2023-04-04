@@ -1,5 +1,5 @@
 {
-  "name": "explore-backend",
+  "name": "ipexco",
   "version": "1.0.0",
   "description": "",
   "main": "dist/out-tsc/app.js",
@@ -10,13 +10,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "explore-backend"
+    "url": "https://github.com/r-eifler/IPEXCO-backend"
   },
-  "keywords": [
-    "plan properties"
-  ],
+  "keywords": [],
   "author": "Rebecca Eifler",
-  "license": "ISC",
+  "license": "GNU",
   "devDependencies": {
     "nodemon": "^2.0.15",
     "ts-node": "^8.10.2",

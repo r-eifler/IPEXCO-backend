@@ -3,6 +3,7 @@ import { userRouter } from './routes/user';
 import createError from 'http-errors';
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import cookieParser from 'cookie-parser';
 
 import logger from 'morgan';
@@ -27,7 +28,32 @@ import { planningTaskRelaxtionRouter } from './routes/planning_task_relaxation';
 import { userStudyDataRouter } from './routes/user-study/user-study-data';
 dotenv.config();
 
-console.log('-------- XPP BACK END ---------');
+console.log('-------- IPEXCO BACK END ---------');
+
+const results_folder = path.join(__dirname, 'data/results');
+const uploads_folder = path.join(__dirname, 'data/uploads');
+const images_folder = path.join(__dirname, 'data/images')
+
+// create folders if not already exist
+console.log('---> statically served path');
+
+console.log(uploads_folder);
+if(! fs.existsSync(uploads_folder)){
+  fs.mkdirSync(uploads_folder)
+  console.log(uploads_folder + " created");
+}
+
+console.log(results_folder);
+if(! fs.existsSync(results_folder)){
+  fs.mkdirSync(results_folder)
+  console.log(results_folder + " created");
+}
+
+console.log(images_folder);
+if(! fs.existsSync(images_folder)){
+  fs.mkdirSync(images_folder)
+  console.log(images_folder + " created");
+}
 
 export const environment = new Environment();
 
@@ -65,9 +91,9 @@ app.use('/api/demo', demoRouter);
 app.use('/api/plan-property', planPropertyRouter);
 app.use('/api/planning-task-relaxation', planningTaskRelaxtionRouter);
 
-app.use('/uploads', express.static(path.join(__dirname, 'data/uploads')));
-app.use('/results', express.static(path.join(__dirname, 'data/results')));
-app.use('/images', express.static(path.join(__dirname, 'data/images')));
+app.use('/uploads', express.static(uploads_folder));
+app.use('/results', express.static(results_folder));
+app.use('/images', express.static(images_folder));
 
 app.use('/api/planner', plannerRouter);
 app.use('/api/run', runRouter);
@@ -77,14 +103,6 @@ app.use('/', indexRouter);
 app.use('/api/pddl-file', pddlFileRouter);
 app.use('/api/project', projectRouter);
 
-
-
-
-
-console.log('Static path: ');
-console.log(path.join(__dirname, 'uploads'));
-console.log(path.join(__dirname, 'results'));
-console.log(path.join(__dirname, 'images'));
 
 
 // catch 404 and forward to error handler
