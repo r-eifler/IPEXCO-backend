@@ -21,9 +21,9 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
             return res.status(403).send('Iteration Step could not be created.');
         }
         await iterationStep.save();
-        await iterationStep.populate('depExplanations').execPopulate();
-        await iterationStep.populate('task.basetask').execPopulate();
-        await iterationStep.populate('plan.satPlanProperties').execPopulate();
+        await iterationStep.populate('depExplanations');
+        await iterationStep.populate('task.basetask');
+        await iterationStep.populate('plan.satPlanProperties');
 
         if (req.userStudyUser) {
             console.log("Save for user study ...");

@@ -120,7 +120,7 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
         }
 
         await demo.save();
-        await demo.populate('baseTask').execPopulate();
+        await demo.populate('baseTask');
 
         // console.log(demo);
 

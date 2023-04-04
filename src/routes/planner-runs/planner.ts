@@ -36,9 +36,9 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
 
         try {
             // load project and plan-properties and compute plan
-            await iterStep.populate('hardGoals').execPopulate();
-            await iterStep.populate('softGoals').execPopulate();
-            await iterStep.populate('task.basetask').execPopulate();
+            await iterStep.populate('hardGoals');
+            await iterStep.populate('softGoals');
+            await iterStep.populate('task.basetask');
 
             const planner = new PlanCall(environment.experimentsRootPath, iterStep);
 
@@ -70,8 +70,8 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
                 console.log('saved');
             }
 
-            await iterStep.depopulate('hardGoals').execPopulate();
-            await iterStep.depopulate('softGoals').execPopulate();
+            await iterStep.depopulate('hardGoals');
+            await iterStep.depopulate('softGoals');
 
             console.log("Final Iteration Step");
             console.log(iterStep);
@@ -120,8 +120,8 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
         iterStep.depExplanation = depExpData;
         await iterStep.save();
         
-        await iterStep.populate('depExplanation.hardGoals').execPopulate();
-        await iterStep.populate('depExplanation.softGoals').execPopulate();
+        await iterStep.populate('depExplanation.hardGoals');
+        await iterStep.populate('depExplanation.softGoals');
 
         const depExp = iterStep.depExplanation
 
@@ -134,10 +134,10 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
         depExp.status = succesful ? RunStatus.finished : RunStatus.failed;
 
         await iterStep.save();
-        await iterStep.depopulate('depExplanation.hardGoals').execPopulate();
-        await iterStep.depopulate('depExplanation.softGoals').execPopulate();
-        await iterStep.depopulate('hardGoals').execPopulate();
-        await iterStep.depopulate('softGoals').execPopulate();
+        await iterStep.depopulate('depExplanation.hardGoals');
+        await iterStep.depopulate('depExplanation.softGoals');
+        await iterStep.depopulate('hardGoals');
+        await iterStep.depopulate('softGoals');
         console.log(iterStep.depExplanation);
 
         res.send({
@@ -228,8 +228,8 @@ plannerRouter.post('/relax_exp/:id', auth, async (req, res) => {
             await iterStep.save();
         }
 
-        await iterStep.depopulate('hardGoals').execPopulate();
-        await iterStep.depopulate('softGoals').execPopulate();
+        await iterStep.depopulate('hardGoals');
+        await iterStep.depopulate('softGoals');
 
         res.send({
             status: true,
