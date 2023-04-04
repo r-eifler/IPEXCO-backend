@@ -31,7 +31,7 @@ async function computeAndStoreSchema(project: Project): Promise<string> {
             await project.save();
 
             resolve('Task creation successful.');
-        } catch (ex) {
+        } catch (ex : any) {
             console.log(ex.message);
             reject('Task creation failed.');
         }
@@ -68,7 +68,7 @@ projectRouter.post('/', async (req: any, res) => {
             data: newProject
         });
 
-    } catch (ex) {
+    } catch (ex : any) {
         console.log(ex.message);
         if(projectId){
             await ProjectModel.deleteOne({ _id: projectId });
@@ -103,7 +103,7 @@ projectRouter.put('/:id', async (req, res) => {
             data: project
         });
 
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });

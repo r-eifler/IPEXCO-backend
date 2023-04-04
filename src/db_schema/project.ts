@@ -9,7 +9,7 @@ const baseOptions = {
   };
 
 export interface Project extends Document{
-    _id: string;
+    _id?: string;
     name: string;
     public: boolean;
     user: User;

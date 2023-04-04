@@ -286,7 +286,7 @@ export class ExplanationCall extends PlannerCall{
 export class ExplanationDemoCall extends PlannerCall{
 
     constructor(root: string, demo: Demo, private depExpRun: DepExplanationRun) {
-        super(plannerSettingMUGS, root, demo._id, new PlanningTask(demo.baseTask), depExpRun.hardGoals, depExpRun.softGoals);
+        super(plannerSettingMUGS, root, demo._id ? demo._id : '', new PlanningTask(demo.baseTask), depExpRun.hardGoals, depExpRun.softGoals);
     }
 
     copy_experiment_results(result : CallResult): void {

@@ -1,10 +1,6 @@
 import { UserStudyModel, UserStudy } from '../../db_schema/user-study/user-study';
 import express from 'express';
-import mongoose from 'mongoose';
 import { auth, authForward, authUserStudy } from '../../middleware/auth';
-import { USUser, USUserModel } from '../../db_schema/user-study/user-study-user';
-import {UserStudyData, UserStudyDataModel} from '../../db_schema/user-study/user-study-store';
-import { DepExplanationRun, PlanRun } from '../../db_schema/iteration_step';
 
 export const userStudyRouter = express.Router();
 
@@ -30,7 +26,7 @@ userStudyRouter.post('/', auth, async (req: any, res) => {
         });
     }
 
-    catch (ex) {
+    catch (ex : any) {
         console.log(ex.message);
         res.send(ex.message);
     }
@@ -56,7 +52,7 @@ userStudyRouter.put('/:id', auth, async (req, res) => {
             data: userStudy
         });
 
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });
@@ -79,7 +75,7 @@ userStudyRouter.get('/', authForward, async (req: any, res) => {
         res.send({
             data: studies
         });
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 

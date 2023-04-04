@@ -1,7 +1,6 @@
 import { MetaStudyModel, MetaStudy } from '../../db_schema/user-study/user-study';
 import express from 'express';
-import mongoose from 'mongoose';
-import { auth, authForward, authUserStudy } from '../../middleware/auth';
+import { auth } from '../../middleware/auth';
 
 export const metaStudyRouter = express.Router();
 
@@ -25,7 +24,7 @@ metaStudyRouter.post('/', auth, async (req: any, res) => {
         });
     }
 
-    catch (ex) {
+    catch (ex : any) {
         res.send(ex.message);
     }
 });
@@ -49,7 +48,7 @@ metaStudyRouter.put('/:id', auth, async (req, res) => {
             data: metaStudy
         });
 
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });
@@ -64,7 +63,7 @@ metaStudyRouter.get('/', auth, async (req: any, res) => {
         res.send({
             data: metaStudies
         });
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 

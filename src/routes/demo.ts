@@ -71,7 +71,7 @@ async function computeDemo(demoGen: DemoComputation, demo: Demo): Promise<void>{
                 await demo.save();
         }
     } catch (ex) {
-        console.log(ex.message);
+        console.log(ex);
         DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
     }
 }
@@ -159,8 +159,8 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
         }
 
     } catch (ex) {
-        console.log(ex.message);
-        res.status(403).send(ex.message);
+        console.log(ex);
+        res.status(403);
         return;
     }
 
@@ -189,9 +189,9 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req, res) => {
         });
 
     } catch (ex) {
-        console.log(ex.message);
+        console.log(ex);
         DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
-        res.status(403).send(ex.message);
+        res.status(403);
     }
 });
 
@@ -232,7 +232,7 @@ demoRouter.post('/:id/image', auth, upload.single('summaryImage'), async (req, r
         console.log(res);
     } catch (ex) {
         console.log(ex);
-        res.send(ex.message);
+        res.status(500);
         return;
     }
 });
@@ -308,8 +308,8 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
         }
 
     } catch (ex) {
-        res.status(500).send(ex.message);
-        console.log(ex.message);
+        res.status(500);
+        console.log(ex);
         return;
     }
 
@@ -341,8 +341,8 @@ demoRouter.post('/precomputed', auth, upload.single('summaryImage'), async (req,
 
     } catch (ex) {
         DemoModel.updateOne({ _id: demo?._id}, { $set: { status: RunStatus.failed } });
-        res.status(500).send(ex.message);
-        console.log(ex.message);
+        res.status(500);
+        console.log(ex);
     }
 });
 
@@ -374,7 +374,7 @@ demoRouter.put('/:id', auth, async (req, res) => {
             data: demo
         });
     } catch (ex) {
-        res.send(ex.message);
+        res.status(500);
         return;
     }
 });
@@ -423,7 +423,7 @@ demoRouter.get('', authForward, async (req: any, res) => {
         });
 
     } catch (ex) {
-        res.send(ex.message);
+        res.status(500);
     }
 });
 

@@ -1,10 +1,7 @@
-import { UserStudyModel, UserStudy } from '../../db_schema/user-study/user-study';
 import express from 'express';
-import mongoose from 'mongoose';
-import { auth, authForward, authUserStudy } from '../../middleware/auth';
-import { USUser, USUserModel } from '../../db_schema/user-study/user-study-user';
+import { auth, authUserStudy } from '../../middleware/auth';
+import { USUser } from '../../db_schema/user-study/user-study-user';
 import {UserStudyData, UserStudyDataModel} from '../../db_schema/user-study/user-study-store';
-import { DepExplanationRun, PlanRun } from '../../db_schema/iteration_step';
 
 export const userStudyDataRouter = express.Router();
 
@@ -33,7 +30,7 @@ userStudyDataRouter.put('/', authUserStudy, async (req, res) => {
             data: metaData
         });
 
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });
@@ -64,7 +61,7 @@ userStudyDataRouter.put('/:id', auth, async (req, res) => {
             data: metaData
         });
 
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });
@@ -93,7 +90,7 @@ userStudyDataRouter.get('/', auth, async (req: any, res) => {
         res.send({
             data: dataPoints
         });
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 
@@ -160,7 +157,7 @@ userStudyDataRouter.get('/:id/users', auth, async (req, res) => {
             data: usUSers
         });
 
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });
@@ -180,7 +177,7 @@ userStudyDataRouter.get('/:id/num_accepted_users', async (req, res) => {
             data: num
         });
 
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });

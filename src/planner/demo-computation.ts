@@ -113,7 +113,7 @@ export class DemoComputation {
         }
 
         const planner = new RelaxExplanationDemoCall(environment.experimentsRootPath,
-            this.demo._id, modTask, this.planProperties, relaxExpRun, relaxationSpace.dimensions);
+            this.demo._id ? this.demo._id : '', modTask, this.planProperties, relaxExpRun, relaxationSpace.dimensions);
 
         this.demo.completion = ((this.currentRelaxation + 1) * (this.currentRelaxationSpace + 1)) /
             this.possibleRelaxations.length * this.taskRelaxations.length;

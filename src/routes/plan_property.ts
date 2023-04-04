@@ -24,7 +24,7 @@ planPropertyRouter.post('/', auth, async (req, res) => {
         });
     }
 
-    catch (ex) {
+    catch (ex : any) {
         console.log(ex.message);
         res.send(ex.message);
     }
@@ -51,7 +51,7 @@ planPropertyRouter.put('/:id', auth, async (req, res) => {
             data: planProperty
         });
 
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });

@@ -1,13 +1,8 @@
-import { CallResult } from './../../planner/python-call';
 import { IterationStep, IterationStepModel, RelaxationExplanationRun, StepStatus } from './../../db_schema/iteration_step';
-import { PlanProperty} from '../../db_schema/plan-properties/plan_property';
-import { PropertyCheck } from '../../planner/property_check';
 import express from 'express';
-
 import { PlanRun, RunStatus, DepExplanationRun } from '../../db_schema/iteration_step';
 import { ExplanationCall, PlanCall, RelaxExplanationCall } from '../../planner/general_planner';
 import { auth, authUserStudy } from '../../middleware/auth';
-import { Project } from '../../db_schema/project';
 import { environment } from '../../app';
 import { PlanningTaskRelaxationSpaceModel } from '../../db_schema/relaxations';
 
@@ -87,7 +82,7 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             });
         }
         catch (ex) {
-            console.warn(ex.message);
+            console.warn(ex);
             iterStep.plan.status = RunStatus.failed;
             if (req.query.save) {
                 await iterStep.save();
@@ -99,9 +94,9 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             });
         }
     }
-    catch (ex) {
-        console.warn(ex.message);
-        res.send(ex.message);
+    catch (ex : any) {
+        console.warn(ex);
+        res.status(500);
     }
 });
 
@@ -152,9 +147,9 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
         });
 
     }
-    catch (ex) {
-        console.log(ex.message);
-        res.send(ex.message);
+    catch (ex : any) {
+        console.log(ex);
+        res.status(500);
     }
 });
 
@@ -184,7 +179,7 @@ plannerRouter.post('/mugs-save/:id', authUserStudy, async (req: any, res) => {
             data: iterStep,
         });
     }
-    catch (ex) {
+    catch (ex : any) {
         res.send(ex.message);
     }
 });
@@ -242,7 +237,7 @@ plannerRouter.post('/relax_exp/:id', auth, async (req, res) => {
             data: iterStep,
         });
     }
-    catch (ex) {
+    catch (ex : any) {
         console.log(ex.message);
         res.send(ex.message);
     }

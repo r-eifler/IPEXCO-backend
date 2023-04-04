@@ -31,9 +31,9 @@ userStudyUserRouter.post('/', async (req, res) => {
 
         res.status(201).send({ user, token, metaData });
 
-    } catch (error) {
+    } catch (error : any) {
         console.log(error.message);
-        res.status(400).send(error.message);
+        res.status(500);
     }
 });
 
@@ -53,7 +53,7 @@ userStudyUserRouter.post('/logout', authUserStudy,  async (req: any, res) => {
         }
 
         res.send();
-    } catch (error) {
+    } catch (error : any) {
         res.status(500).send(error);
     }
 });

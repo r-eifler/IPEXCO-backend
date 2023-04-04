@@ -1,9 +1,6 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import multer from 'multer';
 import path from 'path';
-
-import { getGoalFacts } from '../planner/pddl_file_utils';
 import { FileModel, File } from '../db_schema/file';
 
 export const pddlFileRouter = express.Router();
@@ -54,7 +51,7 @@ pddlFileRouter.post('/', upload.single('content'), async (req, res) => {
             message: 'File uploaded successfully.',
             data
         });
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });
@@ -72,7 +69,7 @@ pddlFileRouter.get('/type/:type', async (req, res) => {
             data: pddlFiles
         });
 
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });
@@ -89,7 +86,7 @@ pddlFileRouter.get('/:id', async (req, res) => {
             data: pddlFile
         });
 
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });
@@ -108,7 +105,7 @@ pddlFileRouter.delete('/:id', async (req, res) => {
             data: pddlFile
         });
         
-    } catch (ex) {
+    } catch (ex : any) {
         res.send(ex.message);
     }
 });

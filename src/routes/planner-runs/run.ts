@@ -53,8 +53,8 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
     }
 
     catch (ex) {
-        console.log(ex.message);
-        res.send(ex.message);
+        console.log(ex);
+        res.status(500);
     }
 
 });
@@ -120,7 +120,7 @@ runRouter.put('/iter-step/:id', authUserStudy, async (req, res) => {
         });
 
     } catch (ex) {
-        res.send(ex.message);
+        res.status(500);
     }
 
 });
