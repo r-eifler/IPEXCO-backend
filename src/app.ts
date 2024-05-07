@@ -56,6 +56,7 @@ if(! fs.existsSync(images_folder)){
 }
 
 export const environment = new Environment();
+console.log(environment)
 
 const app = express();
 const cors = require('cors');
