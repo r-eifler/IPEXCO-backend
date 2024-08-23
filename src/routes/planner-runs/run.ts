@@ -104,8 +104,8 @@ runRouter.put('/iter-step/:id', authUserStudy, async (req, res) => {
         const stepData: IterationStep = req.body.data as IterationStep;
 
         step.status = stepData.status;
-        step.plan = stepData.plan
-        step.depExplanation = stepData.depExplanation
+        step.plan_run = stepData.plan_run
+        step.explanation_run = stepData.explanation_run
         step.relaxationExplanations = stepData.relaxationExplanations
 
         await step.save();

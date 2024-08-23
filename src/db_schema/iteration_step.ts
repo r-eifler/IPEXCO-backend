@@ -1,10 +1,10 @@
-import { PPDependencies, PPDependenciesSchema, RelaxationExplanationNode, RelaxationExplanationNodeSchema } from './explanations';
-import { ModifiedPlanningTaskSchema } from './modified_planning_task';
+import { UpdatedPlanningTaskSchema } from './updated_planning_task';
 import mongoose, { Document, Schema } from 'mongoose';
-import { ModifiedPlanningTask } from './modified_planning_task';
+import { UpdatedPlanningTask } from './updated_planning_task';
 import { PlanProperty } from './plan-properties/plan_property';
 import { Project } from './project';
-import { PlanningTaskRelaxationSpace } from './relaxations';
+import { Explanation, ExplanationSchema } from './explanations';
+
 
 export enum StepStatus{
     unknown,
@@ -12,77 +12,28 @@ export enum StepStatus{
     unsolvable
   }
 
-export enum RunStatus {
+export enum PlanRunStatus {
     pending,
     running,
     failed,
-    finished,
-    noSolution,
-    notStarted
+    plan_found,
+    not_solvable
 }
 
 
-export interface PlanRun{
+
+export interface Plan{
     createdAt?: Date;
-    name: string;
-    status: RunStatus;
-    log?: string;
-    result?: string;
-    satPlanProperties?: string[];
+    status: PlanRunStatus;
+    plan?: string;
+    satisfied_properties?: string[];
 }
 
-const PlanRunSchema = new Schema({
-    name: { type: String, required: true},
+const PlanSchema = new Schema({
     status: { type: Number, required: true},
-    log: { type: String, required: false},
-    result: { type: String, required: false},
+    plan: { type: String, required: false},
     satPlanProperties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
 }, { timestamps: true});
-
-
-export interface RelaxationExplanationRun{
-    createdAt?: Date;
-    name: string;
-    status: RunStatus;
-    relaxationSpace: PlanningTaskRelaxationSpace;
-    log?: string;
-    result?: string;
-    dependencies? : RelaxationExplanationNode[];
-}
-
-export const RelaxationExplanationRunSchema = new Schema({
-    name: { type: String, required: true},
-    status: { type: Number, required: true},
-    relaxationSpace: [{ type: mongoose.Schema.Types.ObjectId, ref: 'planning-task-relaxation-space' }],
-    log: { type: String, required: false},
-    result: { type: String, required: false},
-    dependencies: [RelaxationExplanationNodeSchema],
-}, { timestamps: true});
-
-
-
-
-export interface DepExplanationRun{
-    createdAt?: Date;
-    name: string;
-    status: RunStatus;
-    hardGoals: PlanProperty[];
-    softGoals: PlanProperty[];
-    log?: string;
-    result?: string;
-    dependencies? : PPDependencies;
-}
-
-export const DepExplanationRunSchema = new Schema({
-    name: { type: String, required: true},
-    status: { type: Number, required: true},
-    hardGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
-    softGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
-    log: { type: String, required: false},
-    result: { type: String, required: false},
-    dependencies: PPDependenciesSchema,
-}, { timestamps: true});
-
 
 
 
@@ -94,10 +45,9 @@ export interface IterationStep extends Document{
     status: StepStatus;
     hardGoals: PlanProperty[];
     softGoals: PlanProperty[];
-    task: ModifiedPlanningTask;
-    plan?: PlanRun;
-    depExplanation: DepExplanationRun;
-    relaxationExplanations: RelaxationExplanationRun[];
+    task: UpdatedPlanningTask;
+    plan?: Plan;
+    explanation?: Explanation;
     predecessorStep: IterationStep | null;
 }
 
@@ -107,16 +57,12 @@ const IterationStepSchema = new Schema({
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
     hardGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     softGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
-    task: ModifiedPlanningTaskSchema,
-    plan: PlanRunSchema,
-    depExplanation: DepExplanationRunSchema,
-    relaxationExplanations: [RelaxationExplanationRunSchema],
+    task: UpdatedPlanningTaskSchema,
+    plan: PlanSchema,
+    explanations: [ExplanationSchema],
     predecessorStep: { type: mongoose.Schema.Types.ObjectId, ref: 'iteration-step', required: false },
 }, { timestamps: true});
 
 
 
 export const IterationStepModel = mongoose.model<IterationStep>('iteration-step', IterationStepSchema);
-// export const PlanRunModel = mongoose.model<PlanRun>('plan-run', PlanRunSchema);
-// export const DepExplanationRunModel = mongoose.model<DepExplanationRun>('dep-explanation-run', DepExplanationRunSchema);
-// export const RelaxationExplanationRunModel = mongoose.model<RelaxationExplanationRun>('relaxation-explanation-run', RelaxationExplanationRunSchema);

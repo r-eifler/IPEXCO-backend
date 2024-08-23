@@ -1,5 +1,5 @@
 import { RelaxationDimension } from './../db_schema/relaxations';
-import { ModifiedPlanningTask } from './../db_schema/modified_planning_task';
+import { UpdatedPlanningTask } from '../db_schema/updated_planning_task';
 import { IterationStep, RelaxationExplanationRun } from './../db_schema/iteration_step';
 import { Project } from './../db_schema/project';
 import 'process';
@@ -209,7 +209,7 @@ export class PlannerCallModifiedTask extends PlannerCall {
         protected plannerSetting: string[],
         protected root: string,
         protected runId: string,
-        protected modTask: ModifiedPlanningTask,
+        protected modTask: UpdatedPlanningTask,
         protected relaxedTasks: RelaxedTaskNode[],
         protected hardGoals: PlanProperty[],
         protected softGoals: PlanProperty[],
@@ -235,19 +235,19 @@ const plannerSettingSatPlan = ['--search', 'lazy_greedy([ff()], preferred=[ff()]
 export class PlanCall extends PlannerCallModifiedTask{
 
     constructor(root: string, private step: IterationStep) {
-        super(plannerSettingOptPlan, root, step._id, ModifiedPlanningTask.fromObject(step.task), [], step.hardGoals, step.softGoals);
+        super(plannerSettingOptPlan, root, step._id, UpdatedPlanningTask.fromObject(step.task), [], step.hardGoals, step.softGoals);
     }
 
     copy_experiment_results(result : CallResult): void {
-        if (! this.step.plan) {
+        if (! this.step.plan_run) {
             return 
         }
-        this.step.plan.log = environment.serverResultsPath + `/out_${this.runId}.log`;
+        this.step.plan_run.log = environment.serverResultsPath + `/out_${this.runId}.log`;
         if(! result.planFound){
             return
         }
         const buffer: Buffer = readFileSync(path.join(this.runFolder, 'sas_plan'));
-        this.step.plan.result = buffer.toString('utf8');
+        this.step.plan_run.result = buffer.toString('utf8');
     }
 }
 
@@ -261,7 +261,7 @@ const plannerSettingMUGS = ['--translate-options', '--all-goals-as-sas-goal-fact
 export class ExplanationCall extends PlannerCall{
 
     constructor(root: string, step: IterationStep, private depExpRun: DepExplanationRun) {
-        super(plannerSettingMUGS, root, step._id, new PlanningTask(step.task.basetask), depExpRun.hardGoals, depExpRun.softGoals);
+        super(plannerSettingMUGS, root, step._id, new PlanningTask(step.task.parent_task), depExpRun.hardGoals, depExpRun.softGoals);
     }
 
     copy_experiment_results(result : CallResult): void {
@@ -316,7 +316,7 @@ const plannerSettingRelaxExp = ['--translate-options', '--all-goals-as-sas-goal-
 export class RelaxExplanationCall extends PlannerCallModifiedTask{
 
     constructor(root: string, step: IterationStep, private relaxExpRun: RelaxationExplanationRun, possibleUpdates: RelaxationDimension[]) {
-        super(plannerSettingRelaxExp, root, step._id, ModifiedPlanningTask.fromObject(step.task), 
+        super(plannerSettingRelaxExp, root, step._id, UpdatedPlanningTask.fromObject(step.task), 
         toRelaxTaskDefinition('', filterRelaxations(step.task.initUpdates, possibleUpdates)), 
         [], [...step.hardGoals, ...step.softGoals],
         getAdditionalUpdates(possibleUpdates));
@@ -361,7 +361,7 @@ export class RelaxExplanationCall extends PlannerCallModifiedTask{
 
 export class RelaxExplanationDemoCall extends PlannerCallModifiedTask{
 
-    constructor(root: string, id: string, modTask: ModifiedPlanningTask, planProperties: PlanProperty[], private relaxExpRun: RelaxationExplanationRun, possibleUpdates: RelaxationDimension[]) {
+    constructor(root: string, id: string, modTask: UpdatedPlanningTask, planProperties: PlanProperty[], private relaxExpRun: RelaxationExplanationRun, possibleUpdates: RelaxationDimension[]) {
         super(plannerSettingRelaxExp, root, id, modTask, 
         toRelaxTaskDefinition('', filterRelaxations(modTask.initUpdates, possibleUpdates)), 
         [], planProperties, getAdditionalUpdates(possibleUpdates));

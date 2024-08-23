@@ -1,5 +1,5 @@
 import { RelaxationDimension } from './../db_schema/relaxations';
-import { ModifiedPlanningTask } from './../db_schema/modified_planning_task';
+import { UpdatedPlanningTask } from '../db_schema/updated_planning_task';
 import { Fact } from './../db_schema/base_planning_task';
 import { PPDependencies, PPConflict } from './../db_schema/explanations';
 import { GoalType, PlanProperty } from '../db_schema/plan-properties/plan_property';

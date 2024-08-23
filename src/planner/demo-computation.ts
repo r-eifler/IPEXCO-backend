@@ -1,5 +1,4 @@
-import { ModifiedPlanningTask } from './../db_schema/modified_planning_task';
-import { PlanningTaskRelaxationSpace, FactUpdate, computePossibleRelaxations } from './../db_schema/relaxations';
+import { UpdatedPlanningTask } from '../db_schema/updated_planning_task';
 import { Demo } from './../db_schema/demo';
 import { PlanProperty } from '../db_schema/plan-properties/plan_property';
 
@@ -8,7 +7,6 @@ import { writeFileSync } from 'fs';
 import * as child from 'child_process';
 import { PythonShell } from 'python-shell';
 import { environment } from '../app';
-import { DepExplanationRun, RelaxationExplanationRun, RunStatus } from '../db_schema/iteration_step';
 import { ExplanationDemoCall, RelaxExplanationDemoCall } from './general_planner';
 import { toConflicts } from './utils';
 
@@ -42,9 +40,6 @@ export function cancelDemoComputation(demoId: string): Promise<boolean> {
 export class DemoComputation {
 
     runFolder: string;
-    possibleRelaxations: FactUpdate[][];
-    currentRelaxation: number =  0; 
-    currentRelaxationSpace: number = 0;
 
     constructor(
         private root: string,
@@ -103,7 +98,7 @@ export class DemoComputation {
         // console.log("------ Updates -------");
         // initUpdates.forEach(u => console.log(u.newFact.toString()));
         // console.log("-------------");
-        let modTask = new ModifiedPlanningTask('', this.demo.baseTask, initUpdates);
+        let modTask = new UpdatedPlanningTask('', this.demo.baseTask, initUpdates);
 
         let relaxationSpace = this.taskRelaxations[this.currentRelaxationSpace];
         let relaxExpRun : RelaxationExplanationRun = {

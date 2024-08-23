@@ -13,7 +13,6 @@ import errorMiddleware from './middleware/error.middleware';
 
 import { projectRouter } from './routes/project';
 import { indexRouter } from './routes';
-import { pddlFileRouter } from './routes/pddl_file';
 import { planPropertyRouter } from './routes/plan_property';
 import { plannerRouter } from './routes/planner-runs/planner';
 import { runRouter } from './routes/planner-runs/run';
@@ -24,8 +23,8 @@ import { Environment } from './environment';
 
 import * as dotenv from "dotenv";
 import { metaStudyRouter } from './routes/user-study/meta-study';
-import { planningTaskRelaxtionRouter } from './routes/planning_task_relaxation';
 import { userStudyDataRouter } from './routes/user-study/user-study-data';
+import { runnerRouter } from './routes/runner';
 dotenv.config();
 
 console.log('-------- IPEXCO BACK END ---------');
@@ -80,6 +79,9 @@ app.use(sassMiddleware({
 }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// app.use(auth);
+app.use('/', indexRouter);
+
 app.use('/api/users', userRouter);
 
 app.use('/api/user-study-users', userStudyUserRouter);
@@ -88,9 +90,9 @@ app.use('/api/user-study', userStudyRouter);
 app.use('/api/user-study-data', userStudyDataRouter);
 
 app.use('/api/demo', demoRouter);
+app.use('/api/runner', runnerRouter);
 
 app.use('/api/plan-property', planPropertyRouter);
-app.use('/api/planning-task-relaxation', planningTaskRelaxtionRouter);
 
 app.use('/uploads', express.static(uploads_folder));
 app.use('/results', express.static(results_folder));
@@ -99,15 +101,10 @@ app.use('/images', express.static(images_folder));
 app.use('/api/planner', plannerRouter);
 app.use('/api/run', runRouter);
 
-app.use(auth);
-app.use('/', indexRouter);
-app.use('/api/pddl-file', pddlFileRouter);
 app.use('/api/project', projectRouter);
 
-
-
 // catch 404 and forward to error handler
-app.use((req, res, next) => {
+app.all('*', (req, res, next) => {
   next(createError('404'));
 });
 

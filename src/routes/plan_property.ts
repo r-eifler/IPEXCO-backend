@@ -57,6 +57,7 @@ planPropertyRouter.put('/:id', auth, async (req, res) => {
 });
 
 planPropertyRouter.get('/', async (req, res) => {
+    
     if (req.query.projectId === undefined) {
         return res.status(404).send({ message: 'no projectId specified' });
     }

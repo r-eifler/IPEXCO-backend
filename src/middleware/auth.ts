@@ -16,6 +16,7 @@ import { environment } from '../app';
 
 export const auth = async(req: any, res: Response, next: NextFunction) => {
     if (! req.header('Authorization')) {
+        console.log("Not authorized to access this resource")
         res.status(401).send({ error: 'Not authorized to access this resource' });
         return;
     }

@@ -13,26 +13,20 @@ export interface Project extends Document{
     name: string;
     public: boolean;
     user: User;
-    domainFile: File;
-    domainSpecification: File;
-    problemFile: File;
+    domainSpecification: string;
     description: string;
     baseTask: PlanningTask; 
     settings: any;
-    animationSettings: string;
 }
 
 const BaseProjectSchema = new Schema({
     name: { type: String, required: true},
     public: { type: Boolean, required: true},
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    domainFile: { type: FileSchema, required: true},
     domainSpecification: { type: FileSchema, required: true},
-    problemFile: { type: FileSchema, required: true},
     description: { type: String, required: true},
     baseTask: {type: mongoose.Schema.Types.ObjectId, ref: 'planning-task'},
     settings: { type: Object, required: false},
-    animationSettings: { type: String, required: false}
 }, baseOptions);
 
 export const BaseProjectModel = mongoose.model<Project>('base-project', BaseProjectSchema);

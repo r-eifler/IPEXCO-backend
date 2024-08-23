@@ -1,50 +1,20 @@
-import { PlanningTaskModel } from './../db_schema/planning_task';
 import { BaseProjectModel, Project } from './../db_schema/project';
 import { IterationStep, IterationStepModel} from './../db_schema/iteration_step';
 import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
-
+import { auth } from '../middleware/auth';
 import express from 'express';
 
 import { ProjectModel } from '../db_schema/project';
-import { TranslatorCall } from '../planner/general_planner';
-import { environment } from '../app';
-import { deleteIterationStep } from './utils';
 
 export const projectRouter = express.Router();
 
 
-async function computeAndStoreSchema(project: Project): Promise<string> {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const planner = new TranslatorCall(environment.experimentsRootPath, project);
-            const planningTask = await planner.executeRun();
 
-            if(! planningTask){
-                reject("task creation failed");
-                return
-            }
-
-            let taskModel = new PlanningTaskModel(planningTask)
-            await taskModel.save();
-
-            project.baseTask = taskModel;
-            await project.save();
-
-            resolve('Task creation successful.');
-        } catch (ex : any) {
-            console.log(ex.message);
-            reject('Task creation failed.');
-        }
-    });
-}
-
-
-projectRouter.post('/', async (req: any, res) => {
+projectRouter.post('/', auth, async (req: any, res) => {
     let projectId = null;;
     try {
         const projectData: Project = req.body.data as Project;
         projectData.user = req.user._id;
-        projectData.settings = projectData.settings;
         delete projectData._id;
 
         const projectModel = new ProjectModel(projectData);
@@ -59,8 +29,6 @@ projectRouter.post('/', async (req: any, res) => {
             return res.status(404).send('Create project failed.');
         }
         projectId = newProject._id;
-
-        await computeAndStoreSchema(newProject);
         
         res.send({
             status: true,
@@ -78,7 +46,7 @@ projectRouter.post('/', async (req: any, res) => {
 });
 
 
-projectRouter.put('/:id', async (req, res) => {
+projectRouter.put('/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
         const project: Project | null = await BaseProjectModel.findOne({ _id: refId});
@@ -91,7 +59,6 @@ projectRouter.put('/:id', async (req, res) => {
 
         project.name = projectData.name;
         project.description = projectData.description;
-        project.animationSettings = projectData.animationSettings;
         project.settings = projectData.settings;
         project.public = projectData.public;
 
@@ -109,7 +76,7 @@ projectRouter.put('/:id', async (req, res) => {
 });
 
 
-projectRouter.get('', async (req: any, res) => {
+projectRouter.get('', auth, async (req: any, res) => {
     const projects = await ProjectModel.find({ user: req.user._id}).populate('baseTask');
     if (!projects) { 
         return res.status(404).send({ message: 'No project found.' });
@@ -121,33 +88,27 @@ projectRouter.get('', async (req: any, res) => {
 });
 
 
-projectRouter.get('/:id', async (req, res) => {
+projectRouter.get('/:id', auth, async (req, res) => {
     const id = req.params.id;
+    console.log("Get project: " + id)
     const project = await ProjectModel.findOne({ _id: id }).populate('baseTask');;
     if (!project) { 
         return res.status(404).send({ message: 'No project found.' });
     }
-    //project.settings = JSON.parse(project.settings);
+
     res.send({
         data: project
     });
 
 });
 
-projectRouter.delete('/:id', async (req, res) => {
+projectRouter.delete('/:id', auth, async (req, res) => {
     const id = req.params.id;
 
-    // delete project
-    const project = await ProjectModel.findOne({ _id: id });
-    if (!project) { 
-        return res.status(404).send({ message: 'No project found.' });
-    }
-
-    // Delete iterations 
-    const iterations: IterationStep[] = await IterationStepModel.find({ projetc: id});
-
-    for (const step of iterations) {
-        deleteIterationStep(step)
+    // delete iteration steps
+    const iterationsDeleteResult = await IterationStepModel.deleteMany({ project: id});
+    if (!iterationsDeleteResult) { 
+        return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
     }
 
     // delete properties
@@ -156,7 +117,7 @@ projectRouter.delete('/:id', async (req, res) => {
         return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
     }
 
-    // delete Project
+    // delete project itself
     const projectDeleteResult = await ProjectModel.deleteOne({ _id: id });
     if (!projectDeleteResult) { 
         return res.status(404).send({ message: 'No project found.' }); 

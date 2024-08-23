@@ -29,9 +29,9 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             return res.status(403).send('plan can not be computed');
         }
 
-        if (! iterStep.plan){
+        if (! iterStep.plan_run){
             const planRun: PlanRun = {name: 'Plan ', status:  RunStatus.pending};
-            iterStep.plan = planRun;
+            iterStep.plan_run = planRun;
         }
 
         try {
@@ -42,7 +42,7 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
 
             const planner = new PlanCall(environment.experimentsRootPath, iterStep);
 
-            iterStep.plan.status = RunStatus.running;
+            iterStep.plan_run.status = RunStatus.running;
 
             if (saveRun) {
                 await iterStep.save();
@@ -61,9 +61,9 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
             //     propertyChecker.tidyUp();
             // }
 
-            iterStep.plan.status = callResult.planFound ? RunStatus.finished : RunStatus.noSolution;
+            iterStep.plan_run.status = callResult.planFound ? RunStatus.finished : RunStatus.noSolution;
             iterStep.status = callResult.planFound ? StepStatus.solvable : StepStatus.unsolvable;
-            iterStep.plan.satPlanProperties = callResult.planFound ? iterStep.hardGoals.filter(hg => !!hg._id).map(hg => hg._id) : [];
+            iterStep.plan_run.satisfied_properties = callResult.planFound ? iterStep.hardGoals.filter(hg => !!hg._id).map(hg => hg._id) : [];
 
             if (saveRun) {
                 await iterStep.save();
@@ -83,7 +83,7 @@ plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
         }
         catch (ex) {
             console.warn(ex);
-            iterStep.plan.status = RunStatus.failed;
+            iterStep.plan_run.status = RunStatus.failed;
             if (req.query.save) {
                 await iterStep.save();
             }
@@ -117,13 +117,13 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
         const depExpData = req.body as DepExplanationRun;
         depExpData.status = RunStatus.running;
 
-        iterStep.depExplanation = depExpData;
+        iterStep.explanation_run = depExpData;
         await iterStep.save();
         
         await iterStep.populate('depExplanation.hardGoals');
         await iterStep.populate('depExplanation.softGoals');
 
-        const depExp = iterStep.depExplanation
+        const depExp = iterStep.explanation_run
 
         console.log(depExp);
 
@@ -138,7 +138,7 @@ plannerRouter.post('/mugs/:id', auth, async (req, res) => {
         await iterStep.depopulate('depExplanation.softGoals');
         await iterStep.depopulate('hardGoals');
         await iterStep.depopulate('softGoals');
-        console.log(iterStep.depExplanation);
+        console.log(iterStep.explanation_run);
 
         res.send({
             status: true,
@@ -170,7 +170,7 @@ plannerRouter.post('/mugs-save/:id', authUserStudy, async (req: any, res) => {
         const depExp = req.body as DepExplanationRun;
         depExp.status = RunStatus.finished;
 
-        iterStep.depExplanation = depExp;
+        iterStep.explanation_run = depExp;
         await iterStep.save();
 
         res.send({

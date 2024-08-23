@@ -8,7 +8,7 @@ export enum GoalType {
   }
 
 export interface PlanProperty extends Document {
-    _id: string;
+    _id?: string;
     name: string;
     project: string;
     type: string;
@@ -17,7 +17,8 @@ export interface PlanProperty extends Document {
     naturalLanguageDescription: string;
     isUsed: boolean;
     globalHardGoal: boolean;
-    value: number;
+    utility: number;
+    ranking: number;
     color: string;
     icon: string;
     class: string;
@@ -32,7 +33,8 @@ const PlanPropertySchema = new Schema({
     naturalLanguageDescription: { type: String, required: true},
     isUsed: { type: Boolean, required: true},
     globalHardGoal: { type: Boolean, required: true},
-    value: { type: Number, required: true},
+    utility: { type: Number, required: true},
+    ranking: { type: Number, required: false},
     color: { type: String, required: true},
     icon: { type: String, required: true},
     class: { type: String, required: true},

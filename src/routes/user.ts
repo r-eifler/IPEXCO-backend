@@ -2,7 +2,7 @@ import { authForward} from './../middleware/auth';
 import express from 'express';
 import { UserModel } from '../db_schema/user';
 import { auth } from '../middleware/auth';
-import { Request, Response, NextFunction } from 'express';
+import { Response } from 'express';
 
 export const userRouter = express.Router();
 
@@ -72,14 +72,3 @@ userRouter.post('/logout', authForward, async (req: any, res) => {
         res.status(500).send(error);
     }
 });
-
-// userRouter.post('/me/logoutall', auth, async(req, res) => {
-//     // Log user out of all devices
-//     try {
-//         req.user.tokens.splice(0, req.user.tokens.length)
-//         await req.user.save()
-//         res.send()
-//     } catch (error) {
-//         res.status(500).send(error)
-//     }
-// });

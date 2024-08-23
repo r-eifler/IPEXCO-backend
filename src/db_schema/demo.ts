@@ -1,27 +1,21 @@
-import { DepExplanationRun, DepExplanationRunSchema, RelaxationExplanationRun, RelaxationExplanationRunSchema, RunStatus } from './iteration_step';
 import { BaseProjectModel, Project } from './project';
 import { Schema } from 'mongoose';
-import { FactUpdate, FactUpdateSchema } from './relaxations';
 
+export enum DemoStatus{
+    pending,
+    running,
+    failed,
+    finished
+  }
 
-export interface DemoExplanation{
-    initUpdates: FactUpdate[];
-    relaxationExplanations: RelaxationExplanationRun[];
-}
-
-const DemoExplanationSchema = new Schema({
-    initUpdates: [FactUpdateSchema],
-    relaxationExplanations: [RelaxationExplanationRunSchema],
-});
 
 export interface Demo  extends Project{
-    status: RunStatus;
+    status: DemoStatus;
     completion: number;
     summaryImage: string | null;
     introduction: string;
     taskInfo?: string;
-    conflictExplanation: DepExplanationRun;
-    explanations: DemoExplanation[];
+    explanations: string;
     maxUtility: string;
 }
 
@@ -31,8 +25,7 @@ const DemoSchema = new Schema({
     summaryImage: { type: String, required: false},
     introduction: { type: String, required: false},
     taskInfo: { type: String, required: false},
-    conflictExplanation: DepExplanationRunSchema,
-    explanations: [DemoExplanationSchema],
+    explanations: { type: String, required: false},
     maxUtility: { type: String, required: false},
 });
 
