@@ -25,6 +25,7 @@ import * as dotenv from "dotenv";
 import { metaStudyRouter } from './routes/user-study/meta-study';
 import { userStudyDataRouter } from './routes/user-study/user-study-data';
 import { runnerRouter } from './routes/runner';
+import { pddlRouter } from './routes/pddl';
 dotenv.config();
 
 console.log('-------- IPEXCO BACK END ---------');
@@ -82,6 +83,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // app.use(auth);
 app.use('/', indexRouter);
 
+app.use('/api/pddl', pddlRouter);
+
 app.use('/api/users', userRouter);
 
 app.use('/api/user-study-users', userStudyUserRouter);
@@ -121,7 +124,7 @@ app.use((req, res, next) => {
 
 // Data base connection
 const port = environment.port || 3000;
-const mongodbURL = process.env.MONGO || 'mongodb://localhost/xpp';
+const mongodbURL = process.env.MONGO || 'mongodb://localhost/ipexco';
 mongoose.connect(mongodbURL, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
       console.log('connected to DB');
