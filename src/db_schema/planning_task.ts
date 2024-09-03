@@ -1,5 +1,19 @@
 import mongoose, { Schema } from 'mongoose';
 
+interface PlanningModel {
+    types: {name: string, parent: string}[]
+    predicates: {name: string, parameters: string[]}[]
+    actions: {
+        name: string, 
+        parameters: string[],
+        preconditions: {name: string, arguments: string[]}[]
+        effects: {name: string, arguments: string[]}[]
+    }[],
+    objects: {name: string, type: string}[],
+    initial: {name: string, arguments: string[]}[]
+    goal: {name: string, arguments: string[]}[]
+}
+
 
 export const PlanningTaskSchema = new Schema({
     name: String,
@@ -26,20 +40,49 @@ export class PlanningTask{
     // TODO add functions
     toPDDL(): string[] {
 
-        let model = JSON.parse(model)
+        let model = JSON.parse(this.model) as PlanningModel
+
         // domain
-        let d = "(define (domain " + model.domain_name + ")\n";
+        let d = "(define (domain " + this.domain_name + ")\n";
         d += "(:requirements :typing :action-costs)\n";
-        d += "(:types " + model.types.filter(t => t.name != 'object').map(t => t.name + " - " + t.parent).join("\n") + "\n)\n";
-        d += "(:predicates " + model.predicates.map(p => p.toPDDL(true)).join("\n") + "\n)\n";
-        d += model.actions.map(a => a.toPDDL()).join("\n");
+
+        d += "(:types " + 
+            model.types
+                .filter(t => t.name != 'object')
+                .map(t => t.name + " - " + t.parent)
+                .join("\n") 
+            + "\n)\n";
+
+        d += "(:predicates " + model.predicates.map(
+                p => "(" + p.name + p.parameters.join(", ") + ")"
+            ).join("\n") 
+            + "\n)\n";
+
+        d += model.actions
+            .map(
+                a => "(:action " + a.name + "\n\t:parameters (" + a.parameters.join(", ") + ")\n" +
+                    "\t:precondition (and " +
+                        a.preconditions.map(p => "\t\t" + "(" + p.name +  p.arguments.join(", ") + ")\n") +
+                    "\t)" +
+                    "\t:effects (and " +
+                        a.effects.map(p => "\t\t" + "(" + p.name +  p.arguments.join(", ") + ")\n") +
+                    "\t)")
+            .join("\n");
+
         d += "\n)";
 
+
+
+        // problem
         let p = "(define (problem " + this.name + ")\n";
-        p += "(:domain " + model.domain_name + ")\n";
+        p += "(:domain " + this.domain_name + ")\n";
         p += "(:objects \n" + model.objects.map(o => o.name + " - " + o.type).join("\n") + "\n)\n";
-        p += "(:init\n " + model.initial.map(f => f.toPDDL()).sort().join("\n") + "\n)\n";
-        p += "(:goal (and " + model.goal.map(p => p.toPDDL()).join("\n") + ")\n";
+        p += "(:init\n " + model.initial.map(
+            f => "(" + f.name +  f.arguments.join(", ") + ")").join("\n") 
+            + "\n)\n";
+        p += "(:goal (and " + 
+            model.goal.map(p => "(" + p.name + p.arguments.join(", ") + ")").join("\n") 
+            + ")\n";
         p += "\n))";
 
         return [d,p];

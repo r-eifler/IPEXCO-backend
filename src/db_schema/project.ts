@@ -1,6 +1,5 @@
 import { User } from './user';
 import mongoose, { Document, Schema } from 'mongoose';
-import { File, FileSchema } from './file';
 import { PlanningTask } from './planning_task';
 
 const baseOptions = {
@@ -23,7 +22,7 @@ const BaseProjectSchema = new Schema({
     name: { type: String, required: true},
     public: { type: Boolean, required: true},
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    domainSpecification: { type: FileSchema, required: true},
+    domainSpecification: { type: String, required: true},
     description: { type: String, required: true},
     baseTask: {type: mongoose.Schema.Types.ObjectId, ref: 'planning-task'},
     settings: { type: Object, required: false},

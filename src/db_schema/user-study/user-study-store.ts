@@ -1,6 +1,5 @@
 import { IterationStep } from './../iteration_step';
 import mongoose, { Document, Schema } from 'mongoose';
-import { DepExplanationRun, PlanRun } from '../iteration_step';
 import { USUser } from './user-study-user';
 
 export interface UserStudyDemoData {

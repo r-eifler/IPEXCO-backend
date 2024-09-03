@@ -1,8 +1,6 @@
 import { UserStudyDataModel, UserStudyDemoData } from './../../db_schema/user-study/user-study-store';
 import { IterationStep, IterationStepModel } from './../../db_schema/iteration_step';
 import express from 'express';
-
-import { deleteIterationStep } from '../utils';
 import { authUserStudy } from '../../middleware/auth';
 
 
@@ -13,8 +11,6 @@ runRouter.post('/iter-step', authUserStudy, async (req: any, res) => {
     try {
         console.log("create iter step");
         const iterStepData = req.body.data as IterationStep;
-        console.log(iterStepData);
-        console.log(iterStepData.task.initUpdates);
 
         const iterationStep = new IterationStepModel(iterStepData);
         if (!iterationStep) {
@@ -104,9 +100,9 @@ runRouter.put('/iter-step/:id', authUserStudy, async (req, res) => {
         const stepData: IterationStep = req.body.data as IterationStep;
 
         step.status = stepData.status;
-        step.plan_run = stepData.plan_run
-        step.explanation_run = stepData.explanation_run
-        step.relaxationExplanations = stepData.relaxationExplanations
+        // step.plan_run = stepData.plan_run
+        // step.explanation_run = stepData.explanation_run
+        // step.relaxationExplanations = stepData.relaxationExplanations
 
         await step.save();
 
@@ -134,7 +130,8 @@ runRouter.delete('/iter-step/:id', authUserStudy, async (req, res) => {
         return res.status(404).send({ message: 'No explanation found.' });
     }
 
-    await deleteIterationStep(step);
+    // TODO
+    // await deleteIterationStep(step);
 
     res.send({
         data: step
