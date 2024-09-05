@@ -1,18 +1,30 @@
 import mongoose, { Schema } from 'mongoose';
 
-interface PlanningModel {
+
+export interface PDDLFact {name: string, arguments: string[]}
+
+export interface PDDLFunctionAssignment {name: string, arguments: string[], value: number}
+
+export interface PDDLAction {
+    name: string, 
+    parameters:  {name: string, type: string}[],
+    preconditions: PDDLFact[]
+    effects: PDDLFact[]
+}
+
+export interface PlanningDomain {
     types: {name: string, parent: string}[]
     predicates: {name: string, parameters: string[]}[]
-    actions: {
-        name: string, 
-        parameters: string[],
-        preconditions: {name: string, arguments: string[]}[]
-        effects: {name: string, arguments: string[]}[]
-    }[],
-    objects: {name: string, type: string}[],
-    initial: {name: string, arguments: string[]}[]
-    goal: {name: string, arguments: string[]}[]
+    actions: PDDLAction[],
 }
+
+export interface PlanningProblem {
+    objects: {name: string, type: string | undefined}[],
+    initial: (PDDLFact | PDDLFunctionAssignment)[]
+    goal: PDDLFact[]
+}
+
+export interface PlanningModel extends PlanningDomain, PlanningProblem {}
 
 
 export const PlanningTaskSchema = new Schema({
