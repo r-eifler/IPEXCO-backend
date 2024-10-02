@@ -17,19 +17,9 @@ function extractGoal(node: PddlSyntaxNode): PDDLFact[] | null{
             for(let c of node.getChildren()){
                 console.log(c.getToken().type)
                 console.log(c.getToken().tokenText)
-                if(c.getToken().type == PddlTokenType.OpenBracketOperator){
+                if(c.getToken().type == PddlTokenType.OpenBracketOperator || c.getToken().type == PddlTokenType.OpenBracket){
                     console.log(c.getChildren())
                     return extractFactsFromParseTree(c)
-                }
-                if(c.getToken().type == PddlTokenType.OpenBracket){
-                    for(let c2 of c.getChildren()){
-                        console.log(c2.getToken().type)
-                        console.log(c2.getToken().tokenText)
-                        if(c2.getToken().type == PddlTokenType.Other && c2.getToken().tokenText == 'AND'){
-                            console.log('extract')
-                            return extractFactsFromParseTree(c2)
-                        }
-                    }
                 }
                 console.log("-------------")
             }
@@ -47,9 +37,15 @@ function extractGoal(node: PddlSyntaxNode): PDDLFact[] | null{
 }
 
 
-function extractFact(node: PddlSyntaxNode){
-    let fact : PDDLFact = {name: '', arguments: [] }
+function extractFact(node: PddlSyntaxNode): PDDLFact{
+    let fact : PDDLFact = {name: '', arguments: [], negated: false }
+
+    if(node.getToken().type == PddlTokenType.OpenBracketOperator){
+        fact.name = node.getToken().tokenText.replace('(','')
+    }
+
     for(let p of node.getChildren()){
+
         if(p.getToken().type == PddlTokenType.Other && fact.name == ''){
             fact.name = p.getToken().tokenText
             continue
@@ -65,6 +61,22 @@ function extractFact(node: PddlSyntaxNode){
             continue
         }
     }
+
+    if(fact.name != 'not'){
+        return fact
+    }
+
+
+    for(let c of node.getChildren()){
+        if(c.getToken().type != PddlTokenType.OpenBracket){
+            // skip any whitespace nodes
+            continue;
+        }
+        let fact = extractFact(c);
+        fact.negated = true;
+        return fact
+    }
+
     return fact
 }
 
@@ -75,17 +87,10 @@ function extractFactsFromParseTree(node: PddlSyntaxNode) {
 
     if(node.getToken().type == PddlTokenType.OpenBracketOperator){
         for(let c of node.getChildren()){
-
-            // console.log('-----------------')
-            // console.log(c.getToken())
-            // console.log(c.getChildren())
-            if(c.getToken().type != PddlTokenType.OpenBracket){
-                // skip any whitespace nodes
-                continue;
+            if(c.getToken().type == PddlTokenType.OpenBracket || c.getToken().type == PddlTokenType.OpenBracketOperator){
+                let fact = extractFact(c);
+                res.push(fact)
             }
-
-            let fact = extractFact(c);
-            res.push(fact);
 
         }
         return res;
@@ -93,8 +98,21 @@ function extractFactsFromParseTree(node: PddlSyntaxNode) {
     
     if(node.getToken().type == PddlTokenType.OpenBracket){
         let fact = extractFact(node);
-        res.push(fact);
-        return res;
+
+        if(fact.name == 'AND'){
+            for(let c of node.getChildren()){
+                if(c.getToken().type != PddlTokenType.OpenBracket){
+                    // skip any whitespace nodes
+                    continue;
+                }
+                let fact = extractFact(c);
+                res.push(fact);
+            }
+        }
+        else{
+            res.push(fact)
+            return res
+        }
     }
 
     return res;
@@ -123,7 +141,15 @@ pddlRouter.post('/domain', auth,  async (req, res) => {
         }
 
         for(let p of domainParsed?.getPredicates()){
-            domain.predicates.push({name: p.name, parameters: p.parameters.map(e => e.toPddlString())})
+            domain.predicates.push({
+                name: p.name, 
+                parameters: p.parameters.map(e => (
+                    {
+                        name: e.toPddlString().split(' - ')[0], 
+                        type: e.type
+                    })),
+                negated: false
+            })
         }
 
         
@@ -140,17 +166,17 @@ pddlRouter.post('/domain', auth,  async (req, res) => {
             let action: PDDLAction = {
                 name: a.name != undefined ? a.name : 'NONE', 
                 parameters: a.parameters.map(p => ({name: p.name, type: p.type})),
-                preconditions: [],
-                effects: []
+                precondition: [],
+                effect: []
             }
 
-            action.preconditions = extractFactsFromParseTree(a.preCondition)
-            action.effects = extractFactsFromParseTree(a.effect)
+            action.precondition = extractFactsFromParseTree(a.preCondition)
+            action.effect = extractFactsFromParseTree(a.effect)
 
             console.log(action.name);
             console.log(action.parameters);
-            console.log(action.preconditions);
-            console.log(action.effects);
+            console.log(action.precondition);
+            console.log(action.effect);
             domain.actions.push(action);
         }
 
@@ -166,7 +192,6 @@ pddlRouter.post('/domain', auth,  async (req, res) => {
 pddlRouter.post('/problem', auth,  async (req, res) => {
     try {
         let problemText = req.body.data
-        console.log(problemText)
         let problemParsed = await parser.PddlProblemParser.parseText(problemText)
 
         if(problemParsed == undefined) {
@@ -180,15 +205,13 @@ pddlRouter.post('/problem', auth,  async (req, res) => {
             goal: []
         }
 
-        console.log(problemParsed.syntaxTree)
-
         problem.initial = problemParsed.getInits().map(i => {
             let parts = i.getVariableName().split(' ')
             if(i.getValue() == true){
-                return {name: parts[0], arguments: parts.slice(1)}
+                return {name: parts[0], arguments: parts.slice(1), negated: false}
             }
             else {
-                return {name: parts[0], arguments: parts.slice(1), value: i.getValue()}
+                return {name: parts[0], arguments: parts.slice(1), value: i.getValue(), negated: false}
             }
         })
 

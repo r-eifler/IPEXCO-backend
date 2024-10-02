@@ -15,7 +15,7 @@ import { projectRouter } from './routes/project';
 import { indexRouter } from './routes';
 import { planPropertyRouter } from './routes/plan_property';
 import { plannerRouter } from './routes/planner-runs/planner';
-import { runRouter } from './routes/planner-runs/run';
+import { iterationStepRouter } from './routes/iteration-step';
 import { demoRouter } from './routes/demo';
 import { userStudyRouter } from './routes/user-study/user-study';
 import { userStudyUserRouter } from './routes/user-study/user-study-user';
@@ -93,7 +93,7 @@ app.use('/api/user-study', userStudyRouter);
 app.use('/api/user-study-data', userStudyDataRouter);
 
 app.use('/api/demo', demoRouter);
-app.use('/api/runner', runnerRouter);
+app.use('/api/iteration-step', iterationStepRouter);
 
 app.use('/api/plan-property', planPropertyRouter);
 
@@ -101,8 +101,8 @@ app.use('/uploads', express.static(uploads_folder));
 app.use('/results', express.static(results_folder));
 app.use('/images', express.static(images_folder));
 
-app.use('/api/planner', plannerRouter);
-app.use('/api/run', runRouter);
+app.use('/api/runner', runnerRouter);
+app.use('/api/run', iterationStepRouter);
 
 app.use('/api/project', projectRouter);
 

@@ -1,10 +1,11 @@
-import { BaseProjectModel, Project } from './../db_schema/project';
+import { BaseProjectModel, Project, ProjectMetaData} from './../db_schema/project';
 import { IterationStep, IterationStepModel} from './../db_schema/iteration_step';
 import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { auth } from '../middleware/auth';
 import express from 'express';
 
 import { ProjectModel } from '../db_schema/project';
+import { PlanningTask } from '../db_schema/planning_task';
 
 export const projectRouter = express.Router();
 
@@ -14,8 +15,17 @@ projectRouter.post('/', auth, async (req: any, res) => {
     let projectId = null;;
     try {
         const projectData: Project = req.body.data as Project;
+
+        console.log('-------------------------------------------------')
+        console.log(projectData.baseTask)
+        console.log('-------------------------------------------------')
+
         projectData.user = req.user._id;
+        projectData.domainSpecification = JSON.stringify(projectData.domainSpecification)
+        projectData.baseTask = JSON.stringify(projectData.baseTask)
         delete projectData._id;
+
+        console.log(projectData)
 
         const projectModel = new ProjectModel(projectData);
 
@@ -87,6 +97,27 @@ projectRouter.get('', auth, async (req: any, res) => {
 
 });
 
+projectRouter.get('/meta-data', auth, async (req: any, res) => {
+    const projects = await ProjectModel.find({ user: req.user._id}) as Project[];
+    if (!projects) { 
+        return res.status(404).send({ message: 'No project found.' });
+    }
+
+    let metaDataList: ProjectMetaData[] = projects.map(project => ({
+        _id: project._id,
+        updated: project.updated,
+        name: project.name,
+        user: project.user,
+        description: project.description
+    }))
+
+    res.send({
+        data: metaDataList
+    });
+
+});
+
+
 
 projectRouter.get('/:id', auth, async (req, res) => {
     const id = req.params.id;
@@ -102,20 +133,20 @@ projectRouter.get('/:id', auth, async (req, res) => {
 
 });
 
-projectRouter.delete('/:id', auth, async (req, res) => {
+projectRouter.delete('/meta-data/:id', auth, async (req, res) => {
     const id = req.params.id;
 
-    // delete iteration steps
-    const iterationsDeleteResult = await IterationStepModel.deleteMany({ project: id});
-    if (!iterationsDeleteResult) { 
-        return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
-    }
+    // // delete iteration steps
+    // const iterationsDeleteResult = await IterationStepModel.deleteMany({ project: id});
+    // if (!iterationsDeleteResult) { 
+    //     return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
+    // }
 
-    // delete properties
-    const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
-    if (!propertyDeleteResult) { 
-        return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
-    }
+    // // delete properties
+    // const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
+    // if (!propertyDeleteResult) { 
+    //     return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
+    // }
 
     // delete project itself
     const projectDeleteResult = await ProjectModel.deleteOne({ _id: id });

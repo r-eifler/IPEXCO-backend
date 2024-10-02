@@ -7,14 +7,24 @@ const baseOptions = {
     collection: 'projects',
   };
 
+
+export interface ProjectMetaData {
+    _id?: string;
+    updated: string;
+    name: string;
+    user: User;
+    description: string;
+}
+
 export interface Project extends Document{
     _id?: string;
+    updated: string;
     name: string;
     public: boolean;
     user: User;
     domainSpecification: string;
     description: string;
-    baseTask: PlanningTask; 
+    baseTask: string; 
     settings: any;
 }
 
@@ -24,7 +34,7 @@ const BaseProjectSchema = new Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     domainSpecification: { type: String, required: true},
     description: { type: String, required: true},
-    baseTask: {type: mongoose.Schema.Types.ObjectId, ref: 'planning-task'},
+    baseTask: { type: String, required: true},
     settings: { type: Object, required: false},
 }, baseOptions);
 

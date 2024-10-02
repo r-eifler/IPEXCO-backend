@@ -4,6 +4,7 @@ import { UpdatedPlanningTask } from './updated_planning_task';
 import { PlanProperty } from './plan-properties/plan_property';
 import { Project } from './project';
 import { Explanation, ExplanationSchema } from './explanations';
+import { PlanningTask, PlanningTaskSchema } from './planning_task';
 
 
 export enum StepStatus{
@@ -25,7 +26,7 @@ export enum PlanRunStatus {
 export interface Plan{
     createdAt?: Date;
     status: PlanRunStatus;
-    plan?: string;
+    actions?: string;
     satisfied_properties?: string[];
 }
 
@@ -41,14 +42,14 @@ export interface IterationStep extends Document{
     _id: string;
     name: string;
     createdAt?: Date;
-    project: Project | string;
+    project: string;
     status: StepStatus;
-    hardGoals: PlanProperty[];
-    softGoals: PlanProperty[];
-    task: UpdatedPlanningTask;
+    hardGoals: string[];
+    softGoals: string[];
+    task: PlanningTask;
     plan?: Plan;
     explanation?: Explanation;
-    predecessorStep: IterationStep | null;
+    predecessorStep: string | null;
 }
 
 const IterationStepSchema = new Schema({
@@ -57,7 +58,7 @@ const IterationStepSchema = new Schema({
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
     hardGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     softGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
-    task: UpdatedPlanningTaskSchema,
+    task: PlanningTaskSchema,
     plan: PlanSchema,
     explanations: [ExplanationSchema],
     predecessorStep: { type: mongoose.Schema.Types.ObjectId, ref: 'iteration-step', required: false },

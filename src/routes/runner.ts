@@ -2,12 +2,15 @@ import { auth } from '../middleware/auth';
 import express from 'express';
 
 import { ExplainerModel, Planner, PlannerModel } from '../db_schema/runner';
+import { IterationStep, IterationStepModel, PlanRunStatus } from '../db_schema/iteration_step';
+import { PlanningTask } from '../db_schema/planning_task';
 
 export const runnerRouter = express.Router();
 
 runnerRouter.post('/planner', auth, async (req: any, res) => {
 
     try {
+
         const plannerData: Planner = req.body.data as Planner;
 
         const plannerModel = new PlannerModel(plannerData);
@@ -30,6 +33,117 @@ runnerRouter.post('/planner', auth, async (req: any, res) => {
 
     } catch (ex : any) {
         console.log(ex.message);
+        res.status(404).send(ex.message);
+    }
+});
+
+
+runnerRouter.post('/planner/:id', auth, async (req: any, res) => {
+
+    try {
+
+        const refId = req.params.id;
+        console.log('Compute plan of: ' + refId)
+        const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+
+        if (!iterationStep) {
+            return res.status(404).send('update step failed');
+        }
+
+        iterationStep.plan = {
+            createdAt: new Date(Date.now()),
+            status: PlanRunStatus.pending
+        }
+        iterationStep.save();
+        
+        // const headers: Headers = new Headers()
+        // headers.set('Content-Type', 'application/json')
+        // headers.set('Accept', 'application/json')
+
+        let task = iterationStep.task
+        let planning_task = new PlanningTask(task)
+        let [domain, problem] = planning_task.toPDDL()
+
+        console.log(domain)
+        console.log('\n\n\n\n\n\n\n')
+        console.log(problem)
+
+        let payload = JSON.stringify({
+            callback:'http://localhost:3000/api/runner/planner/finished/' + refId,
+            domain,
+            problem  
+        })
+
+        const plannerRequest = new Request('http://localhost:3333/plan', 
+            {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: payload,
+            }
+        )
+
+        console.log(plannerRequest.bodyUsed)
+        console.log(plannerRequest.body)
+
+        fetch(plannerRequest).then
+            (resp => console.log("got response:", resp.body),
+            error => console.log(error)
+        )
+
+        console.log(plannerRequest.bodyUsed)
+        console.log(plannerRequest.body)
+        
+        res.send({
+            status: true,
+            message: 'Plan computation registered',
+            data: true
+        });
+
+    } catch (ex : any) {
+        console.log(ex);
+        res.status(404).send(ex.message);
+    }
+});
+
+
+runnerRouter.post('/planner/finished/:id', async (req: any, res) => {
+
+    try {
+
+        console.log(req.body)
+        const refId = req.params.id;
+        const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+
+        if (!iterationStep) {
+            return res.status(404).send('update step failed');
+        }
+
+        if (!iterationStep.plan) {
+            return res.status(404).send('update step failed');
+        }
+
+        let actions = req.body.plan
+        let status = req.body.status
+
+        if(status === 'SOLVED'){
+            iterationStep.plan.status = PlanRunStatus.plan_found;
+            iterationStep.plan.actions = actions;
+        }
+
+        if(status === 'UNSOLVABLE'){
+            iterationStep.plan.status = PlanRunStatus.not_solvable;
+        }
+        
+        iterationStep.save()
+        
+        res.send({
+            status: true,
+            message: 'Plan computation registered',
+            data: true
+        });
+
+    } catch (ex : any) {
+        console.log(ex);
         res.status(404).send(ex.message);
     }
 });
