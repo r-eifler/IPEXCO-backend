@@ -4,6 +4,10 @@ import express from 'express';
 import { ExplainerModel, Planner, PlannerModel } from '../db_schema/runner';
 import { IterationStep, IterationStepModel, PlanRunStatus } from '../db_schema/iteration_step';
 import { PlanningTask } from '../db_schema/planning_task';
+import { ProjectModel } from '../db_schema/project';
+import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
+import { PropertyCheck } from '../planner/property_check';
+import { environment } from '../app';
 
 export const runnerRouter = express.Router();
 
@@ -93,6 +97,75 @@ runnerRouter.post('/planner/:id', auth, async (req: any, res) => {
 });
 
 
+runnerRouter.post('/planner/temp-goals/:id', auth, async (req: any, res) => {
+
+    try {
+
+        const refId = req.params.id;
+        console.log('Compute plan of: ' + refId)
+        const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+
+        if (!iterationStep) {
+            return res.status(404).send('update step failed');
+        }
+
+        iterationStep.plan = {
+            createdAt: new Date(Date.now()),
+            status: PlanRunStatus.running
+        }
+        iterationStep.save();
+        
+        const model = iterationStep.task.model
+        const plan_properties = await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[];
+
+        // console.log('Plan Properties: ') // + plan_properties)
+        // for(let p of plan_properties){
+        //     console.log(p._id?.toString())
+        // }
+        // console.log('Hard Goals: ' + iterationStep.hardGoals)
+        // console.log('Found: ' + iterationStep.hardGoals.find(id => id == plan_properties[0]._id?.toString()))
+        const enforced_goals = plan_properties.filter(pp => !pp._id ? false : iterationStep.hardGoals.includes(pp._id?.toString()));
+        // console.log('ENFORCED Goals: ' + enforced_goals)
+        const exp_settings = {
+            plan_properties: enforced_goals,
+            hard_goals: enforced_goals.map(enfG => enfG.name),
+            soft_goals: []
+        }
+
+        let payload = JSON.stringify({
+            callback:'http://localhost:3000/api/runner/planner/finished/' + refId,
+            model,
+            temp_goals: JSON.stringify(exp_settings)
+        })
+
+        console.log(payload)
+
+        const plannerRequest = new Request('http://localhost:3333/plan/temp-goals', 
+            {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: payload,
+            }
+        )
+
+        fetch(plannerRequest).then
+            (resp => console.log("Plan computation request submitted."),
+            error => console.log(error)
+        )
+        
+        res.send({
+            status: true,
+            message: 'Plan computation registered',
+            data: true
+        });
+
+    } catch (ex : any) {
+        console.log(ex);
+        res.status(404).send(ex.message);
+    }
+});
+
+
 runnerRouter.post('/planner/finished/:id', async (req: any, res) => {
 
     try {
@@ -118,17 +191,30 @@ runnerRouter.post('/planner/finished/:id', async (req: any, res) => {
         if(status === 'SOLVED'){
             iterationStep.plan.status = PlanRunStatus.plan_found;
             iterationStep.plan.actions = JSON.stringify(actions);
+
+            // Check which properties are satisfied
+            const plan_properties = (await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[]).filter(pp => pp.isUsed);
+
+            let check = new PropertyCheck(environment.experimentsRootPath, iterationStep, plan_properties);
+            let sat_properties = await check.executeRun();
+
+            console.log(sat_properties)
+            const sat_properties_ids = plan_properties.filter(pp => sat_properties.includes(pp.name)).map(pp => pp._id);
+
+            iterationStep.plan.satisfied_properties =  sat_properties_ids.filter(id => id != undefined);
+
         }
 
         if(status === 'UNSOLVABLE'){
             iterationStep.plan.status = PlanRunStatus.not_solvable;
         }
-        
 
-        console.log(iterationStep.plan)
+        if(status === 'FAILED'){
+            iterationStep.plan.status = PlanRunStatus.failed;
+        }
+
+        // console.log(iterationStep.plan)
         iterationStep.save()
-
-
         
         res.send({
             status: true,

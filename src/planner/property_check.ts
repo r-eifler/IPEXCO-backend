@@ -7,67 +7,72 @@ import { writeFileSync } from 'fs';
 import { pythonShellCallSimple } from './python-call';
 import { environment } from '../app';
 import { PlanningTask } from '../db_schema/planning_task';
+import { IterationStep } from '../db_schema/iteration_step';
 
 export class PropertyCheck {
 
-    // runFolder: string;
+    runFolder: string;
 
     constructor(
         protected root: string,
-        private project: Project,
-        private task: PlanningTask,
+        private step: IterationStep,
         private planProperties: PlanProperty[])
     {
-        // this.runFolder = path.join(root, String(project._id));
+        this.runFolder = path.join(root, String(step._id));
 
-        // child.execSync(`mkdir -p ${this.runFolder}`);
+        child.execSync(`mkdir -p ${this.runFolder}`);
 
-        // const domainFileName = path.basename(project.domainFile.path);
-        // const problemFileName = path.basename(project.problemFile.path);
+        const task = new PlanningTask(this.step.task)
+        const [domain, problem] = task.toPDDL();
 
-        // child.execSync(`cp ${path.join(environment.uploadsPath, domainFileName)} ${path.join(this.runFolder, 'domain.pddl')}`);
-        // child.execSync(`cp ${path.join(environment.uploadsPath, problemFileName)} ${path.join(this.runFolder, 'problem.pddl')}`);
+        writeFileSync(path.join(this.runFolder, 'domain.pddl'),
+            domain,
+            'utf8')
 
-        // writeFileSync(path.join(this.runFolder, 'schema.json'),
-        //     this.task.taskSchema(),
-        //     'utf8')
+        writeFileSync(path.join(this.runFolder, 'problem.pddl'),
+            problem,
+            'utf8')
 
-        // writeFileSync(path.join(this.runFolder, 'exp_setting.json'),
-        //     JSON.stringify(this.generate_experiment_setting()),
-        //     'utf8');
+        writeFileSync(path.join(this.runFolder, 'model.json'),
+            task.model,
+            'utf8')
 
-        // writeFileSync(path.join(this.runFolder, 'plan.sas'),
-        //     this.planRun.result,
-        //     'utf8');
+        writeFileSync(path.join(this.runFolder, 'exp_setting.json'),
+            JSON.stringify(this.generate_experiment_setting()),
+            'utf8');
+
+        writeFileSync(path.join(this.runFolder, 'plan.json'),
+            this.step.plan?.actions,
+            'utf8');
     }
 
     generate_experiment_setting(): ExperimentSetting {
         return { hard_goals: [], plan_properties: this.planProperties, soft_goals: []};
     }
 
-    // async executeRun(): Promise<string[]> {
+    async executeRun(): Promise<string[]> {
 
-        // const addArgs = [
-        //     path.join(this.runFolder, 'domain.pddl'),
-        //     path.join(this.runFolder, 'problem.pddl'),
-        //     path.join(this.runFolder, 'exp_setting.json'),
-        //     path.join(this.runFolder, 'schema.json'),
-        //     path.join(this.runFolder, 'plan.sas')
-        // ];
+        const addArgs = [
+            path.join(this.runFolder, 'domain.pddl'),
+            path.join(this.runFolder, 'problem.pddl'),
+            path.join(this.runFolder, 'exp_setting.json'),
+            path.join(this.runFolder, 'model.json'),
+            path.join(this.runFolder, 'plan.json')
+        ];
 
-        // const options = {
-        //     mode: 'text',
-        //     pythonPath: '/usr/bin/python3',
-        //     pythonOptions: ['-u'],
-        //     scriptPath: environment.propertyChecker,
-        //     args: addArgs,
-        //     env: { VAL: environment.val},
-        // };
+        const options = {
+            mode: 'text',
+            pythonPath: '/usr/bin/python3',
+            pythonOptions: ['-u'],
+            scriptPath: environment.propertyChecker,
+            args: addArgs,
+            env: { VAL: environment.val},
+        };
 
-        // return await pythonShellCallSimple('main.py', options);
-    // }
+        return await pythonShellCallSimple('main.py', options);
+    }
 
     tidyUp(): void {
-        // child.execSync(`rm -r ${this.runFolder}`);
+        child.execSync(`rm -r ${this.runFolder}`);
     }
 }

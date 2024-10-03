@@ -180,7 +180,7 @@ pddlRouter.post('/domain', auth,  async (req, res) => {
 
             action = {
                 name: action.name.toLowerCase(),
-                parameters: action.parameters.map(p => ({name: p.name.toLowerCase(); type: p.type.toLowerCase()})),
+                parameters: action.parameters.map(p => ({name: p.name.toLowerCase(), type: p.type.toLowerCase()})),
                 precondition: action.precondition.map(p => 
                     ({name: p.name.toLowerCase(), arguments: p.arguments.map(a => a.toLowerCase()), negated: p.negated})
                 ),

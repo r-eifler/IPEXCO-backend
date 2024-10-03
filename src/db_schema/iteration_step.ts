@@ -33,7 +33,7 @@ export interface Plan{
 const PlanSchema = new Schema({
     status: { type: Number, required: true},
     plan: { type: String, required: false},
-    satPlanProperties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
+    satisfied_properties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     actions: { type: String, required: false},
 }, { timestamps: true}); 
 
