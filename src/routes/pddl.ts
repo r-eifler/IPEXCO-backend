@@ -2,7 +2,7 @@
 import express from 'express';
 import { auth } from '../middleware/auth';
 import { InstantAction, parser } from 'pddl-workspace';
-import { PDDLAction, PDDLFact, PlanningDomain, PlanningProblem } from '../db_schema/planning_task';
+import { PDDLAction, PDDLFact, PDDLObject, PlanningDomain, PlanningProblem } from '../db_schema/planning_task';
 import { PddlSyntaxNode, PddlTokenType } from 'pddl-workspace/dist/parser';
 
 export const pddlRouter = express.Router();
@@ -12,16 +12,16 @@ function extractGoal(node: PddlSyntaxNode): PDDLFact[] | null{
 
     if(node.getToken().type == PddlTokenType.OpenBracketOperator){
         if(node.getToken().tokenText.includes('goal')){
-            console.log(node.getChildren())
-            console.log("--------------------------------")
+            // console.log(node.getChildren())
+            // console.log("--------------------------------")
             for(let c of node.getChildren()){
-                console.log(c.getToken().type)
-                console.log(c.getToken().tokenText)
+                // console.log(c.getToken().type)
+                // console.log(c.getToken().tokenText)
                 if(c.getToken().type == PddlTokenType.OpenBracketOperator || c.getToken().type == PddlTokenType.OpenBracket){
                     console.log(c.getChildren())
                     return extractFactsFromParseTree(c)
                 }
-                console.log("-------------")
+                // console.log("-------------")
             }
         }
     }
@@ -137,7 +137,7 @@ pddlRouter.post('/domain', auth,  async (req, res) => {
         }
 
         for(let t of domainParsed.getTypes()){
-            domain.types.push({name: t, parent: 'TODO'})
+            domain.types.push({name: t.toLowerCase(), parent: 'TODO'})
         }
 
         for(let p of domainParsed?.getPredicates()){
@@ -145,8 +145,8 @@ pddlRouter.post('/domain', auth,  async (req, res) => {
                 name: p.name, 
                 parameters: p.parameters.map(e => (
                     {
-                        name: e.toPddlString().split(' - ')[0], 
-                        type: e.type
+                        name: e.toPddlString().split(' - ')[0].toLowerCase(), 
+                        type: e.type.toLowerCase()
                     })),
                 negated: false
             })
@@ -164,8 +164,8 @@ pddlRouter.post('/domain', auth,  async (req, res) => {
             }
 
             let action: PDDLAction = {
-                name: a.name != undefined ? a.name : 'NONE', 
-                parameters: a.parameters.map(p => ({name: p.name, type: p.type})),
+                name: a.name != undefined ? a.name: 'NONE', 
+                parameters: a.parameters.map(p => ({name: '?' + p.name, type: p.type})),
                 precondition: [],
                 effect: []
             }
@@ -177,6 +177,18 @@ pddlRouter.post('/domain', auth,  async (req, res) => {
             console.log(action.parameters);
             console.log(action.precondition);
             console.log(action.effect);
+
+            action = {
+                name: action.name.toLowerCase(),
+                parameters: action.parameters.map(p => ({name: p.name.toLowerCase(); type: p.type.toLowerCase()})),
+                precondition: action.precondition.map(p => 
+                    ({name: p.name.toLowerCase(), arguments: p.arguments.map(a => a.toLowerCase()), negated: p.negated})
+                ),
+                effect: action.effect.map(p => 
+                    ({name: p.name.toLowerCase(), arguments: p.arguments.map(a => a.toLowerCase()), negated: p.negated})
+                ),
+            }
+
             domain.actions.push(action);
         }
 
@@ -199,13 +211,7 @@ pddlRouter.post('/problem', auth,  async (req, res) => {
             return
         }
 
-        let problem: PlanningProblem = {
-            objects:[],
-            initial: [],
-            goal: []
-        }
-
-        problem.initial = problemParsed.getInits().map(i => {
+        let initial = problemParsed.getInits().map(i => {
             let parts = i.getVariableName().split(' ')
             if(i.getValue() == true){
                 return {name: parts[0], arguments: parts.slice(1), negated: false}
@@ -217,12 +223,13 @@ pddlRouter.post('/problem', auth,  async (req, res) => {
 
         let raw_object_types = (problemParsed.getObjectsTypeMap().toJSON('test') as any)
 
+        let objects: PDDLObject[] = []
         if(problemParsed.getObjectsTypeMap().length == 1){
-            problem.objects = raw_object_types['object']['objects'].map((n: string) => ({name: n, type: 'object'}))
+            objects = raw_object_types['object']['objects'].map((n: string) => ({name: n, type: 'object'}))
         }
         else {
             for(const [type_name, rot] of Object.entries(raw_object_types)){
-                problem.objects = problem.objects.concat((rot as any)['objects']
+                objects = objects.concat((rot as any)['objects']
                     .filter((n: string) => problemParsed.getObjects(n).length == 0)
                     .map((n: string) => ({name: n, type: type_name}))
                 )
@@ -237,8 +244,12 @@ pddlRouter.post('/problem', auth,  async (req, res) => {
             return
         }
 
-        problem.goal = goals
-        
+
+        let problem: PlanningProblem = {
+            objects: objects.map(o => ({...o,name: o.name.toLowerCase(), type: o.type.toLowerCase()})),
+            initial: initial.map(f => ({...f, name: f.name.toLowerCase(), arguments: f.arguments.map(a => a.toLowerCase())})),
+            goal: goals.map(g => ({...g, name: g.name.toLowerCase(), arguments: g.arguments.map(a => a.toLowerCase())}))
+        }
 
         console.log(problem.objects)
         console.log(problem.initial)

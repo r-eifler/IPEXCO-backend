@@ -18,7 +18,7 @@ export enum PlanRunStatus {
     running,
     failed,
     plan_found,
-    not_solvable
+    not_solvable,
 }
 
 
@@ -34,7 +34,8 @@ const PlanSchema = new Schema({
     status: { type: Number, required: true},
     plan: { type: String, required: false},
     satPlanProperties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
-}, { timestamps: true});
+    actions: { type: String, required: false},
+}, { timestamps: true}); 
 
 
 

@@ -80,8 +80,6 @@ export class PlanningTask{
 
         let model = JSON.parse(this.model) as PlanningModel
 
-        console.log(this.model)
-
         // domain
         let d = "(define (domain " + this.domain_name + ")\n";
         d += "(:requirements :typing :action-costs)\n";
@@ -102,12 +100,19 @@ export class PlanningTask{
         d += model.actions
             .map(
                 a => "(:action " + a.name + "\n\t:parameters (" + 
-                    a.parameters.map(p => '?' + p.name + ' - ' + p.type).join(" ") + ")\n" +
+                    a.parameters.map(p => p.name + ' - ' + p.type).join(" ") + ")\n" +
                     "\t:precondition (and \n" +
-                        a.precondition.map(p => "\t\t" + "(" + p.name + ' ' + p.arguments.join(" ") + ")").join('\n') +
+                        a.precondition.map(p => 
+                            p.negated ? 
+                            "\t\t" + "(not (" + p.name + ' ' + p.arguments.join(" ") + "))" :
+                            "\t\t" + "(" + p.name + ' ' + p.arguments.join(" ") + ")"
+                        ).join('\n') +
                     "\t)\n" +
                     "\t:effect (and \n" +
-                        a.effect.map(p => "\t\t" + "(" + p.name + ' ' + p.arguments.join(" ") + ")").join('\n') +
+                        a.effect.map(p => 
+                            p.negated ? "\t\t" + "(not (" + p.name + ' ' + p.arguments.join(" ") + "))" :
+                            "\t\t" + "(" + p.name + ' ' + p.arguments.join(" ") + ")"
+                        ).join('\n') +
                     "\t)\n)")
             .join("\n");
 

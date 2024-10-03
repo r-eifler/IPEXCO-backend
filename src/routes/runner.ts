@@ -52,21 +52,14 @@ runnerRouter.post('/planner/:id', auth, async (req: any, res) => {
 
         iterationStep.plan = {
             createdAt: new Date(Date.now()),
-            status: PlanRunStatus.pending
+            status: PlanRunStatus.running
         }
         iterationStep.save();
         
-        // const headers: Headers = new Headers()
-        // headers.set('Content-Type', 'application/json')
-        // headers.set('Accept', 'application/json')
-
         let task = iterationStep.task
         let planning_task = new PlanningTask(task)
         let [domain, problem] = planning_task.toPDDL()
 
-        console.log(domain)
-        console.log('\n\n\n\n\n\n\n')
-        console.log(problem)
 
         let payload = JSON.stringify({
             callback:'http://localhost:3000/api/runner/planner/finished/' + refId,
@@ -82,16 +75,10 @@ runnerRouter.post('/planner/:id', auth, async (req: any, res) => {
             }
         )
 
-        console.log(plannerRequest.bodyUsed)
-        console.log(plannerRequest.body)
-
         fetch(plannerRequest).then
-            (resp => console.log("got response:", resp.body),
+            (resp => console.log("Plan computation request submitted."),
             error => console.log(error)
         )
-
-        console.log(plannerRequest.bodyUsed)
-        console.log(plannerRequest.body)
         
         res.send({
             status: true,
@@ -119,22 +106,29 @@ runnerRouter.post('/planner/finished/:id', async (req: any, res) => {
         }
 
         if (!iterationStep.plan) {
-            return res.status(404).send('update step failed');
+            return res.status(404).send('update plan failed');
         }
 
-        let actions = req.body.plan
+        let actions = req.body.actions as string
         let status = req.body.status
+
+        console.log(status)
+        console.log(actions)
 
         if(status === 'SOLVED'){
             iterationStep.plan.status = PlanRunStatus.plan_found;
-            iterationStep.plan.actions = actions;
+            iterationStep.plan.actions = JSON.stringify(actions);
         }
 
         if(status === 'UNSOLVABLE'){
             iterationStep.plan.status = PlanRunStatus.not_solvable;
         }
         
+
+        console.log(iterationStep.plan)
         iterationStep.save()
+
+
         
         res.send({
             status: true,
