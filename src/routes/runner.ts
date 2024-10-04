@@ -65,13 +65,15 @@ runnerRouter.post('/planner/:id', auth, async (req: any, res) => {
         let [domain, problem] = planning_task.toPDDL()
 
 
+        const baseURL = process.env.BASE_URL
         let payload = JSON.stringify({
-            callback:'http://localhost:3000/api/runner/planner/finished/' + refId,
+            callback:baseURL + '/api/runner/planner/finished/' + refId,
             domain,
             problem  
         })
 
-        const plannerRequest = new Request('http://localhost:3333/plan', 
+        const plannerServiceURL = process.env.PLANNER_SERVICE
+        const plannerRequest = new Request(plannerServiceURL + '/plan', 
             {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
