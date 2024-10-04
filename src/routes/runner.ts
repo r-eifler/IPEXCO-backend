@@ -134,15 +134,17 @@ runnerRouter.post('/planner/temp-goals/:id', auth, async (req: any, res) => {
             soft_goals: []
         }
 
+        const baseURL = process.env.BASE_URL
         let payload = JSON.stringify({
-            callback:'http://localhost:3000/api/runner/planner/finished/' + refId,
+            callback:baseURL + '/api/runner/planner/finished/' + refId,
             model,
             temp_goals: JSON.stringify(exp_settings)
         })
 
         console.log(payload)
 
-        const plannerRequest = new Request('http://localhost:3333/plan/temp-goals', 
+        const plannerServiceURL = process.env.PLANNER_SERVICE
+        const plannerRequest = new Request(plannerServiceURL + '/plan/temp-goals', 
             {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
