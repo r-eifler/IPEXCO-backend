@@ -76,12 +76,12 @@ export class PlanningTask{
     }
 
     // TODO add functions
-    toPDDL(): string[] {
+    toPDDL(with_goals=true): string[] {
 
         let model = JSON.parse(this.model) as PlanningModel
 
         // domain
-        let d = "(define (domain " + this.domain_name + ")\n";
+        let d = "(define (domain domainname)\n";
         d += "(:requirements :typing :action-costs)\n";
 
         d += "(:types\n" + 
@@ -121,16 +121,22 @@ export class PlanningTask{
 
 
         // problem
-        let p = "(define (problem " + this.name + ")\n";
-        p += "(:domain " + this.domain_name + ")\n";
+        let p = "(define (problem problemname)\n";
+        p += "(:domain domainname)\n";
         p += "(:objects \n" + model.objects.map(o => '\t' + o.name + " - " + o.type).join("\n") + "\n)\n";
         p += "(:init\n " + model.initial.map(
             f => "\t(" + f.name + ' ' + f.arguments.join(" ") + ")").join("\n") 
             + "\n)\n";
-        p += "(:goal (and \n" + 
-            model.goal.map(p => "\t(" + p.name + ' ' + p.arguments.join(" ") + ")").join("\n") 
-            + ")\n";
-        p += "))";
+
+        if(with_goals){
+            p += "(:goal (and \n" + 
+                model.goal.map(p => "\t(" + p.name + ' ' + p.arguments.join(" ") + ")").join("\n") 
+                + "))\n";
+        }
+        else {
+            p += "(:goal (and ))\n";
+        }
+        p += ")";
 
         return [d,p];
     }   

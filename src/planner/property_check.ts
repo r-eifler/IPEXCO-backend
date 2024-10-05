@@ -23,7 +23,7 @@ export class PropertyCheck {
         child.execSync(`mkdir -p ${this.runFolder}`);
 
         const task = new PlanningTask(this.step.task)
-        const [domain, problem] = task.toPDDL();
+        const [domain, problem] = task.toPDDL(false);
 
         writeFileSync(path.join(this.runFolder, 'domain.pddl'),
             domain,
