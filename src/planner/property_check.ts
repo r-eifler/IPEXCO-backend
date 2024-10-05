@@ -41,6 +41,10 @@ export class PropertyCheck {
             JSON.stringify(this.generate_experiment_setting()),
             'utf8');
 
+        if(this.step.plan?.actions === undefined) {
+            throw(Error)
+        }
+
         writeFileSync(path.join(this.runFolder, 'plan.json'),
             this.step.plan?.actions,
             'utf8');

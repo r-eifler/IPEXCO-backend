@@ -71,6 +71,7 @@ projectRouter.put('/:id', auth, async (req, res) => {
         project.description = projectData.description;
         project.settings = projectData.settings;
         project.public = projectData.public;
+        project.domainSpecification = JSON.stringify(projectData.domainSpecification)
 
         await project.save();
 
