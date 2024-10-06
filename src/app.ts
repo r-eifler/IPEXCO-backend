@@ -26,6 +26,7 @@ import { metaStudyRouter } from './routes/user-study/meta-study';
 import { userStudyDataRouter } from './routes/user-study/user-study-data';
 import { runnerRouter } from './routes/runner';
 import { pddlRouter } from './routes/pddl';
+import { LLMRouter } from './routes/llm-connector';
 dotenv.config();
 
 console.log('-------- IPEXCO BACK END ---------');
@@ -105,6 +106,8 @@ app.use('/api/runner', runnerRouter);
 app.use('/api/run', iterationStepRouter);
 
 app.use('/api/project', projectRouter);
+
+app.use('/api/llm', LLMRouter);
 
 // catch 404 and forward to error handler
 app.all('*', (req, res, next) => {
