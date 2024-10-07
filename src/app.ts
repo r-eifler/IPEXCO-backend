@@ -38,23 +38,23 @@ const images_folder = path.join(__dirname, 'data/images')
 // create folders if not already exist
 console.log('---> statically served path');
 
-console.log(uploads_folder);
-if(! fs.existsSync(uploads_folder)){
-  fs.mkdirSync(uploads_folder)
-  console.log(uploads_folder + " created");
-}
+// console.log(uploads_folder);
+// if(! fs.existsSync(uploads_folder)){
+//   fs.mkdirSync(uploads_folder)
+//   console.log(uploads_folder + " created");
+// }
 
-console.log(results_folder);
-if(! fs.existsSync(results_folder)){
-  fs.mkdirSync(results_folder)
-  console.log(results_folder + " created");
-}
+// console.log(results_folder);
+// if(! fs.existsSync(results_folder)){
+//   fs.mkdirSync(results_folder)
+//   console.log(results_folder + " created");
+// }
 
-console.log(images_folder);
-if(! fs.existsSync(images_folder)){
-  fs.mkdirSync(images_folder)
-  console.log(images_folder + " created");
-}
+// console.log(images_folder);
+// if(! fs.existsSync(images_folder)){
+//   fs.mkdirSync(images_folder)
+//   console.log(images_folder + " created");
+// }
 
 export const environment = new Environment();
 console.log(environment)
