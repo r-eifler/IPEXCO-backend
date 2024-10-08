@@ -27,6 +27,15 @@ import { userStudyDataRouter } from './routes/user-study/user-study-data';
 import { runnerRouter } from './routes/runner';
 import { pddlRouter } from './routes/pddl';
 import { LLMRouter } from './routes/llm-connector';
+
+import { initializeAssistants, OpenAIModelName } from './llm/initialize_assistants';
+
+
+console.log('-------- Initializing LLMs assistants -----');
+const model = process.env.OPENAI_MODEL_NAME || "gpt-4o-mini";
+
+initializeAssistants(model as OpenAIModelName).then(console.log).catch(console.error);
+
 dotenv.config();
 
 console.log('-------- IPEXCO BACK END ---------');
@@ -34,6 +43,7 @@ console.log('-------- IPEXCO BACK END ---------');
 const results_folder = path.join(__dirname, 'data/results');
 const uploads_folder = path.join(__dirname, 'data/uploads');
 const images_folder = path.join(__dirname, 'data/images')
+
 
 // create folders if not already exist
 console.log('---> statically served path');

@@ -1,18 +1,11 @@
 import OpenAI from "openai";
-import * as belugaPrompts from "../../data/prompts/beluga/prompts.json";
+import belugaPrompts from "./data/prompts/beluga/prompts.json";
 import fs from 'fs/promises';
 import path from 'path';
 import dotenv from 'dotenv';
-if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not set in the environment variables');
-}
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
-type OpenAIModelName = "gpt-4o-mini" | "gpt-4o";
+export type OpenAIModelName = "gpt-4o-mini" | "gpt-4o" ;
 
-const MODEL_NAME: OpenAIModelName = process.env.OPENAI_MODEL_NAME as OpenAIModelName || "gpt-4o-mini";
 
 function formatExamples(examples: any[]): string {
     return examples.map((example, index) => {
@@ -23,7 +16,16 @@ function formatExamples(examples: any[]): string {
     }).join('\n');
 }
 
-async function initializeAssistants() {
+async function createAssistant(name: string, instructions: string, examples: any[], openai: OpenAI, model: OpenAIModelName) {
+    const assistant = await openai.beta.assistants.create({
+        instructions: `${belugaPrompts.system}${instructions}${formatExamples(examples)}`,
+        name,
+        model: model,
+    });
+    return assistant.id;
+}
+
+export async function initializeAssistants(model: OpenAIModelName) {
     // This function initializes three OpenAI assistants:
     // 1. Goal Translator: Translates user goals into LTLf formulas
     // 2. Question Translator: Interprets user questions and maps them to predefined question types
@@ -37,42 +39,57 @@ async function initializeAssistants() {
 
     // The assistants don't store any data so they can be reused instead of recreating them if we don't change prompts.
 
+    if (!process.env.OPENAI_API_KEY) {
+        throw new Error('OPENAI_API_KEY is not set in the environment variables');
+    }
+    const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    });
+
+
     const assistants = {
-        goalTranslator: await createAssistant("Goal Translator (Beluga)", belugaPrompts.goal_translator, belugaPrompts.gt_examples),
-        questionTranslator: await createAssistant("Question Translator (Beluga)", belugaPrompts.question_translator, belugaPrompts.qt_examples),
-        explanationTranslator: await createAssistant("Explanation Translator (Beluga)", belugaPrompts.explanation_translator, belugaPrompts.et_examples),
+        goalTranslator: await createAssistant("Goal Translator (Beluga)", belugaPrompts.goal_translator, belugaPrompts.gt_examples, openai, model),
+        questionTranslator: await createAssistant("Question Translator (Beluga)", belugaPrompts.question_translator, belugaPrompts.qt_examples, openai, model),
+        explanationTranslator: await createAssistant("Explanation Translator (Beluga)", belugaPrompts.explanation_translator, belugaPrompts.et_examples, openai, model),
     };
 
-    // Write assistant IDs to .env file
-    const envContent = Object.entries(assistants)
-        .map(([key, value]) => `ASSISTANT_ID_${key.toUpperCase()}=${value}`)
-        .join('\n');
+    // Read existing .env file
+    const envPath = path.join(process.cwd(), '.env');
+    let envContent = await fs.readFile(envPath, 'utf-8');
 
-    await fs.appendFile(path.join(process.cwd(), '.env'), `\n${envContent}\n`);
+    // Replace or add new ASSISTANT_ID_* variables
+    for (const [key, value] of Object.entries(assistants)) {
+        const envKey = `ASSISTANT_ID_${key.toUpperCase()}`;
+        const regex = new RegExp(`^${envKey}=.*$`, 'm');
+        if (envContent.match(regex)) {
+            // Replace existing variable
+            envContent = envContent.replace(regex, `${envKey}=${value}`);
+        } else {
+            // Add new variable
+            envContent += `\n${envKey}=${value}`;
+        }
+    }
+
+    // Write updated content back to .env file
+    await fs.writeFile(envPath, envContent);
 
     return assistants;
 }
 
-async function createAssistant(name: string, instructions: string, examples: any[]) {
-    const assistant = await openai.beta.assistants.create({
-        instructions: `${belugaPrompts.system}${instructions}${formatExamples(examples)}`,
-        name,
-        model: MODEL_NAME,
-    });
-    return assistant.id;
-}
 
-initializeAssistants().then(console.log).catch(console.error);
+// TESTING 
 
-// initializeAssistants();
-// load .env file
-require('dotenv').config();
-// Print the environment variables with names starting with ASSISTANT_ID_ to check if they are set correctly
-for (const [key, value] of Object.entries(process.env)) {
-    if (key.startsWith("ASSISTANT_ID_")) {
-        console.log(`${key}: ${value}`);
-    }
-    else {
-        console.log(`${key}: ${value}`);
-    }
-}
+// initializeAssistants().then(console.log).catch(console.error);
+
+// // initializeAssistants();
+// // load .env file
+// require('dotenv').config();
+// // Print the environment variables with names starting with ASSISTANT_ID_ to check if they are set correctly
+// for (const [key, value] of Object.entries(process.env)) {
+//     if (key.startsWith("ASSISTANT_ID_")) {
+//         console.log(`${key}: ${value}`);
+//     }
+//     else {
+//         console.log(`${key}: ${value}`);
+//     }
+// }

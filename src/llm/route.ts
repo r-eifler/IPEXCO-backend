@@ -1,33 +1,18 @@
 import { AssistantResponse } from 'ai';
 import OpenAI from 'openai';
-import { PDDLPredicate, PDDLObject, PlanProperty, GoalTranslationRequest, QuestionTranslationRequest, ExplanationTranslationRequest } from '../interface';
-import belugaPrompts from '../data/prompts/beluga/prompts.json';
-import belugaTemplates from '../data/prompts/beluga/templates.json';
+import { GoalTranslationRequest, QuestionTranslationRequest, ExplanationTranslationRequest } from './interface';
+import belugaPrompts from './data/prompts/beluga/prompts.json';
+import belugaTemplates from './data/prompts/beluga/templates.json';
+import { openai } from '@ai-sdk/openai'
+import { openai_client } from './openai_client';
 
-require('dotenv').config();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
-
-if (!process.env.OPENAI_API_KEY) {
-    throw new Error('OPENAI_API_KEY is not set in the environment variables');
-}
-
-if (!process.env.ASSISTANT_ID_GT || !process.env.ASSISTANT_ID_QT || !process.env.ASSISTANT_ID_ET) {
-    throw new Error('ASSISTANT_ID_GT, ASSISTANT_ID_QT, or ASSISTANT_ID_ET is not set in the environment variables. Run initialize_assistants.ts to set them.');
-}
-
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
-
-type Translator = "GoalTranslator" | "QuestionTranslator" | "ExplanationTranslator";
 
 export async function POST(req: Request) {
   const input = await req.json();
 
   // Create a thread if needed
-  const threadId = input.threadId ?? (await openai.beta.threads.create({})).id;
+  const threadId = input.threadId ?? (await openai_client.beta.threads.create({})).id;
 
   // Prepare the message content based on the translator type
   let messageContent = '';
@@ -46,7 +31,7 @@ export async function POST(req: Request) {
   }
 
   // Add the prepared message to the thread
-  const createdMessage = await openai.beta.threads.messages.create(threadId, {
+  const createdMessage = await openai_client.beta.threads.messages.create(threadId, {
     role: 'user',
     content: messageContent,
   });
@@ -55,7 +40,7 @@ export async function POST(req: Request) {
     { threadId, messageId: createdMessage.id },
     async ({ forwardStream, sendDataMessage }) => {
       // Run the assistant on the thread
-      const runStream = openai.beta.threads.runs.stream(threadId, {
+      const runStream = openai_client.beta.threads.runs.stream(threadId, {
         assistant_id:
           process.env.ASSISTANT_ID ??
           (() => {
@@ -88,7 +73,7 @@ export async function POST(req: Request) {
           );
 
         runResult = await forwardStream(
-          openai.beta.threads.runs.submitToolOutputsStream(
+          openai_client.beta.threads.runs.submitToolOutputsStream(
             threadId,
             runResult.id,
             { tool_outputs },
@@ -99,7 +84,7 @@ export async function POST(req: Request) {
   );
 }
 
-function prepareGoalTranslatorMessage(input: GoalTranslationRequest): string {
+export function prepareGoalTranslatorMessage(input: GoalTranslationRequest): string {
   const promptTemplate = belugaPrompts.goal_translator;
 
   // Replace placeholders with actual values
@@ -108,14 +93,14 @@ function prepareGoalTranslatorMessage(input: GoalTranslationRequest): string {
     .replace('{objects}', JSON.stringify(input.objects));
 }
 
-function prepareQuestionTranslatorMessage(input: QuestionTranslationRequest): string {
+export function prepareQuestionTranslatorMessage(input: QuestionTranslationRequest): string {
   const promptTemplate = belugaTemplates.question_translator;
   return promptTemplate
     .replace('{question}', input.question)
 
 }
 
-function prepareExplanationTranslatorMessage(input: ExplanationTranslationRequest): string {
+export function prepareExplanationTranslatorMessage(input: ExplanationTranslationRequest): string {
   const promptTemplate = belugaTemplates.explanation_translator;
 
   return promptTemplate

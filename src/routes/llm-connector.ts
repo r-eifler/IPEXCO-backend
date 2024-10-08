@@ -1,14 +1,12 @@
-
 import express from 'express';
 import { auth } from '../middleware/auth';
 import { convertToCoreMessages,CoreMessage, streamText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { openai_client } from '../llm/openai_client';
+import { openai} from '@ai-sdk/openai';
+import { AssistantResponse } from 'ai';
+import { prepareGoalTranslatorMessage, prepareQuestionTranslatorMessage, prepareExplanationTranslatorMessage } from '../llm/route';
 
 export const LLMRouter = express.Router();
-
-// const openai = new OpenAI({
-//     apiKey: process.env.OPENAI_API_KEY || '',
-//   });
 
   export const maxDuration = 30;
   const messages: CoreMessage[] = [];
@@ -125,8 +123,38 @@ LLMRouter.post('/simple',  async (req, res) => {
     }
 });
 
+LLMRouter.post('/gt', async (req, res) => {
+    try {
+        console.log(req.body)
+        const threadId = req.body.data.threadId ?? (await openai_client.beta.threads.create({})).id;
+        const input = req.body.data.input
+        const message = prepareGoalTranslatorMessage(input);
+        const createdMessage = await openai_client.beta.threads.messages.create(threadId, {
+            role: 'user',
+            content: message,
+        });
+        const response = AssistantResponse(
+            { threadId, messageId: createdMessage.id },
+            async ({ forwardStream, sendDataMessage }) => {
+                // Run the assistant on the thread
+                const runStream = openai_client.beta.threads.runs.stream(threadId, {
+                    assistant_id:
+                        process.env.ASSISTANT_ID ??
+                        (() => {
+                            throw new Error('ASSISTANT_ID is not set');
+                        })(),
+                });
+            
+        
+              // forward run status would stream message deltas
+                let runResult = await forwardStream(runStream);
+            }
+        );
 
-
-
-
+        res.status(200).send({data: response})
+    } catch (error) {
+        console.error(error);
+        res.status(500).send(error);
+    }
+});
 

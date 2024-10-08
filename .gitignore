@@ -52,3 +52,6 @@ Thumbs.db
 
 # temporal fiels
 VAL_temp
+
+# python related stuff
+.venv
