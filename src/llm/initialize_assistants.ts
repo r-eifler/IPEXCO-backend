@@ -2,8 +2,7 @@ import OpenAI from "openai";
 import belugaPrompts from "./data/prompts/beluga/prompts.json";
 import fs from 'fs/promises';
 import path from 'path';
-import dotenv from 'dotenv';
-
+import { openai_client } from "./openai_client";
 export type OpenAIModelName = "gpt-4o-mini" | "gpt-4o" ;
 
 
@@ -42,9 +41,7 @@ export async function initializeAssistants(model: OpenAIModelName) {
     if (!process.env.OPENAI_API_KEY) {
         throw new Error('OPENAI_API_KEY is not set in the environment variables');
     }
-    const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-    });
+    const openai = openai_client;
 
 
     const assistants = {

@@ -1,7 +1,7 @@
 
-import { IterationStep } from "../../../IPEXCO-frontend/src/app/iterative_planning/domain/iteration_step";
-import { PlanProperty } from "../../../IPEXCO-frontend/src/app/iterative_planning/domain/plan-property/plan-property";
-import { PDDLPredicate, PDDLObject } from "../../../IPEXCO-frontend/src/app/interface/planning-task";
+import { IterationStep } from "../db_schema/iteration_step";
+import { PlanProperty } from "../db_schema/plan-properties/plan_property";
+import { PDDLPredicate, PDDLObject } from "../db_schema/planning_task";
 // goal-translator
 
 export interface GoalTranslationRequest {
@@ -33,8 +33,6 @@ export interface GoalTranslationResponse {
 
 export interface QuestionTranslationRequest {
     question: string,
-    predicates: PDDLPredicate[], // why ??
-    objects: PDDLObject[], // why ??
     enforcedGoals: PlanProperty[],
     satisfiedGoals: PlanProperty[],
     unsatisfiedGoals: PlanProperty[],

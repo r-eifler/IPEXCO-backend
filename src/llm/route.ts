@@ -1,13 +1,13 @@
 import { AssistantResponse } from 'ai';
 import OpenAI from 'openai';
-import { GoalTranslationRequest, QuestionTranslationRequest, ExplanationTranslationRequest } from './interface';
+import { GoalTranslationRequest, QuestionTranslationRequest, ExplanationTranslationRequest } from './translators_interfaces';
 import belugaPrompts from './data/prompts/beluga/prompts.json';
 import belugaTemplates from './data/prompts/beluga/templates.json';
 import { openai } from '@ai-sdk/openai'
 import { openai_client } from './openai_client';
 
 
-
+// UNUSED
 export async function POST(req: Request) {
   const input = await req.json();
 
