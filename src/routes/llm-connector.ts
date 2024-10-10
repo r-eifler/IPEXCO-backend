@@ -126,32 +126,70 @@ LLMRouter.post('/simple', async (req, res) => {
 LLMRouter.post('/gt', async (req, res) => {
     try {
         console.log("req.body", req.body)
-        const threadId = req.body.data.threadId ?? (await openai_client.beta.threads.create({})).id;
-        const input = req.body.data.input
-        console.log("input", input)
+        const threadId = req.body.threadId=='' ? (await openai_client.beta.threads.create({})).id : req.body.threadId;
+        console.log("threadId (req.body.threadId)", threadId)
+        const input = req.body.data
+        console.log("input (req.body.data)", input)
         const createdMessage = await openai_client.beta.threads.messages.create(threadId, {
-            role: 'user',
+            role: "user",
             content: input,
         });
-        const response = AssistantResponse(
-            { threadId, messageId: createdMessage.id },
-            async ({ forwardStream, sendDataMessage }) => {
-                // Run the assistant on the thread
-                const runStream = openai_client.beta.threads.runs.stream(threadId, {
-                    assistant_id:
-                        process.env.ASSISTANT_ID ??
+
+        console.log("createdMessage", createdMessage)
+        let run = await openai_client.beta.threads.runs.createAndPoll(
+            threadId, 
+            { 
+              assistant_id: process.env.ASSISTANT_ID_GOALTRANSLATOR ??
                         (() => {
-                            throw new Error('ASSISTANT_ID is not set');
-                        })(),
-                });
-
-
-                // forward run status would stream message deltas
-                let runResult = await forwardStream(runStream);
+                            throw new Error('ASSISTANT_ID_GOALTRANSLATOR is not set');
+                        })()
             }
-        );
-        console.log(response)
-        res.status(200).send({ data: { "response": response, "threadId": threadId } })
+          );
+        // const response = AssistantResponse(
+        //     { threadId, messageId: createdMessage.id },
+        //     async ({ forwardStream, sendDataMessage }) => {
+        //         // Run the assistant on the thread
+        //         const runStream = openai_client.beta.threads.runs.stream(threadId, {
+        //             assistant_id:
+        //                 process.env.ASSISTANT_ID ??
+        //                 (() => {
+        //                     throw new Error('ASSISTANT_ID is not set');
+        //                 })(),
+        //         });
+
+
+        //         // forward run status would stream message deltas
+        //         let runResult = await forwardStream(runStream);
+        //     }
+        // );
+
+        // console.log("response", response)
+        // console.log("runResult", runResult)
+
+        if (run.status === 'completed') {
+            const messages = await openai_client.beta.threads.messages.list(
+              run.thread_id
+            );
+            for (const message of messages.data.reverse()) {
+              console.log(`${message.role} > ${message.content[0].text.value}`);
+            }
+            // Find the last assistant message
+            const lastAssistantMessage = messages.data
+                .reverse()
+                .find(message => message.role === 'assistant');
+
+            if (lastAssistantMessage && lastAssistantMessage.content[0]?.type === 'text') {
+                const response = lastAssistantMessage.content[0].text.value;
+                console.log(`Sent value > ${response}`);
+                res.status(200).send({ data: { "response": response, "threadId": threadId } });
+            } else {
+                console.log('No valid assistant message found');
+                res.status(404).send({ error: 'No valid assistant message found' });
+            }
+          } else {
+            console.log(run.status);
+        }
+        
     } catch (error) {
         console.error(error);
         res.status(500).send(error);
