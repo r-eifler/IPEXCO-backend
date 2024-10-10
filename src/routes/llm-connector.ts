@@ -129,10 +129,9 @@ LLMRouter.post('/gt', async (req, res) => {
         const threadId = req.body.data.threadId ?? (await openai_client.beta.threads.create({})).id;
         const input = req.body.data.input
         console.log("input", input)
-        const message = prepareGoalTranslatorMessage(input);
         const createdMessage = await openai_client.beta.threads.messages.create(threadId, {
             role: 'user',
-            content: message,
+            content: input,
         });
         const response = AssistantResponse(
             { threadId, messageId: createdMessage.id },
@@ -164,10 +163,9 @@ LLMRouter.post('/et', async (req, res) => {
         console.log(req.body)
         const threadId = req.body.data.threadId ?? (await openai_client.beta.threads.create({})).id;
         const input = req.body.data.input
-        const message = prepareExplanationTranslatorMessage(input);
         const createdMessage = await openai_client.beta.threads.messages.create(threadId, {
             role: 'user',
-            content: message,
+            content: input,
         });
         const response = AssistantResponse(
             { threadId, messageId: createdMessage.id },
@@ -199,10 +197,9 @@ LLMRouter.post('/qt', async (req, res) => {
         console.log(req.body)
         const threadId = req.body.data.threadId ?? (await openai_client.beta.threads.create({})).id;
         const input = req.body.data.input
-        const message = prepareQuestionTranslatorMessage(input);
         const createdMessage = await openai_client.beta.threads.messages.create(threadId, {
             role: 'user',
-            content: message,
+            content: input,
         });
         const response = AssistantResponse(
             { threadId, messageId: createdMessage.id },
