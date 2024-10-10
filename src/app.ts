@@ -14,7 +14,6 @@ import errorMiddleware from './middleware/error.middleware';
 import { projectRouter } from './routes/project';
 import { indexRouter } from './routes';
 import { planPropertyRouter } from './routes/plan_property';
-import { plannerRouter } from './routes/planner-runs/planner';
 import { iterationStepRouter } from './routes/iteration-step';
 import { demoRouter } from './routes/demo';
 import { userStudyRouter } from './routes/user-study/user-study';
@@ -24,9 +23,10 @@ import { Environment } from './environment';
 import * as dotenv from "dotenv";
 import { metaStudyRouter } from './routes/user-study/meta-study';
 import { userStudyDataRouter } from './routes/user-study/user-study-data';
-import { runnerRouter } from './routes/runner';
+import { plannerRouter } from './routes/planner';
 import { pddlRouter } from './routes/pddl';
 import { LLMRouter } from './routes/llm-connector';
+import { explainerRouter } from './routes/explainer';
 dotenv.config();
 
 console.log('-------- IPEXCO BACK END ---------');
@@ -102,7 +102,8 @@ app.use('/uploads', express.static(uploads_folder));
 app.use('/results', express.static(results_folder));
 app.use('/images', express.static(images_folder));
 
-app.use('/api/runner', runnerRouter);
+app.use('/api/planner', plannerRouter);
+app.use('/api/explainer', explainerRouter);
 app.use('/api/run', iterationStepRouter);
 
 app.use('/api/project', projectRouter);

@@ -49,7 +49,7 @@ export interface IterationStep extends Document{
     softGoals: string[];
     task: PlanningTask;
     plan?: Plan;
-    explanation?: Explanation;
+    explanations?: Explanation[];
     predecessorStep: string | null;
 }
 

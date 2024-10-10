@@ -4,14 +4,13 @@ import express from 'express';
 import { ExplainerModel, Planner, PlannerModel } from '../db_schema/runner';
 import { IterationStep, IterationStepModel, PlanRunStatus } from '../db_schema/iteration_step';
 import { PlanningTask } from '../db_schema/planning_task';
-import { ProjectModel } from '../db_schema/project';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { PropertyCheck } from '../planner/property_check';
 import { environment } from '../app';
 
-export const runnerRouter = express.Router();
+export const plannerRouter = express.Router();
 
-runnerRouter.post('/planner', auth, async (req: any, res) => {
+plannerRouter.post('/plan-model', auth, async (req: any, res) => {
 
     try {
 
@@ -42,7 +41,7 @@ runnerRouter.post('/planner', auth, async (req: any, res) => {
 });
 
 
-runnerRouter.post('/planner/:id', auth, async (req: any, res) => {
+plannerRouter.post('/plan-step/:id', auth, async (req: any, res) => {
 
     try {
 
@@ -99,7 +98,7 @@ runnerRouter.post('/planner/:id', auth, async (req: any, res) => {
 });
 
 
-runnerRouter.post('/planner/temp-goals/:id', auth, async (req: any, res) => {
+plannerRouter.post('/plan-step/temp-goals/:id', auth, async (req: any, res) => {
 
     try {
 
@@ -120,14 +119,8 @@ runnerRouter.post('/planner/temp-goals/:id', auth, async (req: any, res) => {
         const model = iterationStep.task.model
         const plan_properties = await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[];
 
-        // console.log('Plan Properties: ') // + plan_properties)
-        // for(let p of plan_properties){
-        //     console.log(p._id?.toString())
-        // }
-        // console.log('Hard Goals: ' + iterationStep.hardGoals)
-        // console.log('Found: ' + iterationStep.hardGoals.find(id => id == plan_properties[0]._id?.toString()))
         const enforced_goals = plan_properties.filter(pp => !pp._id ? false : iterationStep.hardGoals.includes(pp._id?.toString()));
-        // console.log('ENFORCED Goals: ' + enforced_goals)
+
         const exp_settings = {
             plan_properties: enforced_goals,
             hard_goals: enforced_goals.map(enfG => enfG.name),
@@ -136,7 +129,7 @@ runnerRouter.post('/planner/temp-goals/:id', auth, async (req: any, res) => {
 
         const baseURL = process.env.BASE_URL
         let payload = JSON.stringify({
-            callback:baseURL + '/api/runner/planner/finished/' + refId,
+            callback:baseURL + '/api/planner/plan-step/finished/' + refId,
             model,
             temp_goals: JSON.stringify(exp_settings)
         })
@@ -170,7 +163,7 @@ runnerRouter.post('/planner/temp-goals/:id', auth, async (req: any, res) => {
 });
 
 
-runnerRouter.post('/planner/finished/:id', async (req: any, res) => {
+plannerRouter.post('/plan-step/finished/:id', async (req: any, res) => {
 
     try {
 
@@ -233,38 +226,7 @@ runnerRouter.post('/planner/finished/:id', async (req: any, res) => {
 });
 
 
-runnerRouter.post('/explainer', auth, async (req: any, res) => {
-
-    try {
-        const explainerData: Planner = req.body.data as Planner;
-
-        const explainerModel = new PlannerModel(explainerData);
-
-        if (!explainerModel) {
-            return res.status(404).send('Create planner failed.');
-        }
-
-        let newExplainer: Planner | null = await explainerModel.save();
-
-        if (!newExplainer) {
-            return res.status(404).send('Create project failed.');
-        }
-        
-        res.send({
-            status: true,
-            message: 'Explainer registered',
-            data: newExplainer
-        });
-
-    } catch (ex : any) {
-        console.log(ex.message);
-        res.status(404).send(ex.message);
-    }
-});
-
-
-
-runnerRouter.get('/planner', auth, async (req: any, res) => {
+plannerRouter.get('/registered', auth, async (req: any, res) => {
     const planner = await PlannerModel.find();
     if (!planner) { 
         return res.status(404).send({ message: 'No planner found.' });
@@ -275,19 +237,7 @@ runnerRouter.get('/planner', auth, async (req: any, res) => {
 
 });
 
-runnerRouter.get('/explainer', auth, async (req: any, res) => {
-    const explainer = await ExplainerModel.find();
-    if (!explainer) { 
-        return res.status(404).send({ message: 'No explainer found.' });
-    }
-    res.send({
-        data: explainer
-    });
-
-});
-
-
-runnerRouter.delete('/planner/:id', auth, async (req, res) => {
+plannerRouter.delete('/planner/:id', auth, async (req, res) => {
     const id = req.params.id;
 
     const deleteResult = await PlannerModel.deleteOne({ _id: id});
@@ -301,17 +251,3 @@ runnerRouter.delete('/planner/:id', auth, async (req, res) => {
 
 });
 
-
-runnerRouter.delete('/explainer/:id', auth, async (req, res) => {
-    const id = req.params.id;
-
-    const deleteResult = await ExplainerModel.deleteOne({ _id: id});
-    if (!deleteResult) { 
-        return res.status(404).send({ message: 'Problem during explainer deletion occurred' }); 
-    }
-
-    res.send({
-        data: deleteResult
-    });
-
-});

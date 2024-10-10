@@ -26,7 +26,7 @@ export enum AnswerType {
 }
 
 interface PropertyList{
-    elements: PlanProperty[]
+    elements: string[]
 }
 
 export const PropertyListSchema = new Schema({
