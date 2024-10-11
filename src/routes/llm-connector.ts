@@ -145,46 +145,39 @@ LLMRouter.post('/gt', async (req, res) => {
                         })()
             }
           );
-        // const response = AssistantResponse(
-        //     { threadId, messageId: createdMessage.id },
-        //     async ({ forwardStream, sendDataMessage }) => {
-        //         // Run the assistant on the thread
-        //         const runStream = openai_client.beta.threads.runs.stream(threadId, {
-        //             assistant_id:
-        //                 process.env.ASSISTANT_ID ??
-        //                 (() => {
-        //                     throw new Error('ASSISTANT_ID is not set');
-        //                 })(),
-        //         });
-
-
-        //         // forward run status would stream message deltas
-        //         let runResult = await forwardStream(runStream);
-        //     }
-        // );
-
-        // console.log("response", response)
-        // console.log("runResult", runResult)
+        
 
         if (run.status === 'completed') {
             const messages = await openai_client.beta.threads.messages.list(
               run.thread_id
             );
             for (const message of messages.data.reverse()) {
-              console.log(`${message.role} > ${message.content[0].text.value}`);
+                const content = message.content[0];
+                if (content && 'text' in content) {
+                    console.log(`${message.role} > ${content.text.value}`);
+                } else {
+                    console.log(`${message.role} > [Content not available]`);
+                }
             }
+
             // Find the last assistant message
             const lastAssistantMessage = messages.data
                 .reverse()
                 .find(message => message.role === 'assistant');
 
-            if (lastAssistantMessage && lastAssistantMessage.content[0]?.type === 'text') {
-                const response = lastAssistantMessage.content[0].text.value;
-                console.log(`Sent value > ${response}`);
-                res.status(200).send({ data: { "response": response, "threadId": threadId } });
+            if (lastAssistantMessage) {
+                const content = lastAssistantMessage.content[0];
+                if (content && 'text' in content) {
+                    const response = content.text.value;
+                    console.log(`Sent value > ${response}`);
+                    res.status(200).send({ data: { "response": response, "threadId": threadId } });
+                } else {
+                    console.log('No valid content in assistant message');
+                    res.status(404).send({ error: 'No valid content in assistant message' });
+                }
             } else {
-                console.log('No valid assistant message found');
-                res.status(404).send({ error: 'No valid assistant message found' });
+                console.log('No assistant message found');
+                res.status(404).send({ error: 'No assistant message found' });
             }
           } else {
             console.log(run.status);

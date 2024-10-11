@@ -4,6 +4,6 @@ dotenv.config();
 
 export const openai_client = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY || '',
-    project: process.env.OPENAI_PROJECT || '',
+    project: process.env.OPENAI_PROJECT_ID || '',
 });
 

@@ -1,9 +1,17 @@
 import OpenAI from "openai";
 import belugaPrompts from "./data/prompts/beluga/prompts.json";
+import blocksworldPrompts from "./data/prompts/blocksworld/prompts.json";
 import fs from 'fs/promises';
 import path from 'path';
 import { openai_client } from "./openai_client";
 export type OpenAIModelName = "gpt-4o-mini" | "gpt-4o" ;
+
+const domains = {
+    beluga: belugaPrompts,
+    blocksworld: blocksworldPrompts
+}
+const domain = "blocksworld";
+
 
 
 function formatExamples(examples: any[]): string {
@@ -17,7 +25,7 @@ function formatExamples(examples: any[]): string {
 
 async function createAssistant(name: string, instructions: string, examples: any[], openai: OpenAI, model: OpenAIModelName) {
     const assistant = await openai.beta.assistants.create({
-        instructions: `${belugaPrompts.system}${instructions}${formatExamples(examples)}`,
+        instructions: `${domains[domain].system}${instructions} \n\nExamples : \n\n{${formatExamples(examples)}}\n\nEnd of the examples.`,
         name,
         model: model,
     });
@@ -45,9 +53,9 @@ export async function initializeAssistants(model: OpenAIModelName) {
 
 
     const assistants = {
-        goalTranslator: await createAssistant("Goal Translator (Beluga)", belugaPrompts.goal_translator, belugaPrompts.gt_examples, openai, model),
-        questionTranslator: await createAssistant("Question Translator (Beluga)", belugaPrompts.question_translator, belugaPrompts.qt_examples, openai, model),
-        explanationTranslator: await createAssistant("Explanation Translator (Beluga)", belugaPrompts.explanation_translator, belugaPrompts.et_examples, openai, model),
+        goalTranslator: await createAssistant("Goal Translator (blocksworld)", blocksworldPrompts.goal_translator, blocksworldPrompts.gt_examples, openai, model),
+        questionTranslator: await createAssistant("Question Translator (blocksworld)", blocksworldPrompts.question_translator, blocksworldPrompts.qt_examples, openai, model),
+        explanationTranslator: await createAssistant("Explanation Translator (blocksworld)", blocksworldPrompts.explanation_translator, blocksworldPrompts.et_examples, openai, model),
     };
 
     // Read existing .env file
