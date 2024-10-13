@@ -126,8 +126,29 @@ iterationStepRouter.delete('/:id', authUserStudy, async (req, res) => {
     const step: IterationStep | null = await IterationStepModel.findOne({ _id: req.params.id });
 
     if (!step) {
-        return res.status(404).send({ message: 'No explanation found.' });
+        return res.status(404).send({ message: 'No step found.' });
     }
+
+    // TODO
+    // await deleteIterationStep(step);
+
+    res.send({
+        data: step
+    });
+
+});
+
+iterationStepRouter.delete('/:id/explanation', authUserStudy, async (req, res) => {
+
+    const step: IterationStep | null = await IterationStepModel.findOne({ _id: req.params.id });
+
+    if (!step) {
+        return res.status(404).send({ message: 'No step found.' });
+    }
+
+    step.globalExplanation.MGCS = undefined;
+    step.globalExplanation.MUGS = undefined;
+    step.globalExplanation.createdAt = undefined;
 
     // TODO
     // await deleteIterationStep(step);

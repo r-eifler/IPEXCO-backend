@@ -1,3 +1,4 @@
+import { constants } from 'buffer';
 import mongoose, { Schema } from 'mongoose';
 
 export interface PDDLType {
@@ -36,6 +37,10 @@ export interface PDDLAction {
 }
 
 export interface PlanningDomain {
+    constants: {
+        name: string; 
+        type: string | undefined;
+    }[];
     types: PDDLType[];
     predicates: PDDLPredicate[];
     actions: PDDLAction[];
@@ -91,6 +96,10 @@ export class PlanningTask{
                 .join("\n") 
             + "\n)\n";
 
+        if(model.constants.length > 0){
+            d += "(:constants \n" + model.constants.map(o => '\t' + o.name + " - " + o.type).join("\n") + "\n)\n";
+        }
+
         d += "(:predicates \n" + model.predicates.map(
                 pred => "\t(" + pred.name + ' ' + 
                 pred.parameters.map(param => param.name + ' - ' + param.type).join(" ") + ")"
@@ -123,7 +132,9 @@ export class PlanningTask{
         // problem
         let p = "(define (problem problemname)\n";
         p += "(:domain domainname)\n";
+
         p += "(:objects \n" + model.objects.map(o => '\t' + o.name + " - " + o.type).join("\n") + "\n)\n";
+
         p += "(:init\n " + model.initial.map(
             f => "\t(" + f.name + ' ' + f.arguments.join(" ") + ")").join("\n") 
             + "\n)\n";

@@ -4,6 +4,7 @@ export class Environment {
     public experimentsRootPath = process.env.EXPERIMENTROOTPATH ? process.env.EXPERIMENTROOTPATH : '';
     public planner = process.env.PLANNER ? process.env.PLANNER : '';
     public propertyChecker = process.env.PROPERTYCHECKER ? process.env.PROPERTYCHECKER : '';
+    public pddlParser = process.env.PDDLPARSER ? process.env.PDDLPARSER : '';
     public demoGenerator = process.env.DEMOGENERATOR ? process.env.DEMOGENERATOR : '';
     public maxUtility = process.env.MAXUTILITY ? process.env.MAXUTILITY : '';
 
