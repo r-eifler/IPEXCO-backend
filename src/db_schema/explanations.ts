@@ -72,3 +72,17 @@ export const ExplanationSchema = new Schema({
     answer: AnswerSchema,
     status: { type: Number, required: true}
 }, { timestamps: true});
+
+
+export interface GlobalExplanation{
+    createdAt?: Date;
+    MUGS?: string;
+    MGCS?: string;
+    status: ExplanationRunStatus;
+}
+
+export const GlobalExplanationSchema = new Schema({
+    MUGS: { type: String },
+    MGCS: { type: String },
+    status: { type: Number, required: true}
+}, { timestamps: true});

@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 import { UpdatedPlanningTask } from './updated_planning_task';
 import { PlanProperty } from './plan-properties/plan_property';
 import { Project } from './project';
-import { Explanation, ExplanationSchema } from './explanations';
+import { Explanation, ExplanationSchema, GlobalExplanation, GlobalExplanationSchema } from './explanations';
 import { PlanningTask, PlanningTaskSchema } from './planning_task';
 
 
@@ -49,6 +49,7 @@ export interface IterationStep extends Document{
     softGoals: string[];
     task: PlanningTask;
     plan?: Plan;
+    globalExplanation: GlobalExplanation;
     explanations?: Explanation[];
     predecessorStep: string | null;
 }
@@ -61,6 +62,7 @@ const IterationStepSchema = new Schema({
     softGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     task: PlanningTaskSchema,
     plan: PlanSchema,
+    globalExplanation: GlobalExplanationSchema,
     explanations: [ExplanationSchema],
     predecessorStep: { type: mongoose.Schema.Types.ObjectId, ref: 'iteration-step', required: false },
 }, { timestamps: true});
