@@ -190,11 +190,12 @@ plannerRouter.post('/plan-step/finished/:id', async (req: any, res) => {
             iterationStep.plan.actions = JSON.stringify(actions);
 
             // Check which properties are satisfied
-            const plan_properties = (await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[]).filter(pp => pp.isUsed);
+            const plan_properties = (await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[]).filter(pp => pp._id && (iterationStep.hardGoals.includes(pp._id) || iterationStep.softGoals.includes(pp._id)));
 
             let check = new PropertyCheck(environment.experimentsRootPath, iterationStep, plan_properties);
             let sat_properties = await check.executeRun();
 
+            console.log('Satisfied Properties')
             console.log(sat_properties)
             const sat_properties_ids = plan_properties.filter(pp => sat_properties.includes(pp.name)).map(pp => pp._id);
 

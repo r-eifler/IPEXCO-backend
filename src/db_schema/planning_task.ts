@@ -96,7 +96,7 @@ export class PlanningTask{
                 .join("\n") 
             + "\n)\n";
 
-        if(model.constants.length > 0){
+        if(!!model.constants && model.constants.length > 0){
             d += "(:constants \n" + model.constants.map(o => '\t' + o.name + " - " + o.type).join("\n") + "\n)\n";
         }
 

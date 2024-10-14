@@ -49,7 +49,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             exp_setting: JSON.stringify(exp_settings)
         })
 
-        console.log(payload)
+        // console.log(payload)
 
         const explainerServiceURL = process.env.EXPLAINER_SERVICE
         const explainerRequest = new Request(explainerServiceURL + '/explain/all-mugs-msgs', 
@@ -132,134 +132,134 @@ interface Result {
 
 
 
-explainerRouter.post('/explain-step/:id/question', auth, async (req: any, res) => {
+// explainerRouter.post('/explain-step/:id/question', auth, async (req: any, res) => {
 
-    try {
+//     try {
 
-        const refId = req.params.id;
-        console.log('Compute conflicts of: ' + refId)
-        const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+//         const refId = req.params.id;
+//         console.log('Compute conflicts of: ' + refId)
+//         const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
 
-        if (!iterationStep) {
-            return res.status(404).send('update step failed');
-        }
+//         if (!iterationStep) {
+//             return res.status(404).send('update step failed');
+//         }
 
-        const question = req.body.data.question as Question;
+//         const question = req.body.data.question as Question;
 
-        if(! iterationStep.explanations){
-            iterationStep.explanations= []
-        }
+//         if(! iterationStep.explanations){
+//             iterationStep.explanations= []
+//         }
 
-        iterationStep.explanations.push({
-            createdAt: new Date(Date.now()),
-            question,
-            status: ExplanationRunStatus.running
-        })
-        iterationStep.save();
+//         iterationStep.explanations.push({
+//             createdAt: new Date(Date.now()),
+//             question,
+//             status: ExplanationRunStatus.running
+//         })
+//         iterationStep.save();
         
-        const model = iterationStep.task.model
-        const plan_properties = await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[];
+//         const model = iterationStep.task.model
+//         const plan_properties = await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[];
 
-        // const enforced_goals = plan_properties.filter(pp => !pp._id ? false : iterationStep.hardGoals.includes(pp._id?.toString()));
+//         // const enforced_goals = plan_properties.filter(pp => !pp._id ? false : iterationStep.hardGoals.includes(pp._id?.toString()));
 
-        const exp_settings = {
-            plan_properties: plan_properties,
-            hard_goals: [],
-            soft_goals: plan_properties.map(pp => pp.name)
-        }
+//         const exp_settings = {
+//             plan_properties: plan_properties,
+//             hard_goals: [],
+//             soft_goals: plan_properties.map(pp => pp.name)
+//         }
 
-        const baseURL = process.env.BASE_URL
-        let payload = JSON.stringify({
-            callback:baseURL + '/api/explainer/explain-step/' + refId + "/question/finished",
-            model,
-            exp_setting: JSON.stringify(exp_settings)
-        })
+//         const baseURL = process.env.BASE_URL
+//         let payload = JSON.stringify({
+//             callback:baseURL + '/api/explainer/explain-step/' + refId + "/question/finished",
+//             model,
+//             exp_setting: JSON.stringify(exp_settings)
+//         })
 
-        console.log(payload)
+//         console.log(payload)
 
-        const plannerServiceURL = process.env.PLANNER_SERVICE
-        const plannerRequest = new Request(plannerServiceURL + '/explain/all-mugs-msgs', 
-            {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: payload,
-            }
-        )
+//         const plannerServiceURL = process.env.PLANNER_SERVICE
+//         const plannerRequest = new Request(plannerServiceURL + '/explain/all-mugs-msgs', 
+//             {
+//                 method: "POST",
+//                 headers: {"Content-Type": "application/json"},
+//                 body: payload,
+//             }
+//         )
 
-        fetch(plannerRequest).then
-            (resp => console.log("Explain computation request submitted."),
-            error => console.log(error)
-        )
+//         fetch(plannerRequest).then
+//             (resp => console.log("Explain computation request submitted."),
+//             error => console.log(error)
+//         )
         
-        res.send({
-            status: true,
-            message: 'Explain computation registered',
-            data: true
-        });
+//         res.send({
+//             status: true,
+//             message: 'Explain computation registered',
+//             data: true
+//         });
 
-    } catch (ex : any) {
-        console.log(ex);
-        res.status(404).send(ex.message);
-    }
-});
-
-
-
-explainerRouter.post('/explain-step/:id/question/finished', async (req: any, res) => {
-
-    try {
-
-        console.log(req.body)
-        const refId = req.params.id;
-        const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
-
-        if (!iterationStep) {
-            return res.status(404).send('update step failed');
-        }
-
-        if (!iterationStep.explanations) {
-            return res.status(404).send('update explanation failed');
-        }
-
-        let MUGS = req.body.MUGS as Result
-        let MSGS = req.body.MSGS as Result
-        let status = req.body.status
-
-        console.log(MUGS)
-        console.log(status)
-
-        let explanation = iterationStep.explanations[iterationStep.explanations?.length - 1];
-
-        if(status === 'FINISHED'){
-            explanation.status = ExplanationRunStatus.finished;
-            explanation.answer = 
-            {
-                type: AnswerType.MUS,
-                all_possibilities: MUGS.complete,
-                computed: MUGS.subsets.map(sets => ({elements:sets})),
-                selected: [],
-                output: '',
-            };
-        }
+//     } catch (ex : any) {
+//         console.log(ex);
+//         res.status(404).send(ex.message);
+//     }
+// });
 
 
-        if(status === 'FAILED'){
-            explanation.status = ExplanationRunStatus.failed;
-        }
 
-        iterationStep.save()
+// explainerRouter.post('/explain-step/:id/question/finished', async (req: any, res) => {
+
+//     try {
+
+//         console.log(req.body)
+//         const refId = req.params.id;
+//         const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+
+//         if (!iterationStep) {
+//             return res.status(404).send('update step failed');
+//         }
+
+//         if (!iterationStep.explanations) {
+//             return res.status(404).send('update explanation failed');
+//         }
+
+//         let MUGS = req.body.MUGS as Result
+//         let MSGS = req.body.MSGS as Result
+//         let status = req.body.status
+
+//         console.log(MUGS)
+//         console.log(status)
+
+//         let explanation = iterationStep.explanations[iterationStep.explanations?.length - 1];
+
+//         if(status === 'FINISHED'){
+//             explanation.status = ExplanationRunStatus.finished;
+//             explanation.answer = 
+//             {
+//                 type: AnswerType.MUS,
+//                 all_possibilities: MUGS.complete,
+//                 computed: MUGS.subsets.map(sets => ({elements:sets})),
+//                 selected: [],
+//                 output: '',
+//             };
+//         }
+
+
+//         if(status === 'FAILED'){
+//             explanation.status = ExplanationRunStatus.failed;
+//         }
+
+//         iterationStep.save()
         
-        res.send({
-            status: true,
-            message: 'Explanation computation finished',
-            data: true
-        });
+//         res.send({
+//             status: true,
+//             message: 'Explanation computation finished',
+//             data: true
+//         });
 
-    } catch (ex : any) {
-        console.log(ex);
-        res.status(404).send(ex.message);
-    }
-});
+//     } catch (ex : any) {
+//         console.log(ex);
+//         res.status(404).send(ex.message);
+//     }
+// });
 
 
 explainerRouter.post('/explainer', auth, async (req: any, res) => {
