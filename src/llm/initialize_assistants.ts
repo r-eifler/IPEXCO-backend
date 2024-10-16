@@ -25,7 +25,7 @@ function formatExamples(examples: any[]): string {
 
 async function createAssistant(name: string, instructions: string, examples: any[], openai: OpenAI, model: OpenAIModelName) {
     const assistant = await openai.beta.assistants.create({
-        instructions: `${domains[domain].system}${instructions} \n\nExamples : \n\n{${formatExamples(examples)}}\n\nEnd of the examples.`,
+        instructions: `${domains[domain].system}${instructions} \n\nExamples : \n\n{${formatExamples(examples).replace(/"/g, '')}}\n\nEnd of the examples.`,
         name,
         model: model,
     });

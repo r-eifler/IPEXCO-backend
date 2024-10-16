@@ -32,8 +32,8 @@ import { initializeAssistants, OpenAIModelName } from './llm/initialize_assistan
 
 
 console.log('-------- Initializing LLMs assistants -----');
-const model = process.env.OPENAI_MODEL_NAME || "gpt-4o-mini";
-
+const model =  "gpt-4o-mini";
+//process.env.OPENAI_MODEL_NAME ||
 initializeAssistants(model as OpenAIModelName).then(console.log).catch(console.error);
 
 dotenv.config();

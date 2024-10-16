@@ -9,7 +9,7 @@
             "enforced_goals": "",
             "satisfied_goals": "",
             "unsatisfied_goals": "",
-            "existing_plan_properties": "",
+            "Existing plan properties": "",
             "return": "US-how; NOGOAL"
         }
         
@@ -20,35 +20,35 @@
             "goal": "always have B alone on the table",
             "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
             "objects": ["A", "B", "C", "D"],
-            "existing_plan_properties": ["A on top of C", "C never on table", "D on table", "C before B"],
+            "Existing plan properties": ["A on top of C", "C never on table", "D on table", "C before B"],
             "return": "G((ontable(B)) and (clear(B)))"
         },
         {
             "goal": "at some point have A on top of B",
             "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
             "objects": ["A", "B", "C", "D"],
-            "existing_plan_properties": ["D on top of C", "B on table", "A never held"],
+            "Existing plan properties": ["D on top of C", "B on table", "A never held"],
             "return": "F(on(A,B))"
         },
         {
             "goal": "C is not touching the table at the end",
             "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
             "objects": ["A", "B", "C", "D"],
-            "existing_plan_properties": ["A on top of B", "D always clear", "C initially on D"],
+            "Existing plan properties": ["A on top of B", "D always clear", "C initially on D"],
             "return": "G(F(!(ontable(C))))"
         },
         {
             "goal": "only A can be on top of D",
             "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
             "objects": ["A", "B", "C", "D"],
-            "existing_plan_properties": ["B never moved", "C always on table", "A initially clear"],
+            "Existing plan properties": ["B never moved", "C always on table", "A initially clear"],
             "return": "G((clear(D)) or (on(A,D)))"
         },
         {
             "goal": "A can only be held after B is moved for the first time",
             "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
             "objects": ["A", "B", "C", "D"],
-            "existing_plan_properties": ["D never held", "D on top of C","B on table"],
+            "Existing plan properties": ["D never held", "D on top of C","B on table"],
             "return": "! (holding(A)) U (holding(B))"
         }
 
@@ -63,7 +63,7 @@
             "enforced_goals": "",
             "achieved_goals": [],
             "unachieved_goals": [],
-            "existing_plan_properties": "",
+            "Existing plan properties": "",
             "conflict": [],
             "return": ""
         }

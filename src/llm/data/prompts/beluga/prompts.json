@@ -9,7 +9,7 @@
             "enforced_goals": "",
             "satisfied_goals": "",
             "unsatisfied_goals": "",
-            "existing_plan_properties": "",
+            "Existing plan properties": "",
             "return": "US-how; NOGOAL"
         },
         {
@@ -17,7 +17,7 @@
             "enforced_goals": "",
             "satisfied_goals": "",
             "unsatisfied_goals": "",
-            "existing_plan_properties": "",
+            "Existing plan properties": "",
             "return": "S-why-not; keep one rack empty"
         },
         {
@@ -25,7 +25,7 @@
             "enforced_goals": "",
             "satisfied_goals": "",
             "unsatisfied_goals": "",
-            "existing_plan_properties": "",
+            "Existing plan properties": "",
             "return": "S-what-if; keep one rack empty"
         }
     ],
@@ -35,7 +35,7 @@
             "goal": "leave one rack empty",
             "predicates": ["empty rack00", "empty rack01", "empty rack02", "empty rack03"],
             "objects": ["rack00", "rack01", "rack02", "rack03"],
-            "existing_plan_properties": "",
+            "Existing plan properties": "",
             "return": "G((empty rack00) or (empty rack01) or (empty rack02) or (empty rack03))"
         }
     ],
@@ -49,7 +49,7 @@
             "enforced_goals": "",
             "achieved_goals": ["deliver p1", "deliver p2", "deliver p3", "swaps < 5", "load j1", "load j2", "load j3"],
             "unachieved_goals": ["free rack", "put j1 next to j2", "swaps < 4"],
-            "existing_plan_properties": "",
+            "Existing plan properties": "",
             "conflict": [
                 ["deliver p1", "load j2", "swaps <5", "free rack"],
                 ["free rack", "load j1", "load j2", "deliver p3", "swaps < 6"]
@@ -65,7 +65,7 @@
             "enforced_goals": "",
             "achieved_goals": ["deliver p1", "deliver p2", "deliver p3", "swaps < 5", "load j1", "load j2", "load j3"],
             "unachieved_goals": ["free rack", "put j1 next to j2", "swaps < 4"],
-            "existing_plan_properties": "",
+            "Existing plan properties": "",
             "conflict": [
                 ["deliver p1", "load j2", "swaps <5", "free rack"],
                 ["free rack", "load j1", "load j2", "deliver p3", "swaps < 6"]
