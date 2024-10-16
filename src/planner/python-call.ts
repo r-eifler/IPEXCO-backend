@@ -16,6 +16,8 @@ export function pythonShellCallSimple(scriptPath: string, options: any): Promise
                 reject(err);
             }
             else {
+                console.log('PYTHON CALL SUCC');
+                console.log(results)
                 resolve(results);
             }
         });
