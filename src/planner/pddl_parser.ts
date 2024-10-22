@@ -33,8 +33,6 @@ export class PDDLParser {
     }
 
     async executeRun(): Promise<string[]> {
-
-
         const addArgs = [
             path.join(this.runFolder, 'domain.pddl'),
             path.join(this.runFolder, 'problem.pddl'),
@@ -42,13 +40,20 @@ export class PDDLParser {
 
         const options = {
             mode: 'text',
-            pythonPath: '/usr/bin/python3',
+            pythonPath: this.getPythonPath(),
             pythonOptions: ['-u'],
             scriptPath: environment.pddlParser,
             args: addArgs,
         };
 
+        console.log(options);
+
         return await pythonShellCallSimple('main.py', options);
+    }
+
+    private getPythonPath(): string {
+        const venvPath = path.join(this.root, '.venv', 'bin', 'python');
+        return require('fs').existsSync(venvPath) ? venvPath : '/usr/bin/python3';
     }
 
     tidyUp(): void {
