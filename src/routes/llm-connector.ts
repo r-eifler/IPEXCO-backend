@@ -1,127 +1,127 @@
 import express from 'express';
 import { auth } from '../middleware/auth';
-import { convertToCoreMessages, CoreMessage, streamText } from 'ai';
+// import { convertToCoreMessages, CoreMessage, streamText } from 'ai';
 import { openai_client } from '../llm/openai_client';
-import { openai } from '@ai-sdk/openai';
-import { AssistantResponse } from 'ai';
+// import { openai } from '@ai-sdk/openai';
+// import { AssistantResponse } from 'ai';
 import { prepareGoalTranslatorMessage, prepareQuestionTranslatorMessage, prepareExplanationTranslatorMessage } from '../llm/route';
 
 export const LLMRouter = express.Router();
 
 export const maxDuration = 30;
-const messages: CoreMessage[] = [];
+// const messages: CoreMessage[] = [];
 
 
-//TODO add auth
-LLMRouter.post('/test', async (req, res) => {
-    try {
+// //TODO add auth
+// LLMRouter.post('/test', async (req, res) => {
+//     try {
 
-        // const userMessage = req.body.data as string;
-        console.log(req.body)
+//         // const userMessage = req.body.data as string;
+//         console.log(req.body)
 
-        messages.push({ role: 'user', content: req.body.message });
+//         messages.push({ role: 'user', content: req.body.message });
 
-        const result = await streamText({
-            model: openai('gpt-4-turbo'),
-            messages,
-        });
+//         const result = await streamText({
+//             model: openai('gpt-4-turbo'),
+//             messages,
+//         });
 
-        let fullResponse = '';
+//         let fullResponse = '';
 
-        process.stdout.write('\nAssistant: ');
+//         process.stdout.write('\nAssistant: ');
 
-        for await (const delta of result.textStream) {
-            fullResponse += delta;
-            process.stdout.write(delta);
-        }
-        process.stdout.write('\n\n');
+//         for await (const delta of result.textStream) {
+//             fullResponse += delta;
+//             process.stdout.write(delta);
+//         }
+//         process.stdout.write('\n\n');
 
-        messages.push({ role: 'assistant', content: fullResponse });
+//         messages.push({ role: 'assistant', content: fullResponse });
 
-        const message = 'TEST'
+//         const message = 'TEST'
 
-        res.status(200).send({ data: message })
+//         res.status(200).send({ data: message })
 
-    } catch (error) {
-        console.log(error);
-        res.status(400).send(error);
-    }
-});
+//     } catch (error) {
+//         console.log(error);
+//         res.status(400).send(error);
+//     }
+// });
 
-LLMRouter.post('/stream', async (req, res) => {
-    try {
+// LLMRouter.post('/stream', async (req, res) => {
+//     try {
 
-        // const userMessage = req.body.data as string;
-        console.log(req.body)
+//         // const userMessage = req.body.data as string;
+//         console.log(req.body)
 
-        const messages = req.body
+//         const messages = req.body
 
-        const result = await streamText({
-            model: openai('gpt-4-turbo'),
-            messages: convertToCoreMessages(messages),
-        });
+//         const result = await streamText({
+//             model: openai('gpt-4-turbo'),
+//             messages: convertToCoreMessages(messages),
+//         });
 
-        res.writeHead(200, {
-            'Content-Type': "text/event-stream",
-            'Cache-Control': "no-cache",
-            'Connection': "keep-alive"
-        });
-
-
-        let fullResponse = '';
-        process.stdout.write('\nAssistant: ');
-
-        for await (const delta of result.textStream) {
-            fullResponse += delta;
-            process.stdout.write(delta, 'utf8',);
-            res.write(`data: ${delta}`)
-        }
-        process.stdout.write('\n\n');
-        messages.push({ role: 'assistant', content: fullResponse });
-
-        res.end();
-        // res.status(200).send({response: fullResponse})
-        // res.send({response: fullResponse})
-
-    } catch (error) {
-        console.log(error);
-        res.status(400).send(error);
-    }
-});
+//         res.writeHead(200, {
+//             'Content-Type': "text/event-stream",
+//             'Cache-Control': "no-cache",
+//             'Connection': "keep-alive"
+//         });
 
 
+//         let fullResponse = '';
+//         process.stdout.write('\nAssistant: ');
 
-LLMRouter.post('/simple', async (req, res) => {
-    try {
+//         for await (const delta of result.textStream) {
+//             fullResponse += delta;
+//             process.stdout.write(delta, 'utf8',);
+//             res.write(`data: ${delta}`)
+//         }
+//         process.stdout.write('\n\n');
+//         messages.push({ role: 'assistant', content: fullResponse });
 
-        // const userMessage = req.body.data as string;
-        console.log(req.body)
+//         res.end();
+//         // res.status(200).send({response: fullResponse})
+//         // res.send({response: fullResponse})
 
-        const messages = req.body.data
+//     } catch (error) {
+//         console.log(error);
+//         res.status(400).send(error);
+//     }
+// });
 
-        const result = await streamText({
-            model: openai('gpt-4-turbo'),
-            messages: convertToCoreMessages(messages),
-        });
 
-        let fullResponse = '';
-        process.stdout.write('\nAssistant: ');
 
-        for await (const delta of result.textStream) {
-            fullResponse += delta;
-            process.stdout.write(delta, 'utf8',);
-        }
-        process.stdout.write('\n\n');
-        messages.push({ role: 'assistant', content: fullResponse });
+// LLMRouter.post('/simple', async (req, res) => {
+//     try {
 
-        res.status(200).send({ data: fullResponse })
-        // res.send({response: fullResponse})
+//         // const userMessage = req.body.data as string;
+//         console.log(req.body)
 
-    } catch (error) {
-        console.log(error);
-        res.status(400).send(error);
-    }
-});
+//         const messages = req.body.data
+
+//         const result = await streamText({
+//             model: openai('gpt-4-turbo'),
+//             messages: convertToCoreMessages(messages),
+//         });
+
+//         let fullResponse = '';
+//         process.stdout.write('\nAssistant: ');
+
+//         for await (const delta of result.textStream) {
+//             fullResponse += delta;
+//             process.stdout.write(delta, 'utf8',);
+//         }
+//         process.stdout.write('\n\n');
+//         messages.push({ role: 'assistant', content: fullResponse });
+
+//         res.status(200).send({ data: fullResponse })
+//         // res.send({response: fullResponse})
+
+//     } catch (error) {
+//         console.log(error);
+//         res.status(400).send(error);
+//     }
+// });
 
 LLMRouter.post('/gt', async (req, res) => {
     try {
@@ -313,6 +313,54 @@ LLMRouter.post('/qt', async (req, res) => {
             res.status(500).send({ error: `Run status: ${run.status}` });
         }
         
+    } catch (error) {
+        console.error(error);
+        res.status(500).send(error);
+    }
+});
+
+LLMRouter.post('/translate-all', async (req, res) => {
+    try {
+        const input = req.body.data;
+        let threadId = '';
+        let qtResponse, gtResponse, etResponse;
+
+        // Call Question Translator (qt)
+        const qtResult = await fetch(`${req.protocol}://${req.get('host')}/qt`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: input, threadId: '' })
+        });
+        const qtData = await qtResult.json();
+        qtResponse = qtData.data.response;
+        threadId = qtData.data.threadId;
+
+        // Call Goal Translator (gt)
+        const gtResult = await fetch(`${req.protocol}://${req.get('host')}/gt`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: qtResponse, threadId })
+        });
+        const gtData = await gtResult.json();
+        gtResponse = gtData.data.response;
+
+        // Call Explanation Translator (et)
+        const etResult = await fetch(`${req.protocol}://${req.get('host')}/et`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: gtResponse, threadId })
+        });
+        const etData = await etResult.json();
+        etResponse = etData.data.response;
+
+        res.status(200).send({
+            data: {
+                questionTranslation: qtResponse,
+                goalTranslation: gtResponse,
+                explanationTranslation: etResponse,
+                threadId: threadId
+            }
+        });
     } catch (error) {
         console.error(error);
         res.status(500).send(error);
