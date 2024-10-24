@@ -320,35 +320,46 @@ LLMRouter.post('/qt', async (req, res) => {
 });
 
 LLMRouter.post('/translate-all', async (req, res) => {
+    // req.body.data is a dict with keys: qtRequest:string, gtRequest:string, etRequest:string, threadIdQt:string, threadIdGt:string, threadIdEt:string
     try {
         const input = req.body.data;
-        let threadId = '';
-        let qtResponse, gtResponse, etResponse;
+        let qtResponse, gtResponse, etResponse, explainerResponse;
 
         // Call Question Translator (qt)
         const qtResult = await fetch(`${req.protocol}://${req.get('host')}/qt`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: input, threadId: '' })
+            body: JSON.stringify({ data: input.qtRequest, threadId: input.threadIdQt })
         });
         const qtData = await qtResult.json();
         qtResponse = qtData.data.response;
-        threadId = qtData.data.threadId;
+
+        const { questionType, goal } = parseQuestionTranslation(qtResponse);
+        const gt_input_from_qt = input.gtResponse.replace("{goal}", goal);
 
         // Call Goal Translator (gt)
         const gtResult = await fetch(`${req.protocol}://${req.get('host')}/gt`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: qtResponse, threadId })
+            body: JSON.stringify({ data: gt_input_from_qt, threadId: input.threadIdGt })
         });
         const gtData = await gtResult.json();
-        gtResponse = gtData.data.response;
+        gtResponse = gtData.data.response; // gtResponse is the LTL formula for the goal
+        
+        // Call Explainer
+        const explainerResult = await fetch(`${req.protocol}://${req.get('host')}/explainer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: gtResponse, questionType: questionType }) //API to check 
+        });
+        const explainerData = await explainerResult.json();
+        explainerResponse = explainerData.data.response;
 
         // Call Explanation Translator (et)
         const etResult = await fetch(`${req.protocol}://${req.get('host')}/et`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: gtResponse, threadId })
+            body: JSON.stringify({ data: explainerResponse, threadId: input.threadIdEt })
         });
         const etData = await etResult.json();
         etResponse = etData.data.response;
@@ -357,8 +368,11 @@ LLMRouter.post('/translate-all', async (req, res) => {
             data: {
                 questionTranslation: qtResponse,
                 goalTranslation: gtResponse,
+                explainerResponse: explainerResponse,
                 explanationTranslation: etResponse,
-                threadId: threadId
+                threadIdQt: input.threadIdQt,
+                threadIdGt: input.threadIdGt,
+                threadIdEt: input.threadIdEt
             }
         });
     } catch (error) {
@@ -366,3 +380,25 @@ LLMRouter.post('/translate-all', async (req, res) => {
         res.status(500).send(error);
     }
 });
+
+interface QuestionTranslation {
+    questionType: string;
+    goal: string;
+}
+
+function parseQuestionTranslation(qtResponse: string): QuestionTranslation {
+    try {
+        // Assuming qtResponse is a string with format "<questionType>;<goal>"
+        const [questionType, goal] = qtResponse.split(';');
+        return { questionType, goal };
+    } catch (error) {
+        console.error('Error parsing question translation:', error);
+        return {
+            questionType: '',
+            goal: ''
+        };
+    }
+}
+
+
+
