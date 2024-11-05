@@ -64,7 +64,7 @@ plannerRouter.post('/plan-step/:id', auth, async (req: any, res) => {
         let [domain, problem] = planning_task.toPDDL()
 
 
-        const baseURL = process.env.BASE_URL
+        const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
         let payload = JSON.stringify({
             callback:baseURL + '/api/runner/planner/finished/' + refId,
             domain,
@@ -127,7 +127,7 @@ plannerRouter.post('/plan-step/temp-goals/:id', auth, async (req: any, res) => {
             soft_goals: []
         }
 
-        const baseURL = process.env.BASE_URL
+        const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
         let payload = JSON.stringify({
             callback:baseURL + '/api/planner/plan-step/finished/' + refId,
             model,
