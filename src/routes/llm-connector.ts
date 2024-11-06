@@ -5,6 +5,9 @@ import { openai_client } from '../llm/openai_client';
 // import { openai } from '@ai-sdk/openai';
 // import { AssistantResponse } from 'ai';
 import { prepareGoalTranslatorMessage, prepareQuestionTranslatorMessage, prepareExplanationTranslatorMessage } from '../llm/route';
+import { processEtRequest, processGtRequest, processQtRequest } from './llm-process-requests';
+import { RunStatus } from 'openai/resources/beta/threads/runs/runs';
+import { Message } from 'openai/resources/beta/threads/messages';
 
 export const LLMRouter = express.Router();
 
@@ -129,60 +132,30 @@ LLMRouter.post('/gt', async (req, res) => {
         const threadId = req.body.threadId=='' ? (await openai_client.beta.threads.create({})).id : req.body.threadId;
         console.log("threadId (req.body.threadId)", threadId)
         const input = req.body.data
-        console.log("input (req.body.data)", input)
-        const createdMessage = await openai_client.beta.threads.messages.create(threadId, {
-            role: "user",
-            content: input,
-        });
 
-        console.log("createdMessage", createdMessage)
-        let run = await openai_client.beta.threads.runs.createAndPoll(
-            threadId, 
-            { 
-              assistant_id: process.env.ASSISTANT_ID_GOALTRANSLATOR ??
-                        (() => {
-                            throw new Error('ASSISTANT_ID_GOALTRANSLATOR is not set');
-                        })()
-            }
-          );
-        
-
-        if (run.status === 'completed') {
-            const messages = await openai_client.beta.threads.messages.list(
-              run.thread_id
-            );
-            for (const message of messages.data.reverse()) {
-                const content = message.content[0];
-                if (content && 'text' in content) {
-                    console.log(`${message.role} > ${content.text.value}`);
-                } else {
-                    console.log(`${message.role} > [Content not available]`);
-                }
-            }
-
-            // Find the last assistant message
-            const lastAssistantMessage = messages.data
-                .reverse()
-                .find(message => message.role === 'assistant');
-
-            if (lastAssistantMessage) {
-                const content = lastAssistantMessage.content[0];
-                if (content && 'text' in content) {
-                    const response = content.text.value;
-                    console.log(`Sent value > ${response}`);
-                    res.status(200).send({ data: { "response": response, "threadId": threadId } });
-                } else {
-                    console.log('No valid content in assistant message');
-                    res.status(404).send({ error: 'No valid content in assistant message' });
-                }
-            } else {
-                console.log('No assistant message found');
-                res.status(404).send({ error: 'No assistant message found' });
-            }
-          } else {
-            console.log(run.status);
+        const output = await processGtRequest(input, threadId);
+        if (output == undefined) {
+            res.status(500).send({ error: `Run status is null` });
+            return;
         }
         
+        const lastAssistantMessage = output.lastAssistantMessage;
+        const run_status = output.run_status;
+
+        if (lastAssistantMessage) {
+            const content = lastAssistantMessage.content[0];
+            if (content && 'text' in content) {
+                const response = content.text.value;
+                console.log(`Sent value > ${response}`);
+                res.status(200).send({ data: { "response": response, "threadId": threadId } });
+            } else {
+                console.log('No valid content in assistant message');
+                res.status(404).send({ error: 'No valid content in assistant message' });
+            }
+        } else {
+            console.log('No assistant message found');
+            res.status(404).send({ error: 'No assistant message found' });
+        }
     } catch (error) {
         console.error(error);
         res.status(500).send(error);
@@ -195,59 +168,30 @@ LLMRouter.post('/et', async (req, res) => {
         const threadId = req.body.threadId=='' ? (await openai_client.beta.threads.create({})).id : req.body.threadId;
         console.log("threadId (req.body.threadId)", threadId)
         const input = req.body.data
-        console.log("input (req.body.data)", input)
-        const createdMessage = await openai_client.beta.threads.messages.create(threadId, {
-            role: "user",
-            content: input,
-        });
 
-        console.log("createdMessage", createdMessage)
-        let run = await openai_client.beta.threads.runs.createAndPoll(
-            threadId, 
-            { 
-              assistant_id: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR ??
-                        (() => {
-                            throw new Error('ASSISTANT_ID_EXPLANATIONTRANSLATOR is not set');
-                        })()
-            }
-          );
-        
-        if (run.status === 'completed') {
-            const messages = await openai_client.beta.threads.messages.list(
-              run.thread_id
-            );
-            for (const message of messages.data.reverse()) {
-                const content = message.content[0];
-                if (content && 'text' in content) {
-                    console.log(`${message.role} > ${content.text.value}`);
-                } else {
-                    console.log(`${message.role} > [Content not available]`);
-                }
-            }
-
-            const lastAssistantMessage = messages.data
-                .reverse()
-                .find(message => message.role === 'assistant');
-
-            if (lastAssistantMessage) {
-                const content = lastAssistantMessage.content[0];
-                if (content && 'text' in content) {
-                    const response = content.text.value;
-                    console.log(`Sent value > ${response}`);
-                    res.status(200).send({ data: { "response": response, "threadId": threadId } });
-                } else {
-                    console.log('No valid content in assistant message');
-                    res.status(404).send({ error: 'No valid content in assistant message' });
-                }
-            } else {
-                console.log('No assistant message found');
-                res.status(404).send({ error: 'No assistant message found' });
-            }
-        } else {
-            console.log(run.status);
-            res.status(500).send({ error: `Run status: ${run.status}` });
+        const output = await processEtRequest(input, threadId);
+        if (output == undefined) {
+            res.status(500).send({ error: `Run status is null` });
+            return;
         }
         
+        const lastAssistantMessage = output.lastAssistantMessage;
+        const run_status = output.run_status;
+
+        if (lastAssistantMessage) {
+            const content = lastAssistantMessage.content[0];
+            if (content && 'text' in content) {
+                const response = content.text.value;
+                console.log(`Sent value > ${response}`);
+                res.status(200).send({ data: { "response": response, "threadId": threadId } });
+            } else {
+                console.log('No valid content in assistant message');
+                res.status(404).send({ error: 'No valid content in assistant message' });
+            }
+        } else {
+            console.log('No assistant message found');
+            res.status(404).send({ error: 'No assistant message found' });
+        }
     } catch (error) {
         console.error(error);
         res.status(500).send(error);
@@ -260,58 +204,32 @@ LLMRouter.post('/qt', async (req, res) => {
         const threadId = req.body.threadId=='' ? (await openai_client.beta.threads.create({})).id : req.body.threadId;
         console.log("threadId (req.body.threadId)", threadId)
         const input = req.body.data
-        console.log("input (req.body.data)", input)
-        const createdMessage = await openai_client.beta.threads.messages.create(threadId, {
-            role: "user",
-            content: input,
-        });
 
-        console.log("createdMessage", createdMessage)
-        let run = await openai_client.beta.threads.runs.createAndPoll(
-            threadId, 
-            { 
-              assistant_id: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR ??
-                        (() => {
-                            throw new Error('ASSISTANT_ID_QUESTIONTRANSLATOR is not set');
-                        })()
-            }
-          );
+        const output = await processQtRequest(input, threadId);
+        if (output == undefined ) {
+            res.status(500).send({ error: `Run status is null ` });
+            return;
+        }
         
-        if (run.status === 'completed') {
-            const messages = await openai_client.beta.threads.messages.list(
-              run.thread_id
-            );
-            for (const message of messages.data.reverse()) {
-                const content = message.content[0];
-                if (content && 'text' in content) {
-                    console.log(`${message.role} > ${content.text.value}`);
-                } else {
-                    console.log(`${message.role} > [Content not available]`);
-                }
-            }
+        const lastAssistantMessage = output.lastAssistantMessage;
+        const run_status = output.run_status;
 
-            const lastAssistantMessage = messages.data
-                .reverse()
-                .find(message => message.role === 'assistant');
-
-            if (lastAssistantMessage) {
-                const content = lastAssistantMessage.content[0];
-                if (content && 'text' in content) {
-                    const response = content.text.value;
-                    console.log(`Sent value > ${response}`);
-                    res.status(200).send({ data: { "response": response, "threadId": threadId } });
-                } else {
-                    console.log('No valid content in assistant message');
-                    res.status(404).send({ error: 'No valid content in assistant message' });
-                }
+        if (lastAssistantMessage) {
+            const content = lastAssistantMessage.content[0];
+            if (content && 'text' in content) {
+                const response = content.text.value;
+                console.log(`Sent value > ${response}`);
+                res.status(200).send({ data: { "response": response, "threadId": threadId } });
             } else {
-                console.log('No assistant message found');
-                res.status(404).send({ error: 'No assistant message found' });
+                console.log('No valid content in assistant message');
+                res.status(404).send({ error: 'No valid content in assistant message' });
             }
         } else {
-            console.log(run.status);
-            res.status(500).send({ error: `Run status: ${run.status}` });
+            console.log('No assistant message found');
+            res.status(404).send({ error: 'No assistant message found' });
         }
+
+        
         
     } catch (error) {
         console.error(error);
@@ -381,6 +299,78 @@ LLMRouter.post('/translate-all', async (req, res) => {
     }
 });
 
+LLMRouter.post('/qt-then-gt', async (req, res) => {
+    try {
+        console.log("req.body", req.body);
+        const input = req.body.data;
+        
+        // Create or use existing threads
+        const threadIdQt = req.body.threadIdQt === '' ? (await openai_client.beta.threads.create({})).id : req.body.threadIdQt;
+        const threadIdGt = req.body.threadIdGt === '' ? (await openai_client.beta.threads.create({})).id : req.body.threadIdGt;
+        
+        // Process QT request
+        const qtOutput = await processQtRequest(input, threadIdQt);
+        if (qtOutput == undefined) {
+            res.status(500).send({ error: `QT run status is null` });
+            return;
+        }
+
+        // Get QT response
+        let qtResponse;
+        if (qtOutput.lastAssistantMessage) {
+            const content = qtOutput.lastAssistantMessage.content[0];
+            if (content && 'text' in content) {
+                qtResponse = content.text.value;
+            } else {
+                res.status(404).send({ error: 'No valid content in QT assistant message' });
+                return;
+            }
+        }
+
+        if (qtResponse == undefined) {
+            res.status(404).send({ error: 'No QT response found' });
+            return;
+        }
+
+        // Parse QT response and prepare GT input
+        const { questionType, goal: untranslatedGoal } = parseQuestionTranslation(qtResponse);
+        const gtInput = req.body.gtTemplate.replace("{goal}", untranslatedGoal);
+
+        // Process GT request
+        const gtOutput = await processGtRequest(gtInput, threadIdGt);
+        if (gtOutput == undefined) {
+            res.status(500).send({ error: `GT run status is null` });
+            return;
+        }
+
+        // Get GT response
+        if (gtOutput.lastAssistantMessage) {
+            const content = gtOutput.lastAssistantMessage.content[0];
+            if (content && 'text' in content) {
+                const gtResponse = content.text.value;
+                res.status(200).send({ 
+                    data: {
+                        qtResponse,
+                        gtResponse,
+                        threadIdQt,
+                        threadIdGt,
+                        questionType,
+                        goal: untranslatedGoal
+                    }
+                });
+            } else {
+                res.status(404).send({ error: 'No valid content in GT assistant message' });
+            }
+        } else {
+            res.status(404).send({ error: 'No GT assistant message found' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send(error);
+    }
+});
+
+
 interface QuestionTranslation {
     questionType: string;
     goal: string;
@@ -399,6 +389,7 @@ function parseQuestionTranslation(qtResponse: string): QuestionTranslation {
         };
     }
 }
+    
 
 
 

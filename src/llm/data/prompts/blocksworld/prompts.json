@@ -1,18 +1,35 @@
 {
     "system": "You are an AI assistant that faithfully answers user questions using the help of multiple modules. Carefully follow the instructions without any deviation and never add any comments of your own.",
-    "question_translator": "You will be given a user question that is semantically equivalent to one of these questions : \n\nUS-why: \"Why is the task unsolvable?\" ; \nUS-how: \"How can I make the task solvable?\" ;\nS-why-not: \"Why are Q not satisfied?\" (e.g., \"Why is no rack left empty?\", Q = \"keep rack empty\") ;\nS-what-if: \"What happens if we enforce Q?\" (e.g., \"What happens if we remove one rack for maintenance?\", Q = keep one rack empty) ;\nS-can: \"Can Q be satisfied?\" (e.g., \"Can i leave one rack empty?\", Q = \"leave one rack empty\") ;\nS-how-b: \"How can Q be satisfied?\"/\"How can I improve the plan with respect to o?\" (e.g., \"How can I leave one rack empty?\", Q = keep one rack empty / \"How can I reduce the number of swaps?\" (assuming the current plan uses 5 swaps), Q = swaps < 4) ;\n\nAny question you will be given can be mapped to one of these questions.\nReturn the question type and the goal of the user, without any additional comments of any kind.",
+    "question_translator_old": "You will be given a user question that is semantically equivalent to one of these questions : \n\nUS-why: \"Why is the task unsolvable?\" ; \nUS-how: \"How can I make the task solvable?\" ;\nS-why-not: \"Why are Q not satisfied?\" (e.g., \"Why is no rack left empty?\", Q = \"keep rack empty\") ;\nS-what-if: \"What happens if we enforce Q?\" (e.g., \"What happens if we remove one rack for maintenance?\", Q = keep one rack empty) ;\nS-can: \"Can Q be satisfied?\" (e.g., \"Can i leave one rack empty?\", Q = \"leave one rack empty\") ;\nS-how-b: \"How can Q be satisfied?\"/\"How can I improve the plan with respect to o?\" (e.g., \"How can I leave one rack empty?\", Q = keep one rack empty / \"How can I reduce the number of swaps?\" (assuming the current plan uses 5 swaps), Q = swaps < 4) ;\n\nAny question you will be given can be mapped to one of these questions.\nReturn the question type and the goal of the user, without any additional comments of any kind.",
+    "question_translator":"You will be given a user question that is semantically equivalent to one of these questions : \n\nUS-why: \"Why is the task unsolvable?\" ; \nUS-how: \"How can I make the task solvable?\" ;\nS-why-not: \"Why are Q not satisfied?\" ;\nS-what-if: \"What happens if we enforce Q?\";\nS-can: \"Can Q be satisfied?\" ;\nS-how-b: \"How can Q be satisfied?\"/\"How can I improve the plan with respect to o?\" ;\n\nAny question you will be given can be mapped to one of these questions.\nReturn the question type and the goal of the user, without any additional comments of any kind.",
     "goal_translator": "You will be given a goal and a list of allowed predicates and objects from a planning problem and domain.\nReturn the LTLf formula corresponding to the goal. This LTLf formula must be Valid.",
     "explanation_translator": "You will be given a question, a list of achieved and unachieved goals,and a conflict list. Each conflict is presented as a Minimum Unsolvable Goal Subset (MUGS).\nAll goals in a MUGS cannot be achieved in the same plan, but any strict subset of them can be achieved.\nFor example the conflict : [a,b,c] means that it is possible to achieve (a and b) or (a and c) or (b and c) in the same plan, but not (a and b and c).\nAnswer the question using the explanation framework. It is important to base anwsers on conflicts, to ensure providing faithful explanations.",
     "qt_examples": [
         {
             "question": "How can I make the task solvable?",
-            "enforced_goals": "",
-            "satisfied_goals": "",
-            "unsatisfied_goals": "",
-            "Existing plan properties": "",
+            "enforced_goals": ["A on top of B","B on table","D always clear"],
+            "satisfied_goals": [],
+            "unsatisfied_goals": ["C never on table"],
+            "Existing plan properties": ["A on top of B", "C never on table", "B on table", "D always clear", "C before B"],
             "return": "US-how; NOGOAL"
-        }
-        
+        },
+        {
+            "question": "Why does C has to be on table at one point?",
+            "enforced_goals": ["A on top of B","B on table","D always clear"],
+            "satisfied_goals": [],
+            "unsatisfied_goals": ["C never on table"],
+            "Existing plan properties": ["A on top of B", "C never on table", "B on table", "D always clear", "C before B"],
+            "return": "S-why-not; C never on table"
+        },
+        {
+            "question": "Can I keep D on the table throughout the plan?",
+            "enforced_goals": ["A on top of B", "C never held", "B on table"],
+            "satisfied_goals": ["D on C at some point"],
+            "unsatisfied_goals": [],
+            "Existing plan properties": ["A on top of B", "B on table", "C never held", "D on C at some point"],
+            "return": "S-can; D always on table"
+        },
+
     ],
     
     "gt_examples": [
@@ -34,14 +51,14 @@
             "goal": "C is not touching the table at the end",
             "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
             "objects": ["A", "B", "C", "D"],
-            "Existing plan properties": ["A on top of B", "D always clear", "C initially on D"],
+            "Existing plan properties": ["A on top of B", "D always clear", "C on D at some point"],
             "return": "G(F(!(ontable(C))))"
         },
         {
             "goal": "only A can be on top of D",
             "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
             "objects": ["A", "B", "C", "D"],
-            "Existing plan properties": ["B never moved", "C always on table", "A initially clear"],
+            "Existing plan properties": ["B never moved", "C always on table", "A clear at some point"],
             "return": "G((clear(D)) or (on(A,D)))"
         },
         {
