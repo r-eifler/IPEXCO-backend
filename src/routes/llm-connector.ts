@@ -9,7 +9,9 @@ import { processEtRequest, processGtRequest, processQtRequest } from './llm-proc
 import { RunStatus } from 'openai/resources/beta/threads/runs/runs';
 import { Message } from 'openai/resources/beta/threads/messages';
 import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
-
+import { Question,QuestionType } from '../db_schema/explanations';
+    
+  
 export const LLMRouter = express.Router();
 
 export const maxDuration = 30;
@@ -409,14 +411,22 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
 
                 // IF UNSATISFIED, RETURN PLAN PROPERTY
 
+                const question : Question = {
+                    iterationStepId: req.body.iterationStepId,
+                    questionType: questionType as QuestionType,
+                    propertyId: planProperty._id
+                };
+
+
                 res.status(200).send({ 
                     data: {
                         qtResponse,
                         gtResponse,
                         threadIdQt,
                         threadIdGt,
-                        questionType,
-                        goal: planProperty._id
+                        questionType: questionType as QuestionType,
+                        goal: planProperty._id,
+                        question: question
                     }
                 });
 
