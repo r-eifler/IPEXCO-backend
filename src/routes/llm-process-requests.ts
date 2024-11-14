@@ -123,3 +123,44 @@ export async function processEtRequest(input: string, threadId: string) {
     console.log("Run status is not completed", run_status)
     return {lastAssistantMessage: undefined, threadId, run_status}
 }
+
+
+type AssistantType = "GT" | "ET" | "QT";
+export async function showFullContextThread(threadId: string, assistant: AssistantType) {
+    try {
+        // Get all messages in the thread
+        const messages = await openai_client.beta.threads.messages.list(threadId, {
+            limit: 100, // Adjust limit as needed
+            order: 'asc' // Get oldest messages first
+        });
+
+        // Get assistant details
+        const assistantId = (assistant === "GT" ? 
+            process.env.ASSISTANT_ID_GOALTRANSLATOR : 
+            assistant === "ET" ? 
+                process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR : 
+                process.env.ASSISTANT_ID_QUESTIONTRANSLATOR) ?? 
+            (() => { throw new Error(`ASSISTANT_ID_${assistant} is not set`); })();
+        const assistantData = await openai_client.beta.assistants.retrieve(assistantId);
+
+        // Format the output
+        const context = {
+            assistant: {
+                name: assistantData.name,
+                instructions: assistantData.instructions,
+                model: assistantData.model
+            },
+            messages: messages.data.map(msg => ({
+                role: msg.role,
+                content: msg.content[0]?.type === 'text' ? msg.content[0].text.value : '[Non-text content]',
+                created_at: new Date(msg.created_at * 1000).toISOString()
+            }))
+        };
+
+        return context;
+
+    } catch (error) {
+        console.error('Error fetching thread context:', error);
+        throw error;
+    }
+}
