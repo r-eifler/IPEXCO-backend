@@ -24,6 +24,7 @@ LLMRouter.post('/gt', async (req, res) => {
         // check if LLMContextModel exists
         let llmContext = await LLMContextModel.findOne({ project: req.body.projectId });
         if (!llmContext) {
+            console.log("No LLMContext found, creating new one")
             const threadIdGT = (await openai_client.beta.threads.create({})).id
             const threadIdQT = (await openai_client.beta.threads.create({})).id
             const threadIdET = (await openai_client.beta.threads.create({})).id
@@ -40,10 +41,13 @@ LLMRouter.post('/gt', async (req, res) => {
             }
             llmContext = new LLMContextModel(llmContextData);
             await llmContext.save();
+            console.log("New LLMContext created and saved")
         } else {
-            llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
+            console.log("LLMContext found, updating it")
+            llmContext.visiblePPCreationMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
             llmContext.seenByGTMessages.push({ role: 'receiver', content: req.body.data });
             await llmContext.save();
+            console.log("LLMContext updated and saved")
             // Check if threadID still xists
             // const myThread = await openai_client.beta.threads.retrieve(llmContext.threadIdGT);
         }
@@ -68,9 +72,10 @@ LLMRouter.post('/gt', async (req, res) => {
             const content = lastAssistantMessage.content[0];
             if (content && 'text' in content) {
                 const { formula, shortName } = parseGoalTranslation(content.text.value);
-                llmContext.visibleMessages.push({ role: 'receiver', content: content.text.value, iterationStepId: null });
-                llmContext.seenByGTMessages.push({ role: 'receiver', content: content.text.value });
+                llmContext.visiblePPCreationMessages.push({ role: 'sender', content: content.text.value, iterationStepId: null });
+                llmContext.seenByGTMessages.push({ role: 'sender', content: content.text.value });
                 await llmContext.save();
+                console.log("LLMContext updated with output and saved")
                 console.log(`Sent value > ${formula}, ${shortName}`);
                 res.status(200).send({ data: { "response": { formula, shortName }, "threadId": threadId } });
             } else {
@@ -93,6 +98,7 @@ LLMRouter.post('/et', async (req, res) => {
         // check if LLMContextModel exists
         let llmContext = await LLMContextModel.findOne({ project: req.body.projectId });
         if (!llmContext) {
+            console.log("No LLMContext found, creating new one")
             const threadIdET = (await openai_client.beta.threads.create({})).id
             const threadIdGT = (await openai_client.beta.threads.create({})).id
             const threadIdQT = (await openai_client.beta.threads.create({})).id
@@ -109,10 +115,13 @@ LLMRouter.post('/et', async (req, res) => {
             }
             llmContext = new LLMContextModel(llmContextData);
             await llmContext.save();
+            console.log("New LLMContext created and saved")
         } else {
+            console.log("LLMContext found, updating it")
             llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
             llmContext.seenByETMessages.push({ role: 'receiver', content: req.body.data });
             await llmContext.save();
+            console.log("LLMContext updated and saved")
             // Check if threadID still xists
             // const myThread = await openai_client.beta.threads.retrieve(llmContext.threadIdGT);
         }
