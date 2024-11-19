@@ -146,8 +146,8 @@ LLMRouter.post('/et', async (req, res) => {
             const content = lastAssistantMessage.content[0];
             if (content && 'text' in content) {
                 const response = content.text.value;
-                llmContext.visibleMessages.push({ role: 'receiver', content: response, iterationStepId: req.body.iterationStepId });
-                llmContext.seenByETMessages.push({ role: 'receiver', content: response });
+                llmContext.visibleMessages.push({ role: 'sender', content: response, iterationStepId: req.body.iterationStepId });
+                llmContext.seenByETMessages.push({ role: 'sender', content: response });
                 await llmContext.save();
                 console.log(`Sent value > ${response}`);
                 res.status(200).send({ data: { "response": response, "threadId": llmContext.threadIdET } });

@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import belugaPrompts from "./data/prompts/beluga/prompts.json";
 import blocksworldPrompts from "./data/prompts/blocksworld/prompts.json";
+import blocksworldTemplates from "./data/prompts/blocksworld/templates.json";
+import belugaTemplates from "./data/prompts/beluga/templates.json";
 import fs from 'fs/promises';
 import path from 'path';
 import { openai_client } from "./openai_client";
@@ -10,22 +12,45 @@ const domains = {
     beluga: belugaPrompts,
     blocksworld: blocksworldPrompts
 }
+
+const templates = {
+    blocksworld: blocksworldTemplates,
+    beluga: belugaTemplates
+}
+
 const domain = "blocksworld";
 
 
 
-function formatExamples(examples: any[]): string {
+// function formatExamples(examples: any[]): string {
+//     return examples.map((example, index) => {
+//         const formattedExample = Object.entries(example)
+//             .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+//             .join('\n');
+//         return `Example ${index + 1}:\n${formattedExample}\n`;
+//     }).join('\n');
+// }
+function formatExamples(examples: any[], translatorType: keyof typeof templates[typeof domain]): string {
+    const template = templates[domain][translatorType];
+    
     return examples.map((example, index) => {
-        const formattedExample = Object.entries(example)
-            .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
-            .join('\n');
+        // Create a copy of the template string
+        let formattedExample = template;
+        
+        // Replace each placeholder in the template with its corresponding value
+        for (const [key, value] of Object.entries(example)) {
+            const placeholder = `{${key}}`;
+            formattedExample = formattedExample.replace(placeholder, JSON.stringify(value));
+        }
+        
         return `Example ${index + 1}:\n${formattedExample}\n`;
     }).join('\n');
 }
 
-async function createAssistant(name: string, instructions: string, examples: any[], openai: OpenAI, model: OpenAIModelName) {
+
+async function createAssistant(name: string, instructions: string, examples: any[], openai: OpenAI, model: OpenAIModelName, translatorType: keyof typeof templates[typeof domain]) {
     const assistant = await openai.beta.assistants.create({
-        instructions: `${domains[domain].system}${instructions} \n\nExamples : \n\n{${formatExamples(examples).replace(/"/g, '')}}\n\nEnd of the examples.`,
+        instructions: `${domains[domain].system}${instructions} \n\nExamples : \n\n${formatExamples(examples, translatorType)}\n\nEnd of the examples.`,
         name,
         model: model,
     });
@@ -53,9 +78,9 @@ export async function initializeAssistants(model: OpenAIModelName) {
 
 
     const assistants = {
-        goalTranslator: await createAssistant("Goal Translator (blocksworld)", blocksworldPrompts.goal_translator, blocksworldPrompts.gt_examples, openai, model),
-        questionTranslator: await createAssistant("Question Translator (blocksworld)", blocksworldPrompts.question_translator, blocksworldPrompts.qt_examples, openai, model),
-        explanationTranslator: await createAssistant("Explanation Translator (blocksworld)", blocksworldPrompts.explanation_translator, blocksworldPrompts.et_examples, openai, model),
+        goalTranslator: await createAssistant("Goal Translator (blocksworld)", blocksworldPrompts.goal_translator, blocksworldPrompts.gt_examples, openai, model, "goal_translator"),
+        questionTranslator: await createAssistant("Question Translator (blocksworld)", blocksworldPrompts.question_translator, blocksworldPrompts.qt_examples, openai, model, "question_translator"),
+        explanationTranslator: await createAssistant("Explanation Translator (blocksworld)", blocksworldPrompts.explanation_translator, blocksworldPrompts.et_examples, openai, model, "explanation_translator"),
     };
 
     // Read existing .env file

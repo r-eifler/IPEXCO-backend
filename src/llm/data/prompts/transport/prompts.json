@@ -10,14 +10,14 @@
             "satisfied_goals": "",
             "unsatisfied_goals": "",
             "existing_plan_properties": "",
-            "return": "HOW_PLAN ; NOGOAL; NONEXISTING"
+            "return": "HOW_PLAN ; NOGOAL; EXISTING"
         },
         {
             "question": "Why is no rack left free?",
             "enforced_goals": "",
             "satisfied_goals": "",
             "unsatisfied_goals": "",
-            "existing_plan_properties": "[keep one rack empty, swaps < 5]",
+            "existing_plan_properties": "[packages 1 and 2 together, packages 2 and 4 not together, deliver p1 to bank, deliver p2 to bank, deliver p4 to post office,  ]",
             "return": "WHY_NOT_PROPERTY ; keep one rack empty ; EXISTING"
         },
         {
@@ -28,27 +28,38 @@
             "existing_plan_properties": "[swaps < 5]",
             "return": "WHAT_IF_PROPERTY ; keep one rack empty ; NONEXISTING"
         }
-
     ],
-    
     "gt_examples": [
         {
             "goal": "leave one rack empty",
-            "predicates": ["empty rack00", "empty rack01", "empty rack02", "empty rack03"],
-            "objects": ["rack00", "rack01", "rack02", "rack03"],
+            "predicates": [
+                "empty rack00",
+                "empty rack01",
+                "empty rack02",
+                "empty rack03"
+            ],
+            "objects": [
+                "rack00",
+                "rack01",
+                "rack02",
+                "rack03"
+            ],
             "existing_plan_properties": "",
             "return": "G((empty rack00) or (empty rack01) or (empty rack02) or (empty rack03))"
         },
         {
             "goal": "deliver p1 before p2",
-            "predicates": [""],
-            "objects": ["p1", "p2"],
+            "predicates": [
+                ""
+            ],
+            "objects": [
+                "p1",
+                "p2"
+            ],
             "existing_plan_properties": "",
             "return": "G((deliver p1 p2) or (ontable p1) or (ontable p2))"
         },
-        {
-
-        }
+        {}
     ],
     "et_examples": [
         {
@@ -58,12 +69,35 @@
             "mugs": "",
             "mgcs": "",
             "enforced_goals": "",
-            "achieved_goals": ["deliver p1", "deliver p2", "deliver p3", "swaps < 5", "load j1", "load j2", "load j3"],
-            "unachieved_goals": ["free rack", "put j1 next to j2", "swaps < 4"],
+            "achieved_goals": [
+                "deliver p1",
+                "deliver p2",
+                "deliver p3",
+                "swaps < 5",
+                "load j1",
+                "load j2",
+                "load j3"
+            ],
+            "unachieved_goals": [
+                "free rack",
+                "put j1 next to j2",
+                "swaps < 4"
+            ],
             "existing_plan_properties": "",
             "conflict": [
-                ["deliver p1", "load j2", "swaps <5", "free rack"],
-                ["free rack", "load j1", "load j2", "deliver p3", "swaps < 6"]
+                [
+                    "deliver p1",
+                    "load j2",
+                    "swaps <5",
+                    "free rack"
+                ],
+                [
+                    "free rack",
+                    "load j1",
+                    "load j2",
+                    "deliver p3",
+                    "swaps < 6"
+                ]
             ],
             "return": "Because if you want to deliver all pieces and load all jigs according to the schedule, keeping one rack empty is in conflict with keeping the number of swaps below 5."
         },
@@ -74,12 +108,35 @@
             "mugs": "",
             "mgcs": "",
             "enforced_goals": "",
-            "achieved_goals": ["deliver p1", "deliver p2", "deliver p3", "swaps < 5", "load j1", "load j2", "load j3"],
-            "unachieved_goals": ["free rack", "put j1 next to j2", "swaps < 4"],
+            "achieved_goals": [
+                "deliver p1",
+                "deliver p2",
+                "deliver p3",
+                "swaps < 5",
+                "load j1",
+                "load j2",
+                "load j3"
+            ],
+            "unachieved_goals": [
+                "free rack",
+                "put j1 next to j2",
+                "swaps < 4"
+            ],
             "existing_plan_properties": "",
             "conflict": [
-                ["deliver p1", "load j2", "swaps <5", "free rack"],
-                ["free rack", "load j1", "load j2", "deliver p3", "swaps < 6"]
+                [
+                    "deliver p1",
+                    "load j2",
+                    "swaps <5",
+                    "free rack"
+                ],
+                [
+                    "free rack",
+                    "load j1",
+                    "load j2",
+                    "deliver p3",
+                    "swaps < 6"
+                ]
             ],
             "return": "Yes, do you want me to try?"
         }
