@@ -1,6 +1,6 @@
 {
-    "goal_translator":"Goal : {goal}\nPredicates : {predicates}\nObjects : {objects}\nExisting Plan Properties : {existing_plan_properties}\nReturn : ",
-    "question_translator":"Question : {question}\nEnforced Goals : {enforced_goals}\nSatisfied Goals : {satisfied_goals}\nUnsatisfied Goals : {unsatisfied_goals}\nExisting Plan Properties : {existing_plan_properties}\nSolvable : {solvable}\nReturn : ",
-    "explanation_translator":"Question : {question}\nQuestion Type : {question_type}\nQuestion Arguments : {question_arguments}\nMUGS : {mugs}\nMGCS : {mgcs}\nEnforced Goals : {enforced_goals}\nSatisfied Goals : {satisfied_goals}\nUnsatisfied Goals : {unsatisfied_goals}\nExisting Plan Properties : {existing_plan_properties}\nReturn : "
+    "goal_translator":"Goal: {goal}\nPredicates: {predicates}\nObjects: {objects}\nExisting Plan Properties: {existing_plan_properties}\nReturn: ",
+    "question_translator":"Question: {question}\nEnforced Goals: {enforced_goals}\nSatisfied Goals: {satisfied_goals}\nUnsatisfied Goals: {unsatisfied_goals}\nExisting Plan Properties: {existing_plan_properties}\nSolvable: {solvable}\nReturn: ",
+    "explanation_translator":"Question: {question}\nQuestion Type: {question_type}\nQuestion Arguments: {question_arguments}\nMUGS: {mugs}\nMGCS: {mgcs}\nEnforced Goals: {enforced_goals}\nSatisfied Goals: {satisfied_goals}\nUnsatisfied Goals: {unsatisfied_goals}\nExisting Plan Properties: {existing_plan_properties}\nReturn: "
 
 }

@@ -27,6 +27,9 @@ const LLMMessageSchema = new Schema<LLMMessage>({
 }, { timestamps: true }); 
 
 export interface LLMContext extends Document {
+    assistantIdGT: string;
+    assistantIdQT: string;
+    assistantIdET: string;
     threadIdQT: string;
     threadIdGT: string;
     threadIdET: string;
@@ -39,6 +42,9 @@ export interface LLMContext extends Document {
 }
 
 export const LLMContextSchema = new Schema({
+    assistantIdGT: { type: String, required: true},
+    assistantIdQT: { type: String, required: true},
+    assistantIdET: { type: String, required: true},
     threadIdQT: { type: String, required: true},
     threadIdGT: { type: String, required: true},
     threadIdET: { type: String, required: true},

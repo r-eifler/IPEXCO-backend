@@ -36,11 +36,14 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             iterationStep.softGoals.includes(pp._id?.toString())
         );
 
+        console.log("used_plan_properties", used_plan_properties)
         const exp_settings = {
             plan_properties: used_plan_properties,
             hard_goals: [],
             soft_goals: used_plan_properties.map(pp => pp.name)
         }
+        console.log("exp_settings", exp_settings)
+
 
         const baseURL = process.env.BASE_URL || 'host.docker.internal:3000'
         let payload = JSON.stringify({

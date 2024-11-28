@@ -22,7 +22,7 @@ LLMRouter.post('/gt', async (req, res) => {
     try {
 
         // check if LLMContextModel exists
-        let llmContext = await LLMContextModel.findOne({ project: req.body.projectId });
+        let llmContext = await LLMContextModel.findOne({ project: req.body.projectId, assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR, assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR, assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR });
         if (!llmContext) {
             console.log("No LLMContext found, creating new one")
             const threadIdGT = (await openai_client.beta.threads.create({})).id
@@ -30,6 +30,9 @@ LLMRouter.post('/gt', async (req, res) => {
             const threadIdET = (await openai_client.beta.threads.create({})).id
             const llmContextData = {
                 project: req.body.projectId,
+                assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR,
+                assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR,
+                assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR,
                 threadIdGT: threadIdGT,
                 threadIdQT: threadIdQT,
                 threadIdET: threadIdET,
@@ -96,7 +99,7 @@ LLMRouter.post('/et', async (req, res) => {
     try {
 
         // check if LLMContextModel exists
-        let llmContext = await LLMContextModel.findOne({ project: req.body.projectId });
+        let llmContext = await LLMContextModel.findOne({ project: req.body.projectId, assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_GOALTRANSLATOR is not set') })(), assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_QUESTIONTRANSLATOR is not set') })(), assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_EXPLANATIONTRANSLATOR is not set') })() });
         if (!llmContext) {
             console.log("No LLMContext found, creating new one")
             const threadIdET = (await openai_client.beta.threads.create({})).id
@@ -104,6 +107,9 @@ LLMRouter.post('/et', async (req, res) => {
             const threadIdQT = (await openai_client.beta.threads.create({})).id
             const llmContextData = {
                 project: req.body.projectId,
+                assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR,
+                assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR,
+                assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR,
                 threadIdGT: threadIdGT,
                 threadIdQT: threadIdQT,
                 threadIdET: threadIdET,
@@ -209,13 +215,16 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
         console.log("req.body", req.body);
 
         // check if LLMContextModel exists
-        let llmContext = await LLMContextModel.findOne({ project: req.body.projectId });
+        let llmContext = await LLMContextModel.findOne({ project: req.body.projectId, assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_GOALTRANSLATOR is not set') })(), assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_QUESTIONTRANSLATOR is not set') })(), assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_EXPLANATIONTRANSLATOR is not set') })() });
         if (!llmContext) {
             const threadIdET = (await openai_client.beta.threads.create({})).id
             const threadIdGT = (await openai_client.beta.threads.create({})).id
             const threadIdQT = (await openai_client.beta.threads.create({})).id
             const llmContextData = {
                 project: req.body.projectId,
+                assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_GOALTRANSLATOR is not set') })(),
+                assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_QUESTIONTRANSLATOR is not set') })(),
+                assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_EXPLANATIONTRANSLATOR is not set') })(),
                 threadIdGT: threadIdGT,
                 threadIdQT: threadIdQT,
                 threadIdET: threadIdET,
@@ -310,7 +319,7 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
 
                 let planProperty = null;
                 // CHECK IF PLAN PROPERTY ALREADY EXISTS
-                if (existing == 'EXISTING') {
+                if (existing == 'ALREADY-USED') {
 
                     planProperty = await PlanPropertyModel.findOne({
                         name: untranslatedGoal,
@@ -319,7 +328,7 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
 
                 }
 
-                if (existing == 'NONEXISTING' || planProperty == null) {
+                if (existing == 'NEVER-USED' || planProperty == null) {
 
                     const planProperty = new PlanPropertyModel({
                         name: shortName,
@@ -398,7 +407,7 @@ function parseQuestionTranslation(qtResponse: string): QuestionTranslation {
         return {
             questionType: 'WHY_PLAN',
             goal: 'NOGOAL',
-            existing: 'EXISTING'
+            existing: 'ALREADY-USED'
         };
     }
 }
@@ -444,7 +453,7 @@ LLMRouter.get('/llm-context', async (req, res) => {
         return res.status(404).send({ message: 'no projectId specified' });
     }
     const projectId : string = req.query.projectId as string;
-    const llmContext = await LLMContextModel.findOne({ project: projectId});
+    const llmContext = await LLMContextModel.findOne({ project: projectId, assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_GOALTRANSLATOR is not set') })(), assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_QUESTIONTRANSLATOR is not set') })(), assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_EXPLANATIONTRANSLATOR is not set') })() });
 
     if (!llmContext) { 
         return res.status(404).send({ message: 'No LLMContext found.' });
@@ -455,3 +464,4 @@ LLMRouter.get('/llm-context', async (req, res) => {
     });
 
 });
+

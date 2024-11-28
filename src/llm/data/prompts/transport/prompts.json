@@ -1,144 +1,173 @@
 {
     "system": "You are an AI assistant that faithfully answers user questions using the help of multiple modules. Carefully follow the instructions without any deviation and never add any comments of your own.",
-    "question_translator": "You will be given a user question that is semantically equivalent to one of these questions : \n\nWHY_PLAN: \"Why is the task unsolvable?\" ; \nHOW_PLAN: \"How can I make the task solvable?\" ;\nWHY_NOT_PROPERTY: \"Why are Q not satisfied?\" ;\nWHAT_IF_PROPERTY: \"What happens if we enforce Q?\";\nCAN_PROPERTY: \"Can Q be satisfied?\" ;\nHOW_PROPERTY: \"How can Q be satisfied?\"/\"How can I improve the plan with respect to o?\" ;\n\nAny question you will be given can be mapped to one of these questions.\nReturn the question type and the goal or plan property the user is refering to, without any additional comments of any kind. First, try to see if the question is about a property that is already existing. If it is, return EXISTING as the last part of your answer and use the exact same name. If it is not, invent a name for this property and use the encoding NONEXISTING. If the question is not about a specific property but about the unsolvability of the task, return NOGOAL as the second part of your answer and EXISTING as the last",
-    "goal_translator": "You will be given a goal and a list of allowed predicates and objects from a planning problem and domain.\nReturn the LTLf formula corresponding to the goal.\n\nExamples :\n\n{examples}\n\nEnd of the examples.",
-    "explanation_translator": "You will be given a question, a list of achieved and unachieved goals, and a conflict list. Each conflict is presented as a Minimum Unsolvable Goal Subset (MUGS).\nAll goals in a MUGS cannot be achieved in the same plan, but any strict subset of them can be achieved.\nFor example the conflict : [a,b,c] means that it is possible to achieve (a and b) or (a and c) or (b and c) in the same plan, but not (a and b and c).\nWhen a goal is numeric (for example swaps < 5), there is still an interpretation of conflicts, for example here : [rack empty, deliver p1, swaps < 5] means that it is possible to achieve (rack empty and deliver p1 and swaps < 6) or (deliver p1 and swaps < 5) or (swaps < 5 and rack empty) in the same plan, but not (rack empty and deliver p1 and swaps < 5).\nAnswer the question using the explanation framework. It is important to base anwsers on conflicts, to ensure providing faithful explanations.\n\nExamples :\n\n{examples}\n\nEnd of the examples.",
+    "question_translator": "You will be given a user question that is semantically equivalent to one of these questions : \n\nWHY_PLAN: \"Why is the task unsolvable?\" ; \nHOW_PLAN: \"How can I make the task solvable?\" ;\nWHY_NOT_PROPERTY: \"Why are Q not satisfied?\" ;\nWHAT_IF_PROPERTY: \"What happens if we enforce Q?\";\nCAN_PROPERTY: \"Can Q be satisfied?\" ;\nHOW_PROPERTY: \"How can Q be satisfied?\"/\"How can I improve the plan with respect to o?\" ;\n\nAny question you will be given can be mapped to one of these questions.\nReturn the question type and the goal or plan property the user is refering to, without any additional comments of any kind. First, try to see if the question is about a property that is already existing. If it is, return ALREADY-USED as the last part of your answer and use the exact same name. If it is not, invent a name for this property and use the encoding NEVER-USED. If the question is not about a specific property but about the unsolvability of the task, return NOGOAL as the second part of your answer and ALREADY-USED as the last",
+    "goal_translator": "You will be given a goal and a list of allowed predicates and objects from a planning problem and domain.\nReturn the LTLf formula corresponding to the goal, followed by a short summary of the goal in natural language (the fewer words the better) that will be used to refer to it. The LTLf formula must be well-formed and must only contain the predicates and objects given to you. Users might reference previous messages they sent or implicit objects. You should infer that when possible based on the provided information and previous messages. If it is not possible to express the property in LTL using the provided objects and predicates, return UNSUPPORTED ; Unsupported property.",
+    "explanation_translator": "You will be given a question, a list of achieved and unachieved goals, and a conflict list with each conflict presented as a Minimum Unsolvable Goal Subset (MUGS) except if the original question is a How question. In that case, you are provided with list of resolutions, presented using  Minimal Goal Correction Sets (MGCS). \nAll goals in a MUGS cannot be achieved in the same plan, but any strict subset of them can be achieved.\nFor example the conflict : [a,b,c] means that it is possible to achieve (a and b) or (a and c) or (b and c) in the same plan, but not (a and b and c). If provided with MGCS, each set represent a set of goals it is sufficient to forgo to make the planning task solvable. Choosing any of these and making sure that none are enforced should be sufficient. \nAnswer the question using the explanation framework to help users to understand what conflict causes their problem and what they can do to solve it. It is crucial to base anwsers on conflicts or resolutions, to ensure providing faithful explanations.\n\nExamples :\n\n{examples}\n\nEnd of the examples.",
     "qt_examples": [
         {
-            "question": "How can I make the task solvable?",
-            "enforced_goals": "",
-            "satisfied_goals": "",
-            "unsatisfied_goals": "",
-            "existing_plan_properties": "",
-            "return": "HOW_PLAN ; NOGOAL; EXISTING"
+            "Question": "How can I make the task solvable?",
+            "Enforced Goals": "[Never same trucks for p3 and p4,Use t1 for cafe-smith]",
+            "Satisfied Goals": "[]",
+            "Unsatisfied Goals": "[Visit jones with t1]",
+            "Existing Plan Properties": "[Use t1 for cafe-smith,Never same trucks for p3 and p4, Visit jones with t1]",
+            "Solvable": "False",
+            "Return": "HOW_PLAN ; NOGOAL; ALREADY-USED"
         },
         {
-            "question": "Why is no rack left free?",
-            "enforced_goals": "",
-            "satisfied_goals": "",
-            "unsatisfied_goals": "",
-            "existing_plan_properties": "[packages 1 and 2 together, packages 2 and 4 not together, deliver p1 to bank, deliver p2 to bank, deliver p4 to post office,  ]",
-            "return": "WHY_NOT_PROPERTY ; keep one rack empty ; EXISTING"
+            "Question": "Why is p2 to smith not reached?",
+            "Enforced Goals": "[Use t1 for cafe-smith]",
+            "Satisfied Goals": "[p0 to cafe]",
+            "Unsatisfied Goals": "[p2 to smith, Never same trucks for p3 and p4]",
+            "Existing Plan Properties": "[Use t1 for cafe-smith, p0 to cafe, p2 to smith, Never same trucks for p3 and p4]",
+            "Solvable": "True",
+            "Return": "WHY_NOT_PROPERTY ; p2 to smith ; ALREADY-USED"
         },
         {
-            "question": "What happens if we remove one rack for maintenance?",
-            "enforced_goals": "",
-            "satisfied_goals": "",
-            "unsatisfied_goals": "",
-            "existing_plan_properties": "[swaps < 5]",
-            "return": "WHAT_IF_PROPERTY ; keep one rack empty ; NONEXISTING"
+            "Question": "Can we use t2 for bank to supermarket road?",
+            "Enforced Goals": "[p1 to bank before p0 to cafe]",
+            "Satisfied Goals": "[p0 to cafe]",
+            "Unsatisfied Goals": "[Use t2 for bank-supermarket]",
+            "Existing Plan Properties": "[p1 to bank before p0 to cafe, p0 to cafe, Use t2 for bank-supermarket]",
+            "Solvable": "True",
+            "Return": "CAN_PROPERTY ; Use t2 for bank-supermarket ; ALREADY-USED"
+        },
+        {
+            "Question": "Why can't I deliver p4 before p3?",
+            "Enforced Goals": "[Never same trucks for p3 and p4, p0 to cafe]",
+            "Satisfied Goals": "[Use t1 for cafe-smith]",
+            "Unsatisfied Goals": "[p4 to supermarket before p3 to lopez]",
+            "Existing Plan Properties": "[Never same trucks for p3 and p4, p0 to cafe, Use t1 for cafe-smith, p4 to supermarket before p3 to lopez]",
+            "Solvable": "True",
+            "Return": "WHY_NOT_PROPERTY ; p4 to supermarket before p3 to lopez ; ALREADY-USED"
+        },
+        {
+            "Question": "Can all packages visit the packing station?",
+            "Enforced Goals": "[p0 to bank before p1 to cafe]",
+            "Satisfied Goals": "[Never different trucks for p1 and p2, p5 to lopez]",
+            "Unsatisfied Goals": "[All at packingstation at some point]",
+            "Existing Plan Properties": "[p0 to bank before p1 to cafe, Never different trucks for p1 and p2, p5 to lopez, All at packingstation at some point]",
+            "Solvable": "True",
+            "Return": "CAN_PROPERTY ; All at packingstation at some point ; ALREADY-USED"
+        },
+        {
+            "Question": "What happens if we enforce using the same truck for p1 and p2?",
+            "Enforced Goals": "[p0 to bank before p1 to cafe, p0 to cafe]",
+            "Satisfied Goals": "[p2 to smith]",
+            "Unsatisfied Goals": "[Never different trucks for p1 and p2]",
+            "Existing Plan Properties": "[p0 to bank before p1 to cafe, p0 to cafe, p2 to smith, Never different trucks for p1 and p2]",
+            "Solvable": "True",
+            "Return": "WHAT_IF_PROPERTY ; Never different trucks for p1 and p2 ; ALREADY-USED"
+        },
+        {
+            "Question": "Can we make sure that both t1 and t2 visits the bank?",
+            "Enforced Goals": "[p0 to cafe]",
+            "Satisfied Goals": "[Use t1 for cafe-smith]",
+            "Unsatisfied Goals": "[]",
+            "Existing Plan Properties": "[p0 to cafe, Use t1 for cafe-smith]",
+            "Solvable": "True",
+            "Return": "CAN_PROPERTY ; both t1 and t2 visits the bank ; NEVER-USED"
         }
     ],
     "gt_examples": [
         {
-            "goal": "leave one rack empty",
-            "predicates": [
-                "empty rack00",
-                "empty rack01",
-                "empty rack02",
-                "empty rack03"
-            ],
-            "objects": [
-                "rack00",
-                "rack01",
-                "rack02",
-                "rack03"
-            ],
-            "existing_plan_properties": "",
-            "return": "G((empty rack00) or (empty rack01) or (empty rack02) or (empty rack03))"
+            "Goal": "make sure p1 visits the packingstation at some point",
+            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
+            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
+            "Existing Plan Properties": "[p0 to cafe, p2 to smith, t1 always above level5]",
+            "Return": "F at(p1,packingstation) ; p1 visits packingstation"
         },
         {
-            "goal": "deliver p1 before p2",
-            "predicates": [
-                ""
-            ],
-            "objects": [
-                "p1",
-                "p2"
-            ],
-            "existing_plan_properties": "",
-            "return": "G((deliver p1 p2) or (ontable p1) or (ontable p2))"
+            "Goal": "and also p2",
+            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
+            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
+            "Existing Plan Properties": "[p0 to cafe, p2 to smith, t1 always above level5]",
+            "Return": "& F at(p1,packingstation) F at(p2,packingstation) ; p1 and p2 visit packingstation"
         },
-        {}
+        {
+            "Goal": "t1 should never be empty after visiting the bank",
+            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
+            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
+            "Existing Plan Properties": "[p3 to lopez, t2 visits packingstation, p1 and p2 same truck]",
+            "Return": "G -> at(t1,bank) ! X empty(t1) ; t1 not empty after bank"
+        },
+        {
+            "Goal": "p2 must be delivered before p3",
+            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
+            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
+            "Existing Plan Properties": "[t1 visits bank, p4 to supermarket, p0 to cafe, p2 to smith, p3 to lopez]",
+            "Return": "U ! at(p3,lopez) at(p2,smith) ; p2 to smith before p3 to lopez"
+        },
+        {
+            "Goal": "t2 must maintain fuel above level5 throughout the plan",
+            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
+            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4, level5]",
+            "Existing Plan Properties": "[p1 to cafe, t1 visits jones, p3 and p4 different trucks]",
+            "Return": "G | fuel(t2,level5) | fuel(t2,level6) | fuel(t2,level7) | fuel(t2,level8) | fuel(t2,level9) | fuel(t2,level10) | fuel(t2,level11) | fuel(t2,level12) fuel(t2,level13) ; t2 always above level5"
+        },
+        {
+            "Goal": "p0 and p1 must be transported in the same truck (i.e. never in different trucks at the same time)",
+            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
+            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
+            "Existing Plan Properties": "[p1 to cafe, p3 and p4 different trucks]",
+            "Return": "G ! | & in(p0,t1) in(p1,t2) & in(p0,t2) in(p1,t1) ; p0 and p1 same truck"
+        },
+        {
+            "Goal": "p0 must be delivered before p1",
+            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
+            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
+            "Existing Plan Properties": "[p0 to supermarket, p1 to taylor]",
+            "Return": "U ! at(p1,taylor) at(p0,supermarket) ; p0 before p1"
+        }
     ],
     "et_examples": [
         {
-            "question": "Why is no rack left empty?",
-            "question_type": "",
-            "question_arguments": "",
-            "mugs": "",
-            "mgcs": "",
-            "enforced_goals": "",
-            "achieved_goals": [
-                "deliver p1",
-                "deliver p2",
-                "deliver p3",
-                "swaps < 5",
-                "load j1",
-                "load j2",
-                "load j3"
-            ],
-            "unachieved_goals": [
-                "free rack",
-                "put j1 next to j2",
-                "swaps < 4"
-            ],
-            "existing_plan_properties": "",
-            "conflict": [
-                [
-                    "deliver p1",
-                    "load j2",
-                    "swaps <5",
-                    "free rack"
-                ],
-                [
-                    "free rack",
-                    "load j1",
-                    "load j2",
-                    "deliver p3",
-                    "swaps < 6"
-                ]
-            ],
-            "return": "Because if you want to deliver all pieces and load all jigs according to the schedule, keeping one rack empty is in conflict with keeping the number of swaps below 5."
+            "Question": "Why can't I deliver p2 ?",
+            "Question Type": "WHY_NOT_PROPERTY",
+            "Question Arguments": "p2 to smith",
+            "MUGS": "[[p2 to smith, p0 to cafe], [p2 to smith, Use t1 for cafe-smith]]",
+            "MGCS": "",
+            "Enforced Goals": "[Use t1 for cafe-smith, Never same trucks for p3 and p4]",
+            "Satisfied Goals": "[p0 to cafe, p1 to packingstation]",
+            "Unsatisfied Goals": "[p2 to smith, p4 to supermarket]",
+            "Existing Plan Properties": "[Use t1 for cafe-smith, Never same trucks for p3 and p4, p0 to cafe, p1 to packingstation, p2 to smith, p4 to supermarket, Gather all packages at packingstation at some point, Never different trucks for p1 and p2]",
+            "Return": "You can't deliver p2 to smith with the current plan because the goal Use t1 for cafe-smith is enforced and conflicting with what you want to achieve. If you remove this goal, you should be able to deliver p2 to smith.\n\nNote that then delivering p0 to cafe won't be satisfied anymore because it is also conflicting with p2 to smith."
         },
         {
-            "question": "Can I keep one rack empty?",
-            "question_type": "",
-            "question_arguments": "",
-            "mugs": "",
-            "mgcs": "",
-            "enforced_goals": "",
-            "achieved_goals": [
-                "deliver p1",
-                "deliver p2",
-                "deliver p3",
-                "swaps < 5",
-                "load j1",
-                "load j2",
-                "load j3"
-            ],
-            "unachieved_goals": [
-                "free rack",
-                "put j1 next to j2",
-                "swaps < 4"
-            ],
-            "existing_plan_properties": "",
-            "conflict": [
-                [
-                    "deliver p1",
-                    "load j2",
-                    "swaps <5",
-                    "free rack"
-                ],
-                [
-                    "free rack",
-                    "load j1",
-                    "load j2",
-                    "deliver p3",
-                    "swaps < 6"
-                ]
-            ],
-            "return": "Yes, do you want me to try?"
+            "Question": "How can I make sure all packages visit the packingstation?",
+            "Question Type": "HOW_PROPERTY",
+            "Question Arguments": "All at packingstation at some point",
+            "MUGS": "",
+            "MGCS": "[[p0 to bank before p1 to cafe],[p4 to supermarket]]",
+            "Enforced Goals": "[p0 to bank before p1 to cafe, p4 to supermarket]",
+            "Satisfied Goals": "[p1 visits packingstation, p2 visits packingstation]",
+            "Unsatisfied Goals": "[All at packingstation at some point]",
+            "Existing Plan Properties": "[p0 to bank before p1 to cafe, p1 visits packingstation, p2 visits packingstation, All at packingstation at some point, p4 to supermarket]",
+            "Return": "You can stop enforcing p0 to bank before p1 to cafe or p4 to supermarket. If you forgo one of these two goals, you will be able to achieve your goal."
+        },
+        {
+            "Question": "Why is the current plan unsolvable?",
+            "Question Type": "WHY_PLAN",
+            "Question Arguments": "NOGOAL",
+            "MUGS": "[[p1 visits packingstation, p2 visits packingstation]]",
+            "MGCS": "",
+            "Enforced Goals": "[p1 visits packingstation, p2 visits packingstation]",
+            "Satisfied Goals": "[]",
+            "Unsatisfied Goals": "[p0 to bank before p1 to cafe, p4 to supermarket]",
+            "Existing Plan Properties": "[p0 to bank before p1 to cafe, always visit packingstation before supermarket, p1 visits packingstation, p2 visits packingstation, All at packingstation at some point, p4 to supermarket]",
+            "Return": "The current plan is unsolvable because the two goals you enforced (p1 visits packingstation and p2 visits packingstation) are conflicting with each other. If you remove one of these two goals, you should be able to find a solution."
+        },
+        {
+            "Question": "Why is p2 to jack unsatisfied?",
+            "Question Type": "WHY_NOT_PROPERTY",
+            "Question Arguments": "p2 to jack",
+            "MUGS": "[[p2 to jack, p0 to bank, p3 to lopez], [p1 same truck as p2, p2 to jack, p1 to smith],[p1 same truck as p2, p2 to jack, p3 to lopez]]",
+            "MGCS": "",
+            "Enforced Goals": "[p0 to bank, p1 to smith, p1 same truck as p2]",
+            "Satisfied Goals": "[p3 to lopez]",
+            "Unsatisfied Goals": "[p4 to coffee, p2 to jack]",
+            "Existing Plan Properties": "[p0 to bank, p1 to smith, p2 to jack, p3 to lopez, p4 to coffee, p1 same truck as p2, Always visit packingstation before supermarket, Never different trucks for p1 and p2]",
+            "Return": "The main conflict is that you can't have p1 and p2 delivered while enforcing using the same truck for them. \n If you still choose to deliver p2, you will have to choose between p0 and p3, and choose between delivering p3 or using the same truck for p1 and p2."
         }
     ]
 }
+    
