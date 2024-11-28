@@ -1,0 +1,64 @@
+[
+	{
+		"class": "Block Position",
+		"color": "#ed736b",
+		"icon": "arrow_downward",
+		"type": "G",
+		"variables": {
+			"$B1": ["block"],
+			"$B2": ["block"]
+		},
+		"nameTemplate": "$B1 on $B2",
+		"formulaTemplate": "on($B1,$B2)",
+		"actionSetsTemplates": [],
+		"sentenceTemplate": "Block $B1 is on block $B2 .",
+		"initVariableConstraints": [],
+		"goalVariableConstraints": []
+	},
+       {
+		"class": "On Table",
+		"color": "#6b8eed",
+		"icon": "download_2",
+		"type": "LTL",
+		"variables": {
+			"$B1": ["block"]
+		},
+		"nameTemplate": "$B1 on table",
+		"formulaTemplate": "F ontable($B1)",
+		"actionSetsTemplates": [],
+		"sentenceTemplate": "Block $B1 is at some point on the table.",
+		"initVariableConstraints": [],
+		"goalVariableConstraints": []
+	},
+       {
+		"class": "On Table",
+		"color": "#6b8eed",
+		"icon": "file_download_off",
+		"type": "LTL",
+		"variables": {
+			"$B1": ["block"]
+		},
+		"nameTemplate": "$B1 never on table",
+		"formulaTemplate": "G ! ontable($B1)",
+		"actionSetsTemplates": [],
+		"sentenceTemplate": "Block $B1 is never on the table.",
+		"initVariableConstraints": [],
+		"goalVariableConstraints": []
+	},
+      {
+		"class": "Order",
+		"color": "#6bed89",
+		"icon": "low_priority",
+		"type": "LTL",
+		"variables": {
+			"$B1": ["block"],
+			"$B2": ["block"]
+		},
+		"nameTemplate": "$B1 before $B2",
+		"formulaTemplate": "U ! holding($B2) holding($B1)",
+		"actionSetsTemplates": [],
+		"sentenceTemplate": "Pick up block $B1 before $B2 .",
+		"initVariableConstraints": [],
+		"goalVariableConstraints": []
+	}
+]

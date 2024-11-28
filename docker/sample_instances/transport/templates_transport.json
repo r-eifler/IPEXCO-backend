@@ -1,0 +1,125 @@
+[
+    {
+        "class": "Deliver",
+        "color": "#ed736b",
+        "icon": "local_shipping",
+        "type": "G",
+        "variables": {
+            "$P": ["package"],
+            "$L": ["location"]
+        },
+        "nameTemplate": "$P to $L",
+        "formulaTemplate": "at($P,$L)",
+        "actionSetsTemplates": [],
+        "sentenceTemplate": "Package $P is delivered to location $L .",
+        "initVariableConstraints": [],
+        "goalVariableConstraints": []
+    },
+    {
+        "class": "Use",
+        "color": "#6b8eed",
+        "icon": "route",
+        "type": "LTL",
+        "variables": {
+            "$T": ["truck"],
+            "$Li": ["location"],
+            "$Lj": ["location"]
+        },
+        "nameTemplate": "Use $Li-$Lj with $T",
+        "formulaTemplate": "useConnection",
+        "actionSetsTemplates": [
+            {
+                "name": "useConnection",
+                "actionTemplates": [
+                    "drive $T $Li $Lj fuellevel fuellevel fuellevel",
+                    "drive $T $Lj $Li fuellevel fuellevel fuellevel"
+                ]
+            }
+        ],
+        "sentenceTemplate": "The road between $Li and $Lj is used with Truck $T .",
+        "initVariableConstraints": ["connected($Li,$Lj)"],
+        "goalVariableConstraints": []
+    },
+    
+    {
+        "class": "Use",
+        "color": "#6bed89",
+        "icon": "location_on",
+        "type": "LTL",
+        "variables": {
+            "$T": ["truck"],
+            "$L": ["location"]
+        },
+        "nameTemplate": "Visit $L with $T",
+        "formulaTemplate": "<> at($T,$L)",
+        "actionSetsTemplates": [],
+        "sentenceTemplate": "Truck $T visited location $L .",
+        "initVariableConstraints": [],
+        "goalVariableConstraints": []
+    },
+    {
+        "class": "Order",
+        "color": "#ed9f6b",
+        "icon": "low_priority",
+        "type": "LTL",
+        "variables": {
+            "$Pi": ["package"],
+            "$Pj": ["package"],
+            "$Li": ["location"],
+            "$Lj": ["location"]
+        },
+        "nameTemplate": "$Pi to $Li before $Pj to $Lj",
+        "formulaTemplate": "&& U ! at($Pj,$Lj) at($Pi,$Li) && <> at($Pi,$Li) <> at($Pj,$Lj)",
+        "actionSetsTemplates": [],
+        "sentenceTemplate": "$Pi is delivered to $Li before $Pj is delivered to $Lj .",
+        "initVariableConstraints": [],
+        "goalVariableConstraints": []
+    },
+    {
+        "class": "Same",
+        "color": "#b66bed",
+        "icon": "merge",
+        "type": "LTL",
+        "variables": {
+            "$Pi": ["package"],
+            "$Pj": ["package"]
+        },
+        "nameTemplate": "Never different trucks for $Pi and $Pj",
+        "formulaTemplate": "G ! || && in($Pi,t1) in($Pj,t2) && in($Pi,t2) in($Pj,t1)",
+        "actionSetsTemplates": [],
+        "sentenceTemplate": "Packages $Pi and $Pj are never in different trucks.",
+        "initVariableConstraints": [],
+        "goalVariableConstraints": []
+    },
+    {
+        "class": "Same",
+        "color": "#b66bed",
+        "icon": "density_large",
+        "type": "LTL",
+        "variables": {
+            "$Pi": ["package"],
+            "$Pj": ["package"]
+        },
+        "nameTemplate": "Never same trucks for $Pi and $Pj",
+        "formulaTemplate": "G ! || && in($Pi,t1) in($Pj,t1) && in($Pi,t2) in($Pj,t2)",
+        "actionSetsTemplates": [],
+        "sentenceTemplate": "Packages $Pi and $Pj are never in the same truck.",
+        "initVariableConstraints": [],
+        "goalVariableConstraints": []
+    },
+    {
+        "class": "Gather",
+        "color": "#ed9f6b",
+        "icon": "arrows_input",
+        "type": "LTL",
+        "variables": {
+            "$L": ["location"]
+        },
+        "nameTemplate": "All packages gathered at $L at some point",
+        "formulaTemplate": "F && at(p0,$L) && at(p1,$L) && at(p2,$L) && at(p3,$L) && at(p4,$L) ",
+        "actionSetsTemplates": [],
+        "sentenceTemplate": "All packages are gathered at location $L at some point.",
+        "initVariableConstraints": [],
+        "goalVariableConstraints": []
+    }
+]
