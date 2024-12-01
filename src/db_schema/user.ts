@@ -2,8 +2,17 @@ import mongoose, { Document, Schema } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 
+export type UserRole = 'admin' | 'creator' | 'user-study'
+
+export interface UserData{
+    _id?: string;
+    name: string;
+    role: UserRole;
+}
+
 export interface User extends Document{
     name: string;
+    role: UserRole;
     password: string | null;
     tokens: { token: string }[];
 
@@ -12,28 +21,17 @@ export interface User extends Document{
 }
 
 const UserSchema =  new Schema<User>({
-    name: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    password: {
-        type: String,
-        required: true,
-        minLength: 7
-    },
-    tokens: [{
-        token: {
-            type: String,
-            required: true
-        }
-    }]
-});
+    name: {type: String, required: true,trim: true},
+    role: {type: String, required: true},
+    password: {type: String, required: true, minLength: 7},
+    tokens: [{token: {type: String, required: true}}]
+}, { timestamps: true});
+
 
 UserSchema.pre('save', async function (next) {
     // Hash the password before saving the user model
     const user = this as User;
-    if (user.isModified('password')) {
+    if (user.password != null && user.isModified('password')) {
         user.password = await bcrypt.hash(user.password, 8);
     }
     next();

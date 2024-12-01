@@ -122,6 +122,11 @@ projectRouter.get('/meta-data', auth, async (req: any, res) => {
 
 projectRouter.get('/:id', auth, async (req, res) => {
     const id = req.params.id;
+
+    if (id == null || id == 'null') { 
+        return res.status(404).send({ message: 'No project found.' });
+    }
+
     console.log("Get project: " + id)
     const project = await ProjectModel.findOne({ _id: id }).populate('baseTask');;
     if (!project) { 
