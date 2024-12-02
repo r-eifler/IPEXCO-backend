@@ -32,7 +32,7 @@ import { initializeAssistants, OpenAIModelName } from './llm/initialize_assistan
 
 
 console.log('-------- Initializing LLMs assistants -----');
-const model =  "gpt-4o-mini";
+const model =  "gpt-4o";
 //process.env.OPENAI_MODEL_NAME ||
 initializeAssistants(model as OpenAIModelName).then(console.log).catch(console.error);
 
