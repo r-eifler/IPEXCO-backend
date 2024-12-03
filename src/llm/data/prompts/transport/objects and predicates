@@ -1,22 +1,42 @@
 transport-opt08-strips
 
 objects: 
-city-loc-1 - location
-city-loc-2 - location
-city-loc-3 - location
-truck-1 - vehicle
-truck-2 - vehicle
-package-1 - package
-package-2 - package
-capacity-0 - capacity-number
-capacity-1 - capacity-number
-capacity-2 - capacity-number
-capacity-3 - capacity-number
-capacity-4 - capacity-number
+postoffice - location
+supermarket - location
+taylor - location
+cafe - location
+bank - location
+lopez - location
+jones - location
+smith - location
+packingstation - location
+t1 - truck
+t2 - truck
+p0 - package
+p1 - package
+p2 - package
+p3 - package
+p4 - package
+level13 - fuellevel
+level12 - fuellevel
+level11 - fuellevel
+level10 - fuellevel
+level9 - fuellevel
+level8 - fuellevel
+level7 - fuellevel
+level6 - fuellevel
+level5 - fuellevel
+level4 - fuellevel
+level3 - fuellevel
+level2 - fuellevel
+level1 - fuellevel
+level0 - fuellevel
 
 predicates_nonstatic:
-(in ?x - package ?v - vehicle)
-(capacity ?v - vehicle ?s1 - capacity-number)
+(at ?o - object ?l - location)
+(in ?p - package ?t - truck)
+(empty ?t - truck)
+(fuel ?truck - truck ?level - fuellevel)
 
 goal:
 (at package-1 city-loc-2)
@@ -37,7 +57,14 @@ G((in(package-1, truck-1) && in(package-2, truck-1)) || (in(package-1, truck-2) 
 G(!((in(package-1, truck-1) && in(package-2, truck-1)) || (in(package-1, truck-2) && in(package-2, truck-2)))) : package 1 and 2 are never in the same truck
 ! at(package-1, city-loc-2) U at(package-2, city-loc-2) : package 1 must arrive at city 2 only after package 2
 
-
-
-
-
+Use t1 for cafe-smith
+Use t2 for bank-supermarket
+Visit jones with t1
+p4 to supermarket before p3 to lopez
+p0 to bank before p1 to cafe
+Never different trucks for p1 and p2
+Never same trucks for p3 and p4
+All at packingstation at some point
+p0 to cafe
+p2 to smith 
+p5 to lopez
