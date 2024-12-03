@@ -29,6 +29,7 @@ import { LLMRouter } from './routes/llm-connector';
 
 import { explainerRouter } from './routes/explainer';
 import { initializeAssistants, OpenAIModelName } from './llm/initialize_assistants';
+import { reverseTranslatorsRouter } from './routes/reverse-translators';
 
 
 console.log('-------- Initializing LLMs assistants -----');
@@ -119,6 +120,7 @@ app.use('/api/run', iterationStepRouter);
 app.use('/api/project', projectRouter);
 
 app.use('/api/llm', LLMRouter);
+app.use('/api/reverse-translators', reverseTranslatorsRouter);
 
 // catch 404 and forward to error handler
 app.all('*', (req, res, next) => {
