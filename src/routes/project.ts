@@ -6,6 +6,7 @@ import express from 'express';
 
 import { ProjectModel } from '../db_schema/project';
 import { PlanningTask } from '../db_schema/planning_task';
+import { DemoModel } from '../db_schema/demo';
 
 export const projectRouter = express.Router();
 
@@ -22,7 +23,7 @@ projectRouter.post('/', auth, async (req: any, res) => {
 
         projectData.user = req.user._id;
         projectData.domainSpecification = JSON.stringify(projectData.domainSpecification)
-        projectData.baseTask = JSON.stringify(projectData.baseTask)
+        projectData.baseTask.model = JSON.stringify(projectData.baseTask.model)
         delete projectData._id;
 
         console.log(projectData)
@@ -88,7 +89,7 @@ projectRouter.put('/:id', auth, async (req, res) => {
 
 
 projectRouter.get('', auth, async (req: any, res) => {
-    const projects = await ProjectModel.find({ user: req.user._id}).populate('baseTask');
+    const projects = await ProjectModel.find({ user: req.user._id});
     if (!projects) { 
         return res.status(404).send({ message: 'No project found.' });
     }

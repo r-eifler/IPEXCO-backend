@@ -1,6 +1,6 @@
+import { PlanningTask, PlanningTaskSchema } from './planning_task';
 import { User } from './user';
 import mongoose, { Document, Schema } from 'mongoose';
-import { PlanningTask } from './planning_task';
 
 const baseOptions = {
     discriminatorKey: 'itemType',
@@ -24,7 +24,7 @@ export interface Project extends Document{
     user: User;
     domainSpecification: string;
     description: string;
-    baseTask: string; 
+    baseTask: PlanningTask; 
     settings: any;
 }
 
@@ -34,7 +34,7 @@ const BaseProjectSchema = new Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     domainSpecification: { type: String, required: true},
     description: { type: String, required: true},
-    baseTask: { type: String, required: true},
+    baseTask: { type: PlanningTaskSchema, required: true},
     settings: { type: Object, required: false},
 }, baseOptions);
 
