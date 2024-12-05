@@ -127,9 +127,7 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req: any, res) 
         res.send({
             status: true,
             message: 'Explain computation registered',
-            data: {
-                id: demoModel._id
-            }
+            data: demoModel._id
         });
 
 
