@@ -152,11 +152,13 @@ LLMRouter.post('/et', async (req, res) => {
             const content = lastAssistantMessage.content[0];
             if (content && 'text' in content) {
                 const response = content.text.value;
-                llmContext.visibleMessages.push({ role: 'sender', content: response, iterationStepId: req.body.iterationStepId });
+                const { output } = parseExplanationTranslation(response);
+
+                llmContext.visibleMessages.push({ role: 'sender', content: output, iterationStepId: req.body.iterationStepId });
                 llmContext.seenByETMessages.push({ role: 'sender', content: response });
                 await llmContext.save();
                 console.log(`Sent value > ${response}`);
-                res.status(200).send({ data: { "response": response, "threadId": llmContext.threadIdET } });
+                res.status(200).send({ data: { "response": output, "threadId": llmContext.threadIdET } });
             } else {
                 console.log('No valid content in assistant message');
                 res.status(404).send({ error: 'No valid content in assistant message' });
@@ -230,9 +232,9 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
                 threadIdET: threadIdET,
                 visibleMessages: [{ role: 'receiver', content: req.body.originalQuestion, iterationStepId: req.body.iterationStepId }],
                 visiblePPCreationMessages: [],
-                seenByGTMessages: [{role: 'receiver', content: req.body.gtRequest}],
+                seenByGTMessages: [{ role: 'receiver', content: req.body.gtRequest }],
                 seenByETMessages: [],
-                seenByQTMessages: [{role: 'receiver', content: req.body.qtRequest}],
+                seenByQTMessages: [{ role: 'receiver', content: req.body.qtRequest }],
             }
             llmContext = new LLMContextModel(llmContextData);
             await llmContext.save();
@@ -245,7 +247,7 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
             // const myThread = await openai_client.beta.threads.retrieve(llmContext.threadIdGT);
         }
 
-        if (llmContext == null ) {
+        if (llmContext == null) {
             res.status(404).send({ error: 'No LLMContext found' });
             return;
         }
@@ -258,6 +260,8 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
             res.status(500).send({ error: `QT run status is null` });
             return;
         }
+
+        console.log("qtOutput", qtOutput)
 
         // Get QT response
         let qtResponse;
@@ -273,69 +277,73 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
             }
         }
 
+        console.log("qtResponse", qtResponse)
+
         if (qtResponse == undefined) {
             res.status(404).send({ error: 'No QT response found' });
             return;
         }
 
         // Parse QT response and prepare GT input
-        const { questionType, goal: untranslatedGoal, existing } = parseQuestionTranslation(qtResponse);
+        const { questionType, questionArgument: untranslatedGoal, used, reverseTranslation, feedback } = parseQuestionTranslation(qtResponse);
 
-        console.log("output of parseQuestionTranslation", { questionType, untranslatedGoal, existing })
+        console.log("output of parseQuestionTranslation", { questionType, untranslatedGoal, used, reverseTranslation, feedback })
         const gtInput = req.body.gtRequest.replace("{goal_description}", untranslatedGoal);
-
-        console.log("gtInput", gtInput)
-        // Process GT request
-        const gtOutput = await processGtRequest(gtInput, llmContext.threadIdGT);
-        if (gtOutput == undefined) {
-            res.status(500).send({ error: `GT run status is null` });
-            return;
-        }
         let gtResponse;
-        if (gtOutput.lastAssistantMessage) {
-            const content = gtOutput.lastAssistantMessage.content[0];
-            if (content && 'text' in content) {
-                gtResponse = content.text.value;
-                llmContext.seenByGTMessages.push({ role: 'receiver', content: gtResponse });
-                await llmContext.save();
+        let planProperty;
+        // Process GT request only if used is 'NEVER-USED'
 
-            } else {
-                res.status(404).send({ error: 'No valid content in GT assistant message' });
+
+        if (used == "ALREADY-USED") {
+
+            planProperty = await PlanPropertyModel.findOne({
+                name: untranslatedGoal,
+                project: req.body.projectId
+            });
+            if (planProperty != null) {
+                gtResponse = { formula: planProperty.formula, shortName: planProperty.name, reverseTranslation: planProperty.naturalLanguageDescription, feedback: "" };
+            }
+
+            console.log("Because used is ALREADY-USED, planProperty is", planProperty)
+        }
+        if (used == 'NEVER-USED' || planProperty == null || planProperty == undefined) {
+            console.log("gtInput", gtInput)
+            const gtOutput = await processGtRequest(gtInput, llmContext.threadIdGT);
+            if (gtOutput == undefined) {
+                res.status(500).send({ error: `GT run status is null` });
                 return;
             }
-        }
-        if (gtResponse == undefined) {
-            res.status(404).send({ error: 'No GT response found' });
-            return;
-        }
+            if (gtOutput.lastAssistantMessage) {
+                const content = gtOutput.lastAssistantMessage.content[0];
+                if (content && 'text' in content) {
+                    gtResponse = content.text.value;
+                    llmContext.seenByGTMessages.push({ role: 'receiver', content: gtResponse });
+                    await llmContext.save();
 
-        // Get GT response to save plan property
-        if (gtOutput.lastAssistantMessage) {
-            const content = gtOutput.lastAssistantMessage.content[0];
-            if (content && 'text' in content) {
-                const gtResponse = content.text.value;
-                const { formula, shortName } = parseGoalTranslation(gtResponse);
-
-
-                let planProperty = null;
-                // CHECK IF PLAN PROPERTY ALREADY EXISTS
-                if (existing == 'ALREADY-USED') {
-
-                    planProperty = await PlanPropertyModel.findOne({
-                        name: untranslatedGoal,
-                        project: req.body.projectId
-                    });
-
+                } else {
+                    res.status(404).send({ error: 'No valid content in GT assistant message' });
+                    return;
                 }
+            }
+            if (gtResponse == undefined) {
+                res.status(404).send({ error: 'No GT response found' });
+                return;
+            }
 
-                if (existing == 'NEVER-USED' || planProperty == null) {
+            // Get GT response to save plan property
+            if (gtOutput.lastAssistantMessage) {
+                const content = gtOutput.lastAssistantMessage.content[0];
+                if (content && 'text' in content) {
+                    const gtResponse = content.text.value;
+                    const { formula, shortName, reverseTranslation, feedback } = parseGoalTranslation(gtResponse);
+
 
                     const planProperty = new PlanPropertyModel({
                         name: shortName,
                         project: req.body.projectId,
                         type: 'LTL',
                         formula: formula,
-                        naturalLanguageDescription: untranslatedGoal,
+                        naturalLanguageDescription: reverseTranslation,
                         isUsed: true,
                         globalHardGoal: false,
                         utility: 1,
@@ -344,46 +352,39 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
                         class: 'Defined using Natural Language',
                     });
                     await planProperty.save();
-                }
-
-                if (planProperty == null) {
-                    // This should never happen
-                    res.status(404).send({ error: 'No plan property found' });
-                    return;
-                }
 
 
-                // CHECK IF PLAN PROPERTY IS SATISFIED OR NOT
-
-                // IF SATISFIED, RETURN ERROR
-
-                // IF UNSATISFIED, RETURN PLAN PROPERTY
-
-                const question: Question = {
-                    iterationStepId: req.body.iterationStepId,
-                    questionType: questionType as QuestionType,
-                    propertyId: planProperty._id
-                };
-
-
-                res.status(200).send({
-                    data: {
-                        qtResponse,
-                        gtResponse,
-                        threadIdQT: llmContext.threadIdQT,
-                        threadIdGT: llmContext.threadIdGT,
-                        questionType: questionType as QuestionType,
-                        goal: planProperty._id,
-                        question: question
+                    if (planProperty == null) {
+                        // This should never happen
+                        res.status(404).send({ error: 'No plan property found' });
+                        return;
                     }
-                });
 
-            } else {
-                res.status(404).send({ error: 'No valid content in GT assistant message' });
+                }
             }
-        } else {
-            res.status(404).send({ error: 'No GT assistant message found' });
         }
+
+        let ppId = planProperty?._id;
+
+        const question: Question = {
+            iterationStepId: req.body.iterationStepId,
+            questionType: questionType as QuestionType,
+            propertyId: ppId
+        };
+
+        console.log("Sending data", { qtResponse, gtResponse, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT })
+        res.status(200).send({
+            data: {
+                qtResponse,
+                gtResponse,
+                threadIdQT: llmContext.threadIdQT,
+                threadIdGT: llmContext.threadIdGT,
+                questionType: questionType as QuestionType,
+                goal: ppId,
+                question: question
+            }
+        });
+
     } catch (error) {
         console.error(error);
         res.status(500).send(error);
@@ -393,21 +394,31 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
 
 interface QuestionTranslation {
     questionType: string;
-    goal: string;
-    existing: string;
+    questionArgument: string;
+    used: string;
+    reverseTranslation: string;
+    feedback: string;
 }
 
 function parseQuestionTranslation(qtResponse: string): QuestionTranslation {
     try {
-        // Assuming qtResponse is a string with format "<questionType>;<goal>;<existing>"
-        const [questionType, goal, existing] = qtResponse.split(';').map(part => part.trim());
-        return { questionType, goal, existing };
+        // qtResponse is a JSON object
+        const qtResponseObject = JSON.parse(qtResponse);
+        return qtResponseObject;
+
+
+        // // Assuming qtResponse is a string with format "<questionType>;<goal>;<existing>"
+        // const [questionType, goal, existing] = qtResponse.split(';').map(part => part.trim());
+        // return { questionType, goal, existing };
     } catch (error) {
         console.error('Error parsing question translation:', error);
+        console.log("qtResponse", qtResponse)
         return {
-            questionType: 'WHY_PLAN',
-            goal: 'NOGOAL',
-            existing: 'ALREADY-USED'
+            questionType: '',
+            questionArgument: '',
+            used: '',
+            reverseTranslation: '',
+            feedback: 'Error parsing question translation. Please try again.'
         };
     }
 }
@@ -415,22 +426,45 @@ function parseQuestionTranslation(qtResponse: string): QuestionTranslation {
 interface GoalTranslation {
     formula: string;
     shortName: string;
+    reverseTranslation: string;
+    feedback: string;
 }
 
 function parseGoalTranslation(gtResponse: string): GoalTranslation {
     try {
-        // Assuming gtResponse is a string with format "<goal>;<shortName>"
-        const [formula, shortName] = gtResponse.split(';').map(part => part.trim());
-        return { formula, shortName };
+        // gtResponse is a JSON object
+        const gtResponseObject = JSON.parse(gtResponse);
+        return gtResponseObject;
+
+        // // Assuming gtResponse is a string with format "<goal>;<shortName>"
+        // const [formula, shortName] = gtResponse.split(';').map(part => part.trim());
+        // return { formula, shortName };
     } catch (error) {
         console.error('Error parsing goal translation:', error);
         return {
             formula: '',
-            shortName: ''
+            shortName: '',
+            reverseTranslation: '',
+            feedback: 'Error parsing goal translation. Please try again.'
         };
     }
 }
 
+interface ExplanationTranslation {
+    output: string;
+}
+
+function parseExplanationTranslation(etResponse: string): ExplanationTranslation {
+    try {
+        const etResponseObject = JSON.parse(etResponse);
+        return etResponseObject;
+    } catch (error) {
+        console.error('Error parsing explanation translation:', error);
+        return {
+            output: 'Error parsing explanation translation. Please try again.'
+        };
+    }
+}
 
 async function listPlanProperties(projectId: string) {
     const planProperties = await PlanPropertyModel.find({ project: projectId });
@@ -448,14 +482,14 @@ async function listPlanProperties(projectId: string) {
 
 
 LLMRouter.get('/llm-context', async (req, res) => {
-    
+
     if (req.query.projectId === undefined) {
         return res.status(404).send({ message: 'no projectId specified' });
     }
-    const projectId : string = req.query.projectId as string;
+    const projectId: string = req.query.projectId as string;
     const llmContext = await LLMContextModel.findOne({ project: projectId, assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_GOALTRANSLATOR is not set') })(), assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_QUESTIONTRANSLATOR is not set') })(), assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_EXPLANATIONTRANSLATOR is not set') })() });
 
-    if (!llmContext) { 
+    if (!llmContext) {
         return res.status(404).send({ message: 'No LLMContext found.' });
     }
 

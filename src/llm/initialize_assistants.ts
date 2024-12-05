@@ -5,6 +5,7 @@ import blocksworldTemplates from "./data/prompts/blocksworld/templates.json";
 import transportPrompts from "./data/prompts/transport/prompts.json";
 import transportTemplates from "./data/prompts/transport/templates.json";
 import belugaTemplates from "./data/prompts/beluga/templates.json";
+import outputSchemas from "./output_schemas.json";
 import fs from 'fs/promises';
 import path from 'path';
 import { openai_client } from "./openai_client";
@@ -60,6 +61,10 @@ async function createAssistant(name: string, instructions: string, examples: any
         instructions: `${domains[domain].system}${instructions} \n\nExamples : \n\n${formatExamples(examples, translatorType)}\n\nEnd of the examples.`,
         name,
         model: model,
+        response_format: {
+            type: outputSchemas[translatorType]["type"] as "text" | "json_schema" | "json_object",
+            json_schema: outputSchemas[translatorType]["json_schema"]
+        }
     });
     return assistant.id;
 }
@@ -88,6 +93,7 @@ export async function initializeAssistants(model: OpenAIModelName) {
         goalTranslator: await createAssistant("Goal Translator (transport)", transportPrompts.goal_translator, transportPrompts.gt_examples, openai, model, "goal_translator"),
         questionTranslator: await createAssistant("Question Translator (transport)", transportPrompts.question_translator, transportPrompts.qt_examples, openai, model, "question_translator"),
         explanationTranslator: await createAssistant("Explanation Translator (transport)", transportPrompts.explanation_translator, transportPrompts.et_examples, openai, model, "explanation_translator"),
+        dispatcher: await createAssistant("Dispatcher (transport)", transportPrompts.dispatcher, transportPrompts.dispatcher_examples, openai, model, "dispatcher"),
     };
 
     // Read existing .env file

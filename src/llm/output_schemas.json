@@ -1,0 +1,147 @@
+{
+    "goal_translator": {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "GT_feedback",
+            "strict": true,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "formula": {
+                        "type": "string",
+                        "description": "The well-formed LTLf formula representing the input utterance using only provided predicates and objects."
+                    },
+                    "shortName": {
+                        "type": "string",
+                        "description": "A very short description of the translated goal."
+                    },
+                    "reverseTranslation": {
+                        "type": "string",
+                        "description": "The translation of the generated formula back into natural language to check if the translation is correct."
+                    },
+                    "feedback": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Feedback provided to the user if the translation is not possible. Only use this entry in this case."
+                    }
+                },
+                "required": [
+                    "formula",
+                    "shortName",
+                    "reverseTranslation",
+                    "feedback"
+                ],
+                "additionalProperties": false
+            }
+        }
+    },
+    "question_translator": {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "QT_feedback",
+            "strict": true,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "questionType": {
+                        "type": "string",
+                        "description": "The type of question that was asked.",
+                        "enum": [
+                            "S-WHY-NOT",
+                            "S-HOW",
+                            "S-CAN",
+                            "S-WHAT-IF",
+                            "US-WHY",
+                            "US-HOW",
+                            ""
+                        ]
+                    },
+                    "questionArgument": {
+                        "type": "string",
+                        "description": "The argument of the question that was asked, i.e. the goal or plan property that was asked about."
+                    },
+                    "used": {
+                        "type": "string",
+                        "description": "Whether the questionArgument is in the existing plan properties (ALREADY-USED) or not (NEVER-USED).",
+                        "enum": [
+                            "ALREADY-USED",
+                            "NEVER-USED",
+                            ""
+                        ]
+                    },
+                    "reverseTranslation": {
+                        "type": "string",
+                        "description": "The translation of the question back into natural language to check if the translation is correct."
+                    },
+                    "feedback": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Feedback provided to the user if the translation is not possible. Only use this entry in this case."
+                    }
+                },
+                "required": [
+                    "questionType",
+                    "questionArgument",
+                    "used",
+                    "reverseTranslation",
+                    "feedback"
+                ],
+                "additionalProperties": false
+            }
+        }
+    },
+    "explanation_translator": {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "ET_feedback",
+            "strict": true,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "output": {
+                        "type": "string",
+                        "description": "The output of the explanation translator."
+                    }
+                },
+                "required": [
+                    "output"
+                ],
+                "additionalProperties": false
+            }
+        }
+    },
+    "dispatcher": {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "Dispatcher",
+            "strict": true,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "transferTo": {
+                        "type": "string",
+                        "description": "The assistant to transfer the question to, or the user if the message is not clear or not suited for any assistant.",
+                        "enum": [
+                            "user",
+                            "question_translator",
+                            "explanation_translator"
+                        ]
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "In case the message is transferred to another translator, return exactly the message you received. If the target is the user, respond to their request."
+                    }
+                },
+                "required": [
+                    "transferTo",
+                    "message"
+                ],
+                "additionalProperties": false
+            }
+        }
+    }
+}
