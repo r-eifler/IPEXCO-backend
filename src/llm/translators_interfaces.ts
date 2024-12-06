@@ -54,7 +54,7 @@ export interface QuestionTranslationResponse {
     userInfo: string,
     answer: string,
     question_type: string,
-    questionArguments: PlanProperty[],
+    questionArgument: PlanProperty[],
     interactionHistory: string,
 }
 
@@ -65,7 +65,7 @@ export interface QuestionTranslationResponse {
 export interface ExplanationTranslationRequest {
     question: string,
     question_type: string,
-    questionArguments: PlanProperty[]
+    questionArgument: PlanProperty[]
     MUGS: PlanProperty[][],
     MGCS: PlanProperty[][],
     predicates: PDDLPredicate[],

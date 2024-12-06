@@ -406,10 +406,6 @@ function parseQuestionTranslation(qtResponse: string): QuestionTranslation {
         const qtResponseObject = JSON.parse(qtResponse);
         return qtResponseObject;
 
-
-        // // Assuming qtResponse is a string with format "<questionType>;<goal>;<existing>"
-        // const [questionType, goal, existing] = qtResponse.split(';').map(part => part.trim());
-        // return { questionType, goal, existing };
     } catch (error) {
         console.error('Error parsing question translation:', error);
         console.log("qtResponse", qtResponse)
