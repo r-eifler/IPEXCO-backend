@@ -122,22 +122,33 @@ projectRouter.get('/meta-data', auth, async (req: any, res) => {
 
 
 projectRouter.get('/:id', auth, async (req, res) => {
-    const id = req.params.id;
+    try {
+        const id = req.params.id;
 
-    if (id == null || id == 'null') { 
-        return res.status(404).send({ message: 'No project found.' });
+        if (id == null || id == 'null') { 
+            return res.status(404).send({ message: 'No project found.' });
+        }
+
+        const project = await ProjectModel.findOne({ _id: id });
+        if (project) { 
+            return res.send({
+                data: project
+            });
+        }
+
+        const demo = await DemoModel.findOne({ _id: id });
+        if (demo) { 
+            return res.send({
+                data: demo
+            });
+        }
+
+        return res.status(500).send({ message: 'No project found.' });
+
+    } catch (ex : any) {
+        console.log(ex);
+        res.status(500).send();
     }
-
-    console.log("Get project: " + id)
-    const project = await ProjectModel.findOne({ _id: id }).populate('baseTask');;
-    if (!project) { 
-        return res.status(404).send({ message: 'No project found.' });
-    }
-
-    res.send({
-        data: project
-    });
-
 });
 
 projectRouter.delete('/meta-data/:id', auth, async (req, res) => {

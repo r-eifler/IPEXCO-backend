@@ -1,14 +1,17 @@
 import { UserStudyDataModel, UserStudyDemoData } from '../db_schema/user-study/user-study-store';
 import { IterationStep, IterationStepModel } from '../db_schema/iteration_step';
 import express from 'express';
-import { authUserStudy } from '../middleware/auth';
+import { auth, authUserStudy } from '../middleware/auth';
+import { Demo, DemoModel } from '../db_schema/demo';
 
 
 export const iterationStepRouter = express.Router();
 
-iterationStepRouter.get('/', authUserStudy, async (req, res) => {
-    const projectId : string = req.query.projectId as string;
-    const steps = await IterationStepModel.find({ project: projectId})
+iterationStepRouter.get('/', auth, async (req: any, res) => {
+
+    const projectId: string = req.query.projectId as string;
+    const userId: string = req.user._id;
+    const steps = await IterationStepModel.find({ project: projectId, user: userId})
 
     if (!steps) { 
         return res.status(404).send({ message: 'ERROR: No step found.' });
@@ -20,7 +23,7 @@ iterationStepRouter.get('/', authUserStudy, async (req, res) => {
 
 });
 
-iterationStepRouter.get('/:id', authUserStudy, async (req, res) => {
+iterationStepRouter.get('/:id', auth, async (req, res) => {
     const id =  req.params.id;
     const run = await IterationStepModel.findOne({ _id: id});
 
@@ -34,11 +37,12 @@ iterationStepRouter.get('/:id', authUserStudy, async (req, res) => {
 
 });
 
-iterationStepRouter.post('', authUserStudy, async (req: any, res) => {
+iterationStepRouter.post('', auth, async (req: any, res) => {
 
     try {
         console.log("create iter step");
         let iterStepData = req.body.data as IterationStep;
+        iterStepData.user = req.user._id;
         iterStepData.task.model = JSON.stringify(iterStepData.task.model)
 
         const iterationStep = new IterationStepModel(iterStepData);
@@ -46,6 +50,13 @@ iterationStepRouter.post('', authUserStudy, async (req: any, res) => {
             return res.status(403).send('Iteration Step could not be created.');
         }
         await iterationStep.save();
+
+        const demo: Demo | null = await DemoModel.findOne({ _id: iterStepData?.project});
+        if(demo){
+            console.log('Extract explanations from demo.');
+            iterationStep.globalExplanation = demo.globalExplanation;
+            iterationStep.save();
+        }
 
         // TODO
         // if (req.userStudyUser) {
@@ -87,7 +98,7 @@ iterationStepRouter.post('', authUserStudy, async (req: any, res) => {
 
 
 
-iterationStepRouter.put('/:id', authUserStudy, async (req, res) => {
+iterationStepRouter.put('/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
         const step: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
@@ -121,44 +132,23 @@ iterationStepRouter.put('/:id', authUserStudy, async (req, res) => {
 });
 
 
-iterationStepRouter.delete('/:id', authUserStudy, async (req, res) => {
+iterationStepRouter.delete('/:id', auth, async (req, res) => {
 
-    const step: IterationStep | null = await IterationStepModel.findOne({ _id: req.params.id });
+    try {
+        const result = await IterationStepModel.deleteOne({ _id: req.params.id });
 
-    if (!step) {
-        return res.status(404).send({ message: 'No step found.' });
+        if (!result) {
+            return res.status(404).send({ message: 'No step found.' });
+        }
+    
+    
+        res.send({
+            data: {deleted: true}
+        });
+    } catch (ex) {
+        res.status(500);
     }
 
-    // TODO
-    // await deleteIterationStep(step);
-
-    res.send({
-        data: step
-    });
-
 });
-
-iterationStepRouter.delete('/:id/explanation', authUserStudy, async (req, res) => {
-
-    const step: IterationStep | null = await IterationStepModel.findOne({ _id: req.params.id });
-
-    if (!step) {
-        return res.status(404).send({ message: 'No step found.' });
-    }
-
-    step.globalExplanation.MGCS = undefined;
-    step.globalExplanation.MUGS = undefined;
-    step.globalExplanation.createdAt = undefined;
-
-    // TODO
-    // await deleteIterationStep(step);
-
-    res.send({
-        data: step
-    });
-
-});
-
-
 
 
