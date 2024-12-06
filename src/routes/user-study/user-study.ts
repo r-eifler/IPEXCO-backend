@@ -58,7 +58,7 @@ userStudyRouter.put('/:id', auth, async (req, res) => {
 });
 
 
-userStudyRouter.get('/', authForward, async (req: any, res) => {
+userStudyRouter.get('/', auth, async (req: any, res) => {
     try {
         const allStudies: UserStudy[] = await UserStudyModel.find();
 

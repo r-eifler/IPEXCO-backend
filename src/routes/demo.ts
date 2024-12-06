@@ -370,7 +370,7 @@ demoRouter.put('/:id', auth, async (req, res) => {
     }
 });
 
-demoRouter.get('', authForward, async (req: any, res) => {
+demoRouter.get('', auth, async (req: any, res) => {
 
     console.log(req.user._id.toString());
     try {
@@ -408,6 +408,29 @@ demoRouter.get('/demos', auth, async (req, res) => {
         }
 
         // console.log(demos);
+
+        res.send({
+            data: demos
+        });
+    } catch (ex) {
+        console.log(ex)
+        res.status(500);
+    }
+
+});
+
+demoRouter.get('/user-study', auth, async (req: any, res) => {
+    try {
+
+        const allDemos: Demo[] = await DemoModel.find();
+        console.log("#allDemos: " + allDemos.length);
+        const demos = allDemos.filter(
+            d => d.public || (req.user && d.user.toString() == req.user._id.toString())
+        );
+        console.log("#demos: " + demos.length);
+        if (!demos) { 
+            return res.status(404).send({ message: 'No demos found' });
+        }
 
         res.send({
             data: demos
