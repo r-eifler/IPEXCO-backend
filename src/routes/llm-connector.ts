@@ -285,17 +285,18 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
         }
 
         // Parse QT response and prepare GT input
-        const { questionType, questionArgument: untranslatedGoal, used, reverseTranslation, directResponse } = parseQuestionTranslation(qtResponse);
+        const { questionType, questionArgument: untranslatedGoal, used, reverseTranslation:reverseTranslationQT, directResponse } = parseQuestionTranslation(qtResponse);
 
         if (directResponse != null) {
             res.status(200).send({ data: { directResponse, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT } });
             return;
         }
 
-        console.log("output of parseQuestionTranslation", { questionType, untranslatedGoal, used, reverseTranslation, directResponse })
+        console.log("output of parseQuestionTranslation", { questionType, untranslatedGoal, used, reverseTranslationQT, directResponse })
         const gtInput = req.body.gtRequest.replace("{goal_description}", untranslatedGoal);
         let gtResponse;
         let planProperty;
+        let reverseTranslationGT;
         // Process GT request only if used is 'NEVER-USED'
 
 
@@ -335,13 +336,12 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
                 return;
             }
 
-
             // Get GT response to save plan property
             if (gtOutput.lastAssistantMessage) {
                 const content = gtOutput.lastAssistantMessage.content[0];
                 if (content && 'text' in content) {
                     const gtResponse = content.text.value;
-                    const { formula, shortName, reverseTranslation, feedback } = parseGoalTranslation(gtResponse);
+                    const { formula, shortName, reverseTranslation: reverseTranslationGT, feedback } = parseGoalTranslation(gtResponse);
 
                     if (feedback != null) {
                         res.status(200).send({ data: { feedback, threadIdGT: llmContext.threadIdGT, threadIdQT: llmContext.threadIdQT } });
@@ -353,7 +353,7 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
                         project: req.body.projectId,
                         type: 'LTL',
                         formula: formula,
-                        naturalLanguageDescription: reverseTranslation,
+                        naturalLanguageDescription: reverseTranslationGT,
                         isUsed: true,
                         globalHardGoal: false,
                         utility: 1,
@@ -391,7 +391,9 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
                 threadIdGT: llmContext.threadIdGT,
                 questionType: questionType as QuestionType,
                 goal: ppId,
-                question: question
+                question: question,
+                reverseTranslationQT: reverseTranslationQT,
+                reverseTranslationGT: reverseTranslationGT
             }
         });
 
