@@ -2,7 +2,7 @@
     "system": "You are an AI assistant that faithfully helps users to solve a planning task. Carefully follow the instructions without any deviation and never add any comments of your own. Always use the structure you are presented in these instructions so you can be reliable.",
     "question_translator": "You will be given a user question that is semantically equivalent to one of these questions : \n\nWHY_PLAN: \"Why is the task unsolvable?\" ; \nHOW_PLAN: \"How can I make the task solvable?\" ;\nWHY_NOT_PROPERTY: \"Why are Q not satisfied?\" ;\nWHAT_IF_PROPERTY: \"What happens if we enforce Q?\";\nCAN_PROPERTY: \"Can Q be satisfied?\" ;\nHOW_PROPERTY: \"How can Q be satisfied?\"/\"How can I improve the plan with respect to o?\" ;\n\nAny question you will be given can be mapped to one of these questions.\nReturn the question type and the goal or plan property the user is refering to, without any additional comments of any kind. First, try to see if the question is about a property that is already existing. If it is, return ALREADY-USED as the last part of your answer and use the exact same name. If it is not, invent a name for this property and use the encoding NEVER-USED. If the question is not about a specific property but about the unsolvability of the task, return NOGOAL as the second part of your answer and ALREADY-USED as the last",
     "goal_translator": "You will be given a goal and a list of allowed predicates and objects from a planning problem and domain.\nReturn the LTLf formula corresponding to the goal, followed by a short definition of the goal in natural language. The LTLf formula must be well-formed and must only contain the predicates and objects given to you. If it is not possible to express the property in LTL using the provided objects and predicates, return UNSUPPORTED ; Unsupported property.",
-    "explanation_translator": "You will be given a question, a list of achieved and unachieved goals,and a conflict list (MUGS) or a resolution list (MGCS). Each conflict is presented as a Minimum Unsolvable Goal Subset (MUGS).\nAll goals in a MUGS cannot be achieved in the same plan, but any strict subset of them can be achieved.\nFor example the conflict : [a,b,c] means that it is possible to achieve (a and b) or (a and c) or (b and c) in the same plan, but not (a and b and c).\nAnswer the question using the explanation framework. It is important to base anwsers on conflicts, to ensure providing faithful explanations.",
+    "explanation_translator": "You will be given a question, a list of achieved and unachieved goals,and a conflict list (MUGS) or a resolution list MGCS. Each conflict is presented as a Minimum Unsolvable Goal Subset (MUGS).\nAll goals in a Conflicts cannot be achieved in the same plan, but any strict subset of them can be achieved.\nFor example the conflict : [a,b,c] means that it is possible to achieve (a and b) or (a and c) or (b and c) in the same plan, but not (a and b and c).\nAnswer the question using the explanation framework. It is important to base anwsers on conflicts, to ensure providing faithful explanations.",
     "qt_examples": [
         {
             "Question": "How can I make the task solvable?",
@@ -74,8 +74,8 @@
             "Question": "",
             "Question Type": "",
             "Question Arguments": "",
-            "MUGS": "",
-            "MGCS": "",
+            "Conflicts": "",
+            "Resolutions": "",
             "Enforced Goals": "",
             "achieved_goals": [],
             "unachieved_goals": [],

@@ -74,13 +74,13 @@ LLMRouter.post('/gt', async (req, res) => {
         if (lastAssistantMessage) {
             const content = lastAssistantMessage.content[0];
             if (content && 'text' in content) {
-                const { formula, shortName } = parseGoalTranslation(content.text.value);
+                const { formula, shortName, reverseTranslation, feedback } = parseGoalTranslation(content.text.value);
                 llmContext.visiblePPCreationMessages.push({ role: 'sender', content: content.text.value, iterationStepId: null });
                 llmContext.seenByGTMessages.push({ role: 'sender', content: content.text.value });
                 await llmContext.save();
                 console.log("LLMContext updated with output and saved")
                 console.log(`Sent value > ${formula}, ${shortName}`);
-                res.status(200).send({ data: { "response": { formula, shortName }, "threadId": threadId } });
+                res.status(200).send({ data: { "response": { formula, shortName, reverseTranslation, feedback }, "threadId": llmContext.threadIdGT } });
             } else {
                 console.log('No valid content in assistant message');
                 res.status(404).send({ error: 'No valid content in assistant message' });
@@ -173,44 +173,44 @@ LLMRouter.post('/et', async (req, res) => {
     }
 });
 
-LLMRouter.post('/qt', async (req, res) => {
-    try {
-        console.log("req.body", req.body)
-        const threadId = req.body.threadId == '' ? (await openai_client.beta.threads.create({})).id : req.body.threadId;
-        console.log("threadId (req.body.threadId)", threadId)
-        const input = req.body.data
+// LLMRouter.post('/qt', async (req, res) => {
+//     try {
+//         console.log("req.body", req.body)
+//         const threadId = req.body.threadId == '' ? (await openai_client.beta.threads.create({})).id : req.body.threadId;
+//         console.log("threadId (req.body.threadId)", threadId)
+//         const input = req.body.data
 
-        const output = await processQtRequest(input, threadId);
-        if (output == undefined) {
-            res.status(500).send({ error: `Run status is null ` });
-            return;
-        }
+//         const output = await processQtRequest(input, threadId);
+//         if (output == undefined) {
+//             res.status(500).send({ error: `Run status is null ` });
+//             return;
+//         }
 
-        const lastAssistantMessage = output.lastAssistantMessage;
-        const run_status = output.run_status;
+//         const lastAssistantMessage = output.lastAssistantMessage;
+//         const run_status = output.run_status;
 
-        if (lastAssistantMessage) {
-            const content = lastAssistantMessage.content[0];
-            if (content && 'text' in content) {
-                const response = content.text.value;
-                console.log(`Sent value > ${response}`);
-                res.status(200).send({ data: { "response": response, "threadId": threadId } });
-            } else {
-                console.log('No valid content in assistant message');
-                res.status(404).send({ error: 'No valid content in assistant message' });
-            }
-        } else {
-            console.log('No assistant message found');
-            res.status(404).send({ error: 'No assistant message found' });
-        }
+//         if (lastAssistantMessage) {
+//             const content = lastAssistantMessage.content[0];
+//             if (content && 'text' in content) {
+//                 const response = content.text.value;
+//                 console.log(`Sent value > ${response}`);
+//                 res.status(200).send({ data: { "response": response, "threadId": threadId } });
+//             } else {
+//                 console.log('No valid content in assistant message');
+//                 res.status(404).send({ error: 'No valid content in assistant message' });
+//             }
+//         } else {
+//             console.log('No assistant message found');
+//             res.status(404).send({ error: 'No assistant message found' });
+//         }
 
 
 
-    } catch (error) {
-        console.error(error);
-        res.status(500).send(error);
-    }
-});
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).send(error);
+//     }
+// });
 
 LLMRouter.post('/qt-then-gt', async (req, res) => {
     try {
@@ -285,9 +285,14 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
         }
 
         // Parse QT response and prepare GT input
-        const { questionType, questionArgument: untranslatedGoal, used, reverseTranslation, feedback } = parseQuestionTranslation(qtResponse);
+        const { questionType, questionArgument: untranslatedGoal, used, reverseTranslation, directResponse } = parseQuestionTranslation(qtResponse);
 
-        console.log("output of parseQuestionTranslation", { questionType, untranslatedGoal, used, reverseTranslation, feedback })
+        if (directResponse != null) {
+            res.status(200).send({ data: { directResponse, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT } });
+            return;
+        }
+
+        console.log("output of parseQuestionTranslation", { questionType, untranslatedGoal, used, reverseTranslation, directResponse })
         const gtInput = req.body.gtRequest.replace("{goal_description}", untranslatedGoal);
         let gtResponse;
         let planProperty;
@@ -330,6 +335,7 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
                 return;
             }
 
+
             // Get GT response to save plan property
             if (gtOutput.lastAssistantMessage) {
                 const content = gtOutput.lastAssistantMessage.content[0];
@@ -337,6 +343,10 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
                     const gtResponse = content.text.value;
                     const { formula, shortName, reverseTranslation, feedback } = parseGoalTranslation(gtResponse);
 
+                    if (feedback != null) {
+                        res.status(200).send({ data: { feedback, threadIdGT: llmContext.threadIdGT, threadIdQT: llmContext.threadIdQT } });
+                        return;
+                    }
 
                     const planProperty = new PlanPropertyModel({
                         name: shortName,
@@ -397,7 +407,7 @@ interface QuestionTranslation {
     questionArgument: string;
     used: string;
     reverseTranslation: string;
-    feedback: string;
+    directResponse: string;
 }
 
 function parseQuestionTranslation(qtResponse: string): QuestionTranslation {
@@ -414,7 +424,7 @@ function parseQuestionTranslation(qtResponse: string): QuestionTranslation {
             questionArgument: '',
             used: '',
             reverseTranslation: '',
-            feedback: 'Error parsing question translation. Please try again.'
+            directResponse: 'Error parsing question translation. Please try again.'
         };
     }
 }

@@ -66,8 +66,8 @@ export interface ExplanationTranslationRequest {
     question: string,
     question_type: string,
     questionArgument: PlanProperty[]
-    MUGS: PlanProperty[][],
-    MGCS: PlanProperty[][],
+    Conflicts: PlanProperty[][],
+    Resolutions: PlanProperty[][],
     predicates: PDDLPredicate[],
     objects: PDDLObject[],
     enforcedGoals: PlanProperty[],

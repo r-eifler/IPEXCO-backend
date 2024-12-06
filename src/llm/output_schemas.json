@@ -47,7 +47,7 @@
                 "properties": {
                     "questionType": {
                         "type": "string",
-                        "description": "The type of question that was asked.",
+                        "description": "The type of question that was asked. S- means solvable planning task and US- means unsolvable planning task. DIRECT-USER means the question is a direct question that cannot be translated to a structured question and that you should answer directly. DIRECT-ET means the question is a follow-up question about the explanation and should be answered directly by the explanation translator.",
                         "enum": [
                             "S-WHY-NOT",
                             "S-HOW",
@@ -55,16 +55,17 @@
                             "S-WHAT-IF",
                             "US-WHY",
                             "US-HOW",
-                            ""
+                            "DIRECT-USER",
+                            "DIRECT-ET"
                         ]
                     },
                     "questionArgument": {
                         "type": "string",
-                        "description": "The argument of the question that was asked, i.e. the goal or plan property that was asked about."
+                        "description": "The argument of the question that was asked, i.e. the goal or plan property that was asked about. Only use this entry if the questionType is S- or US-."
                     },
                     "used": {
                         "type": "string",
-                        "description": "Whether the questionArgument is in the existing plan properties (ALREADY-USED) or not (NEVER-USED).",
+                        "description": "Describes if the questionArgument is in the provided list of Existing Plan Properties (ALREADY-USED) or not (NEVER-USED). Only use this entry if the questionType is S- or US-.",
                         "enum": [
                             "ALREADY-USED",
                             "NEVER-USED",
@@ -73,14 +74,14 @@
                     },
                     "reverseTranslation": {
                         "type": "string",
-                        "description": "The translation of the question back into natural language to check if the translation is correct."
+                        "description": "The translation of the question back into natural language to check if the translation is correct. Use this entry to signify \"I understood you question as {reverseTranslation} \" based on the questionType and questionArgument only."
                     },
-                    "feedback": {
+                    "directResponse": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "description": "Feedback provided to the user if the translation is not possible. Only use this entry in this case."
+                        "description": "Response provided to the user if the translation to a structured question is not possible. Only use this entry in this case to respond directly to the user."
                     }
                 },
                 "required": [
@@ -88,7 +89,7 @@
                     "questionArgument",
                     "used",
                     "reverseTranslation",
-                    "feedback"
+                    "directResponse"
                 ],
                 "additionalProperties": false
             }
