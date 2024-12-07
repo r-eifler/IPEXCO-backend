@@ -29,9 +29,9 @@ export const MetaStudyModel = mongoose.model<MetaStudy>('meta-study', MetaStudyS
 
 
 export enum UserStudyStepType {
-    description,
-    form,
-    demo,
+    description = 'description',
+    form = 'form',
+    demo = 'demo',
   }
   
   export interface UserStudyStep {
@@ -40,7 +40,7 @@ export enum UserStudyStepType {
   }
 
   const UserStudyStepSchema = new Schema({
-    type: { type: Number, required: true},
+    type: { type: String, required: true},
     content: { type: String, required: true},
 });
 
@@ -64,7 +64,7 @@ const UserStudySchema = new Schema({
     startDate: { type: String, required: true},
     endDate: { type: String, required: true},
     steps: [{ type: UserStudyStepSchema, required: true}],
-    available: { type: Boolean, required: true},
+    available: { type: Boolean, required: false},
     redirectUrl: { type: String, required: false},
 });
 
