@@ -36,11 +36,13 @@ export enum UserStudyStepType {
   
   export interface UserStudyStep {
     type: UserStudyStepType;
+    name: string;
     content: string;
   }
 
   const UserStudyStepSchema = new Schema({
     type: { type: String, required: true},
+    name: { type: String, required: true},
     content: { type: String, required: true},
 });
 
