@@ -3,6 +3,7 @@ import { IterationStep, IterationStepModel } from '../db_schema/iteration_step';
 import express from 'express';
 import { auth, authUserStudy } from '../middleware/auth';
 import { Demo, DemoModel } from '../db_schema/demo';
+import { ExplanationRunStatus } from '../db_schema/explanations';
 
 
 export const iterationStepRouter = express.Router();
@@ -55,6 +56,7 @@ iterationStepRouter.post('', auth, async (req: any, res) => {
         if(demo){
             console.log('Extract explanations from demo.');
             iterationStep.globalExplanation = demo.globalExplanation;
+            iterationStep.globalExplanation.status = ExplanationRunStatus.finished;
             iterationStep.save();
         }
 
