@@ -51,6 +51,9 @@ export interface UserStudy extends Document{
     name: string;
     user: string;
     description: string;
+    relatedProject: string;
+    expectation: string;
+    confidentiality: string;
     startDate: string;
     endDate: string;
     steps: UserStudyStep[];
@@ -63,6 +66,9 @@ const UserStudySchema = new Schema({
     name: { type: String, required: true},
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     description: { type: String, required: true},
+    relatedProject: { type: String, required: true},
+    expectation: { type: String, required: true},
+    confidentiality: { type: String, required: true},
     startDate: { type: String, required: true},
     endDate: { type: String, required: true},
     steps: [{ type: UserStudyStepSchema, required: true}],
