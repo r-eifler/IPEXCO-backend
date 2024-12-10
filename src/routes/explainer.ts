@@ -5,6 +5,7 @@ import { ExplainerModel, Planner, PlannerModel } from '../db_schema/runner';
 import { IterationStep, IterationStepModel } from '../db_schema/iteration_step';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { AnswerType, ExplanationRunStatus, Question } from '../db_schema/explanations';
+import { Demo, DemoModel } from '../db_schema/demo';
 
 export const explainerRouter = express.Router();
 
@@ -21,6 +22,21 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             return res.status(404).send('update step failed');
         }
 
+        // if iteration step belongs to a demo just extract the pre-computed 
+        // explanations and store it in the iteration step
+        const demo: Demo | null = await DemoModel.findOne({ _id: refId});
+        if(demo){
+            console.log('Extract explanations from demo.');
+            iterationStep.globalExplanation = demo.globalExplanation;
+            iterationStep.save();
+            res.send({
+                status: true,
+                message: 'Explanations copied from demo.',
+                data: true
+            });
+        }
+
+        // compute explanations
         iterationStep.globalExplanation = {
             createdAt: new Date(Date.now()),
             status: ExplanationRunStatus.running
@@ -70,7 +86,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
         
         res.send({
             status: true,
-            message: 'Explain computation registered',
+            message: 'Explanation computation registered',
             data: true
         });
 

@@ -90,14 +90,14 @@ planPropertyRouter.get('/:id', auth, async (req, res) => {
 
 planPropertyRouter.delete('/:id', auth, async (req, res) => {
 
-    const property = await PlanPropertyModel.deleteOne({ _id: req.params.id});
+    const result = await PlanPropertyModel.deleteOne({ _id: req.params.id});
 
-    if (!property) { 
+    if (!result) { 
         return res.status(404).send({ message: 'No plan-property found.' });
     }
 
     res.send({
-        data: property
+        data: result
     });
 
 });

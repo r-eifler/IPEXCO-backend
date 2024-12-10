@@ -2,7 +2,7 @@ import { auth } from '../middleware/auth';
 import express from 'express';
 
 import { ExplainerModel, Planner, PlannerModel } from '../db_schema/runner';
-import { IterationStep, IterationStepModel, PlanRunStatus } from '../db_schema/iteration_step';
+import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
 import { PlanningTask } from '../db_schema/planning_task';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { PropertyCheck } from '../planner/property_check';
@@ -187,6 +187,7 @@ plannerRouter.post('/plan-step/finished/:id', async (req: any, res) => {
 
         if(status === 'SOLVED'){
             iterationStep.plan.status = PlanRunStatus.plan_found;
+            iterationStep.status = StepStatus.solvable;
             iterationStep.plan.actions = JSON.stringify(actions);
 
             // Check which properties are satisfied
@@ -204,10 +205,12 @@ plannerRouter.post('/plan-step/finished/:id', async (req: any, res) => {
         }
 
         if(status === 'UNSOLVABLE'){
+            iterationStep.status = StepStatus.unsolvable
             iterationStep.plan.status = PlanRunStatus.not_solvable;
         }
 
         if(status === 'FAILED'){
+            iterationStep.status = StepStatus.unknown;
             iterationStep.plan.status = PlanRunStatus.failed;
         }
 

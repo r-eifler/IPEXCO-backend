@@ -5,6 +5,7 @@ import { PlanProperty } from './plan-properties/plan_property';
 import { Project } from './project';
 import { Explanation, ExplanationSchema, GlobalExplanation, GlobalExplanationSchema } from './explanations';
 import { PlanningTask, PlanningTaskSchema } from './planning_task';
+import { User } from './user';
 
 
 export enum StepStatus{
@@ -42,6 +43,7 @@ const PlanSchema = new Schema({
 export interface IterationStep extends Document{
     _id: string;
     name: string;
+    user: User;
     createdAt?: Date;
     project: string;
     status: StepStatus;
@@ -56,6 +58,7 @@ export interface IterationStep extends Document{
 
 const IterationStepSchema = new Schema({
     name: { type: String, required: true},
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     status: { type: Number, required: true},
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
     hardGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],

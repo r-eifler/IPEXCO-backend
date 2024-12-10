@@ -6,6 +6,7 @@ import express from 'express';
 
 import { ProjectModel } from '../db_schema/project';
 import { PlanningTask } from '../db_schema/planning_task';
+import { DemoModel } from '../db_schema/demo';
 
 export const projectRouter = express.Router();
 
@@ -22,7 +23,7 @@ projectRouter.post('/', auth, async (req: any, res) => {
 
         projectData.user = req.user._id;
         projectData.domainSpecification = JSON.stringify(projectData.domainSpecification)
-        projectData.baseTask = JSON.stringify(projectData.baseTask)
+        projectData.baseTask.model = JSON.stringify(projectData.baseTask.model)
         delete projectData._id;
 
         console.log(projectData)
@@ -88,7 +89,7 @@ projectRouter.put('/:id', auth, async (req, res) => {
 
 
 projectRouter.get('', auth, async (req: any, res) => {
-    const projects = await ProjectModel.find({ user: req.user._id}).populate('baseTask');
+    const projects = await ProjectModel.find({ user: req.user._id});
     if (!projects) { 
         return res.status(404).send({ message: 'No project found.' });
     }
@@ -121,17 +122,33 @@ projectRouter.get('/meta-data', auth, async (req: any, res) => {
 
 
 projectRouter.get('/:id', auth, async (req, res) => {
-    const id = req.params.id;
-    console.log("Get project: " + id)
-    const project = await ProjectModel.findOne({ _id: id }).populate('baseTask');;
-    if (!project) { 
-        return res.status(404).send({ message: 'No project found.' });
+    try {
+        const id = req.params.id;
+
+        if (id == null || id == 'null') { 
+            return res.status(404).send({ message: 'No project found.' });
+        }
+
+        const project = await ProjectModel.findOne({ _id: id });
+        if (project) { 
+            return res.send({
+                data: project
+            });
+        }
+
+        const demo = await DemoModel.findOne({ _id: id });
+        if (demo) { 
+            return res.send({
+                data: demo
+            });
+        }
+
+        return res.status(500).send({ message: 'No project found.' });
+
+    } catch (ex : any) {
+        console.log(ex);
+        res.status(500).send();
     }
-
-    res.send({
-        data: project
-    });
-
 });
 
 projectRouter.delete('/meta-data/:id', auth, async (req, res) => {

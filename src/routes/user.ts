@@ -1,6 +1,6 @@
 import { authForward} from './../middleware/auth';
 import express from 'express';
-import { UserModel } from '../db_schema/user';
+import { User, UserData, UserModel } from '../db_schema/user';
 import { auth } from '../middleware/auth';
 import { Response } from 'express';
 
@@ -13,10 +13,23 @@ userRouter.post('/', async (req, res) => {
             res.status(400).send('User name already exists.');
             return;
         }
+
         const user = new UserModel(req.body);
+        user.role = 'creator'
         await user.save();
+
         const token = await user.generateAuthToken();
-        res.status(201).send({ user: { name: user.name}, token });
+
+        const userData: UserData = {
+            _id: user._id,
+            name: user.name,
+            role: user.role,
+        }
+
+        res.status(201).send({data: { 
+            user: userData, 
+            token: token,
+        }});
     } catch (error) {
         console.log(error);
         res.status(400).send(error);
@@ -30,31 +43,47 @@ userRouter.post('/login', authForward, async(req: any, res: Response) => {
         }
         const username = req.body.name;
         const password = req.body.password;
+        if(username == null || password == null){
+            return res.status(401).send({ error: 'Login failed! Check authentication credentials'});
+        }
+
         const user = await (UserModel as any).findByCredentials(username, password);
         if (!user) {
-            return res.send({
-                successful: false,
+            return res.send({data: {
                 user: null,
                 token: null
-            })
+            }})
             // return res.status(401).send({ error: 'Login failed! Check authentication credentials'});
         }
 
         const token = await user.generateAuthToken();
-        res.send({
-            successful: true,
-            user,
-            token });
+
+        const userData: UserData = {
+            _id: user._id,
+            name: user.name,
+            role: user.role,
+        }
+
+        res.send({data: {
+            user: userData,
+            token
+         }});
     } catch (error) {
         console.log(error);
-        res.status(400).send(error);
+        res.status(400).send();
     }
 
 });
 
 
 userRouter.get('', auth, async(req: any, res) => {
-    res.send({ data: req.user });
+    let user = req.user;
+    const userData: UserData = {
+        _id: user._id,
+        name: user.name,
+        role: user.role,
+    }
+    res.send({ data: userData });
 });
 
 userRouter.post('/logout', authForward, async (req: any, res) => {
@@ -66,9 +95,38 @@ userRouter.post('/logout', authForward, async (req: any, res) => {
             await req.user.save();
         }
 
-        res.send();
+        res.send(true);
     } catch (error) {
         console.log(error);
-        res.status(500).send(error);
+        res.status(500).send(false);
+    }
+});
+
+userRouter.post('/user-study', async (req, res) => {
+    try {
+
+        const user = req.body as User;
+
+        const user_name_exists= await UserModel.findOne({ name: user.name});
+        if (user_name_exists) {
+            res.status(400).send('User name already exists.');
+            return;
+        }
+
+        if (user.password != null) {
+            res.status(400).send('User study users must not have a password.');
+            return;
+        }
+
+        const userModel = new UserModel(req.body);
+        userModel.role = 'user-study'
+        await userModel.save();
+
+        const token = await userModel.generateAuthToken();
+
+        res.status(201).send({ user: { name: userModel.name}, token });
+    } catch (error) {
+        console.log(error);
+        res.status(400).send(error);
     }
 });
