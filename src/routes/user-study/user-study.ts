@@ -1,6 +1,6 @@
 import { UserStudyModel, UserStudy } from '../../db_schema/user-study/user-study';
 import express from 'express';
-import { auth, authForward, authUserStudy } from '../../middleware/auth';
+import { auth } from '../../middleware/auth';
 
 export const userStudyRouter = express.Router();
 
@@ -85,13 +85,9 @@ userStudyRouter.get('/', auth, async (req: any, res) => {
 
 
 
-userStudyRouter.get('/:id', authForward, authUserStudy, async (req: any, res) => {
+userStudyRouter.get('/:id', async (req: any, res) => {
 
     try {
-        if (! req.user && ! req.userStudyUser) {
-            return res.status(401).send({ message: 'Not authorized to access this resource' });
-        }
-
         const id = req.params.id;
         const userStudy = await UserStudyModel.findOne({ _id: id });
 

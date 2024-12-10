@@ -3,8 +3,71 @@ import express from 'express';
 import { User, UserData, UserModel } from '../db_schema/user';
 import { auth } from '../middleware/auth';
 import { Response } from 'express';
+import { UserStudy, UserStudyModel } from '../db_schema/user-study/user-study';
+import { UserStudyExecution, UserStudyExecutionModel } from '../db_schema/user-study/user-study-execution';
 
 export const userRouter = express.Router();
+
+
+userRouter.post('/user-study', async (req, res) => {
+    try {
+
+        const userStudyId = req.body.userStudyId;
+        if(userStudyId === null || userStudyId === undefined){
+            return res.status(400).send();
+        }
+
+        const userStudy: UserStudy | null = await UserStudyModel.findById(userStudyId);
+
+        if(userStudy === null || userStudy?.startDate === undefined || userStudy?.endDate === undefined){
+            return res.status(400).send();
+        }
+
+        const now = new Date();
+        const start  = new Date(userStudy?.startDate);
+        const end = new Date(userStudy.endDate); 
+        if (now < start || now > end){
+            return res.status(400).send();
+        }
+
+        console.log('User study valid and running.');
+
+        const newUser = {
+            name: 'participant',
+            role: 'user-study',
+            password: '1234567',
+        }
+        const user: User = new UserModel(newUser);
+        await user.save();
+
+        const stringId =  user._id.toString();
+        user.name = user.name + '-' + stringId.substr(stringId.length - 8);
+        await user.save();
+
+        const token = await user.generateAuthToken();
+
+        const userData: UserData = {
+            _id: user._id,
+            name: user.name,
+            role: user.role,
+        }
+
+        const userStudyExecutionData = {
+            user: user._id,
+            userStudy: userStudy._id
+        }
+        const userStudyExecution = new UserStudyExecutionModel(userStudyExecutionData);
+        userStudyExecution.save();
+
+        res.status(201).send({data: { 
+            user: userData, 
+            token: token,
+        }});
+    } catch (error) {
+        console.log(error);
+        res.status(500).send();
+    }
+});
 
 userRouter.post('/', async (req, res) => {
     try {

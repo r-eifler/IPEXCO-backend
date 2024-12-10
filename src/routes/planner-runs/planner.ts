@@ -1,13 +1,13 @@
 import { IterationStep, IterationStepModel } from './../../db_schema/iteration_step';
 import express from 'express';
 
-import { auth, authUserStudy } from '../../middleware/auth';
+import { auth } from '../../middleware/auth';
 import { environment } from '../../app';
 
 
 export const plannerRouter = express.Router();
 
-plannerRouter.post('/plan', authUserStudy, async (req: any, res) => {
+plannerRouter.post('/plan', auth, async (req: any, res) => {
 
     // const saveRun: boolean = req.query.save ? JSON.parse(req.query.save) : false;
     // console.log("Save run: " + saveRun);

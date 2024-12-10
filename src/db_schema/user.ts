@@ -55,6 +55,9 @@ UserSchema.statics.findByCredentials = async (username: string, password: string
     if (! user.password){
         return null;
     }
+    if (user.role =='user-study'){
+        return null;
+    }
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
         return null;
