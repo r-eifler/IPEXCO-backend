@@ -3,6 +3,7 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface UserStudyExecution extends Document{
     user: string;
     createdAt?: Date;
+    updatedAt?: Date;
     userStudy: string;
     finished?: boolean;
     accepted?: boolean;

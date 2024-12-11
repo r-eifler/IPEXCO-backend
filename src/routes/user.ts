@@ -5,6 +5,7 @@ import { auth } from '../middleware/auth';
 import { Response } from 'express';
 import { UserStudy, UserStudyModel } from '../db_schema/user-study/user-study';
 import { UserStudyExecution, UserStudyExecutionModel } from '../db_schema/user-study/user-study-execution';
+import { finished } from 'stream';
 
 export const userRouter = express.Router();
 
@@ -54,7 +55,11 @@ userRouter.post('/user-study', async (req, res) => {
 
         const userStudyExecutionData = {
             user: user._id,
-            userStudy: userStudy._id
+            userStudy: userStudy._id,
+            finished: false,
+            accepted: false,
+            timeLog: '{}',
+            payment: 0,
         }
         const userStudyExecution = new UserStudyExecutionModel(userStudyExecutionData);
         userStudyExecution.save();

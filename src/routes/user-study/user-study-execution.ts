@@ -50,29 +50,21 @@ userStudyExecutionRouter.put('/cancel', auth, async (req, res) => {
 
 userStudyExecutionRouter.get('/', auth, async (req: any, res) => {
     try {
-        //TODO find only matching datapoints
+
         const refIdUserStudy : string = req.query.userStudyId as string;
         console.log("Study ID: " + refIdUserStudy);
-        const allData: UserStudyExecution[] = await UserStudyExecutionModel.find()
-            .populate('user')
-            .populate('demosData.iterationSteps');
+        const allExecutions: UserStudyExecution[] = await UserStudyExecutionModel.find({userStudy: refIdUserStudy});
 
-        // console.log(allData);
-        console.log("#allDataPoints: " + allData.length);
-        const dataPoints = allData.filter(
-            s => (s.userStudy.toString() == refIdUserStudy)
-        );
-
-        console.log("#dataPoints: " + dataPoints.length);
-        if (!dataPoints) { 
+        if (!allExecutions) { 
             return res.status(404).send({ message: 'Lookup user study data failed.' });
         }
 
         res.send({
-            data: dataPoints
+            data: allExecutions
         });
     } catch (ex : any) {
-        res.send(ex.message);
+        console.log(ex)
+        res.status(500).send();
     }
 
 });
