@@ -385,7 +385,7 @@ demoRouter.put('/:id', auth, async (req, res) => {
     }
 });
 
-demoRouter.get('', authForward, async (req: any, res) => {
+demoRouter.get('', auth, async (req: any, res) => {
 
     console.log(req.user._id.toString());
     try {
@@ -434,7 +434,7 @@ demoRouter.get('/demos', auth, async (req, res) => {
 
 });
 
-demoRouter.get('/:id', authForward, async (req, res) => {
+demoRouter.get('/:id', auth, async (req, res) => {
 
     try {
         const demoID = req.params.id ;
