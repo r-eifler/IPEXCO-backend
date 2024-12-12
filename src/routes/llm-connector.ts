@@ -12,7 +12,7 @@ import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Question, QuestionType } from '../db_schema/explanations';
 import { showFullContextThread } from './llm-process-requests';
 import { LLMContext, LLMContextModel } from '../db_schema/LLM/llm-context';
-import { UserModel } from '../db_schema/user';
+import { User, UserModel } from '../db_schema/user';
 import { initializeAssistants } from '../llm/initialize_assistants';
 
 export const LLMRouter = express.Router();
@@ -480,35 +480,47 @@ LLMRouter.get('/llm-context', async (req, res) => {
 
 });
 
-LLMRouter.post('/set-llm-context-user', async (req, res) => {
-    const user = await UserModel.findOne({ _id: req.body._id as string });
-    if (!user) {
-        return res.status(404).send({ message: `User ${req.body._id} not found.` });
+LLMRouter.post('/create-llm-context', auth, async (req: any, res) => {
+    
+        let user: User = req.user;
+        console.log(`user ${user._id} found : ${user.name} ; ${user.role}`)
+        console.log(req.body)
+        if (req.body.domain == undefined) {
+            return res.status(404).send({ message: 'no domain specified' });
+        }
+        if (req.body.projectId == undefined) {
+            return res.status(404).send({ message: 'no projectId specified' });
+        }
+        const domain = req.body.domain;
+        const projectId = req.body.projectId;
+        const assistants = await initializeAssistants("gpt-4o-mini", domain, false);
+
+        const llmContext = new LLMContextModel({
+            user: user._id,
+            project: projectId,
+            assistantIdGT: assistants.goalTranslator,
+            assistantIdQT: assistants.questionTranslator,
+            assistantIdET: assistants.explanationTranslator,
+            threadIdGT: "",
+            threadIdQT: "",
+            threadIdET: "",
+            visibleMessages: [],
+            visiblePPCreationMessages: [],
+            seenByGTMessages: [],
+            seenByETMessages: [],
+            seenByQTMessages: [],
+        });
+        console.log("llmContext", llmContext)
+        try {
+        await llmContext.save();
+        res.send({
+            data: llmContext
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send(error);
+        console.log(llmContext)
     }
-    console.log(`user ${req.body._id} found : ${user.name} ; ${user.role}`)
 
-    const domain = "transport";
-    const projectId = req.body.projectId;
-    const assistants = await initializeAssistants("gpt-4o-mini", domain, false);
-
-    const llmContext = new LLMContextModel({
-        user: user._id,
-        project: req.body.projectId,
-        assistantIdGT: assistants.goalTranslator,
-        assistantIdQT: assistants.questionTranslator,
-        assistantIdET: assistants.explanationTranslator,
-        threadIdGT: "",
-        threadIdQT: "",
-        threadIdET: "",
-        visibleMessages: [],
-        visiblePPCreationMessages: [],
-        seenByGTMessages: [],
-        seenByETMessages: [],
-        seenByQTMessages: [],
-    });
-    await llmContext.save();
-    res.send({
-        data: llmContext
-    });
 });
 
