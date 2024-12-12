@@ -39,6 +39,7 @@ export interface LLMContext extends Document {
     seenByETMessages: LLMMessage[];
     seenByQTMessages: LLMMessage[];
     project: string | null;
+    user: string | null;
 }
 
 export const LLMContextSchema = new Schema({
@@ -54,6 +55,7 @@ export const LLMContextSchema = new Schema({
     seenByETMessages: [LLMMessageSchema],
     seenByQTMessages: [LLMMessageSchema],
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User'},
 }, { timestamps: true}); 
 
 

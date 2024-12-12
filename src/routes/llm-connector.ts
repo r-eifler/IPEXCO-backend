@@ -12,53 +12,44 @@ import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Question, QuestionType } from '../db_schema/explanations';
 import { showFullContextThread } from './llm-process-requests';
 import { LLMContext, LLMContextModel } from '../db_schema/LLM/llm-context';
-import { threadId } from 'worker_threads';
+import { UserModel } from '../db_schema/user';
+import { initializeAssistants } from '../llm/initialize_assistants';
 
 export const LLMRouter = express.Router();
 
 export const maxDuration = 30;
 
-LLMRouter.post('/gt', async (req, res) => {
+LLMRouter.post('/gt', auth, async (req: any, res) => {
     try {
 
         // check if LLMContextModel exists
-        let llmContext = await LLMContextModel.findOne({ project: req.body.projectId, assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR, assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR, assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR });
-        if (!llmContext) {
-            console.log("No LLMContext found, creating new one")
-            const threadIdGT = (await openai_client.beta.threads.create({})).id
-            const threadIdQT = (await openai_client.beta.threads.create({})).id
-            const threadIdET = (await openai_client.beta.threads.create({})).id
-            const llmContextData = {
-                project: req.body.projectId,
-                assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR,
-                assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR,
-                assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR,
-                threadIdGT: threadIdGT,
-                threadIdQT: threadIdQT,
-                threadIdET: threadIdET,
-                visibleMessages: [],
-                visiblePPCreationMessages: [{ role: 'receiver', content: req.body.originalRequest, iterationStepId: null }],
-                seenByGTMessages: [{ role: 'receiver', content: req.body.data }],
-                seenByETMessages: [],
-                seenByQTMessages: [],
-            }
-            llmContext = new LLMContextModel(llmContextData);
-            await llmContext.save();
-            console.log("New LLMContext created and saved")
-        } else {
-            console.log("LLMContext found, updating it")
-            llmContext.visiblePPCreationMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
-            llmContext.seenByGTMessages.push({ role: 'receiver', content: req.body.data });
-            await llmContext.save();
-            console.log("LLMContext updated and saved")
-            // Check if threadID still xists
-            // const myThread = await openai_client.beta.threads.retrieve(llmContext.threadIdGT);
-        }
+        console.log("req.body", req.body);
 
-        if (llmContext.threadIdGT == null) {
-            res.status(404).send({ error: 'No threadIdGT found' });
+        // check if LLMContextModel exists
+        let llmContext = await LLMContextModel.findOne({ user: req.user._id, project: req.body.projectId });
+        if (!llmContext) {
+            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
         }
+        if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
+            res.status(404).send({ error: 'No assistants found for user ' + req.body.userId + ' and project ' + req.body.projectId });
+            return;
+        }
+        if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
+            const threadIdET = (await openai_client.beta.threads.create({})).id
+            const threadIdGT = (await openai_client.beta.threads.create({})).id
+            const threadIdQT = (await openai_client.beta.threads.create({})).id
+
+            // Update existing llmContext instead of creating new one
+            llmContext.threadIdGT = threadIdGT;
+            llmContext.threadIdQT = threadIdQT;
+            llmContext.threadIdET = threadIdET;
+        }
+        llmContext.visiblePPCreationMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
+        llmContext.seenByGTMessages.push({ role: 'receiver', content: req.body.data });
+        await llmContext.save();
+        console.log("LLMContext updated and saved")
+
 
         const input = req.body.data
 
@@ -95,42 +86,35 @@ LLMRouter.post('/gt', async (req, res) => {
     }
 });
 
-LLMRouter.post('/et', async (req, res) => {
+LLMRouter.post('/et', auth, async (req: any, res) => {
     try {
+        console.log("req.body", req.body);
 
         // check if LLMContextModel exists
-        let llmContext = await LLMContextModel.findOne({ project: req.body.projectId, assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_GOALTRANSLATOR is not set') })(), assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_QUESTIONTRANSLATOR is not set') })(), assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_EXPLANATIONTRANSLATOR is not set') })() });
+        let llmContext = await LLMContextModel.findOne({ user: req.user._id, project: req.body.projectId });
         if (!llmContext) {
-            console.log("No LLMContext found, creating new one")
+            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
+            return;
+        }
+        if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
+            res.status(404).send({ error: 'No assistants found for user ' + req.body.userId + ' and project ' + req.body.projectId });
+            return;
+        }
+        if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
             const threadIdET = (await openai_client.beta.threads.create({})).id
             const threadIdGT = (await openai_client.beta.threads.create({})).id
             const threadIdQT = (await openai_client.beta.threads.create({})).id
-            const llmContextData = {
-                project: req.body.projectId,
-                assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR,
-                assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR,
-                assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR,
-                threadIdGT: threadIdGT,
-                threadIdQT: threadIdQT,
-                threadIdET: threadIdET,
-                visibleMessages: [{ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId }],
-                visiblePPCreationMessages: [],
-                seenByGTMessages: [],
-                seenByETMessages: [{ role: 'receiver', content: req.body.data }],
-                seenByQTMessages: [],
-            }
-            llmContext = new LLMContextModel(llmContextData);
-            await llmContext.save();
-            console.log("New LLMContext created and saved")
-        } else {
-            console.log("LLMContext found, updating it")
-            llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
-            llmContext.seenByETMessages.push({ role: 'receiver', content: req.body.data });
-            await llmContext.save();
-            console.log("LLMContext updated and saved")
-            // Check if threadID still xists
-            // const myThread = await openai_client.beta.threads.retrieve(llmContext.threadIdGT);
+
+            // Update existing llmContext instead of creating new one
+            llmContext.threadIdGT = threadIdGT;
+            llmContext.threadIdQT = threadIdQT;
+            llmContext.threadIdET = threadIdET;
         }
+
+        llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
+        llmContext.seenByETMessages.push({ role: 'receiver', content: req.body.data });
+        await llmContext.save();
+        console.log("LLMContext updated and saved")
 
         if (llmContext.threadIdGT == null) {
             res.status(404).send({ error: 'No threadIdGT found' });
@@ -157,7 +141,7 @@ LLMRouter.post('/et', async (req, res) => {
                 llmContext.visibleMessages.push({ role: 'sender', content: output, iterationStepId: req.body.iterationStepId });
                 llmContext.seenByETMessages.push({ role: 'sender', content: response });
                 await llmContext.save();
-                console.log(`Sent value > ${response}`);
+                console.log(`Sent value > ${output}`);
                 res.status(200).send({ data: { "response": output, "threadId": llmContext.threadIdET } });
             } else {
                 console.log('No valid content in assistant message');
@@ -212,47 +196,35 @@ LLMRouter.post('/et', async (req, res) => {
 //     }
 // });
 
-LLMRouter.post('/qt-then-gt', async (req, res) => {
+LLMRouter.post('/qt-then-gt', auth, async (req: any, res) => {
     try {
         console.log("req.body", req.body);
 
         // check if LLMContextModel exists
-        let llmContext = await LLMContextModel.findOne({ project: req.body.projectId, assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_GOALTRANSLATOR is not set') })(), assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_QUESTIONTRANSLATOR is not set') })(), assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_EXPLANATIONTRANSLATOR is not set') })() });
+        let llmContext = await LLMContextModel.findOne({ user: req.user._id, project: req.body.projectId });
         if (!llmContext) {
+            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
+            return;
+        }
+        if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
+            res.status(404).send({ error: 'No assistants found for user ' + req.body.userId + ' and project ' + req.body.projectId });
+            return;
+        }
+        if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
             const threadIdET = (await openai_client.beta.threads.create({})).id
             const threadIdGT = (await openai_client.beta.threads.create({})).id
             const threadIdQT = (await openai_client.beta.threads.create({})).id
-            const llmContextData = {
-                project: req.body.projectId,
-                assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_GOALTRANSLATOR is not set') })(),
-                assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_QUESTIONTRANSLATOR is not set') })(),
-                assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_EXPLANATIONTRANSLATOR is not set') })(),
-                threadIdGT: threadIdGT,
-                threadIdQT: threadIdQT,
-                threadIdET: threadIdET,
-                visibleMessages: [{ role: 'receiver', content: req.body.originalQuestion, iterationStepId: req.body.iterationStepId }],
-                visiblePPCreationMessages: [],
-                seenByGTMessages: [{ role: 'receiver', content: req.body.gtRequest }],
-                seenByETMessages: [],
-                seenByQTMessages: [{ role: 'receiver', content: req.body.qtRequest }],
-            }
-            llmContext = new LLMContextModel(llmContextData);
-            await llmContext.save();
-        } else {
-            llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalQuestion, iterationStepId: req.body.iterationStepId });
-            llmContext.seenByGTMessages.push({ role: 'receiver', content: req.body.gtRequest });
-            llmContext.seenByQTMessages.push({ role: 'receiver', content: req.body.qtRequest });
-            await llmContext.save();
-            // Check if threadID still xists
-            // const myThread = await openai_client.beta.threads.retrieve(llmContext.threadIdGT);
+
+            // Update existing llmContext instead of creating new one
+            llmContext.threadIdGT = threadIdGT;
+            llmContext.threadIdQT = threadIdQT;
+            llmContext.threadIdET = threadIdET;
         }
 
-        if (llmContext == null) {
-            res.status(404).send({ error: 'No LLMContext found' });
-            return;
-        }
-
-
+        llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalQuestion, iterationStepId: req.body.iterationStepId });
+        llmContext.seenByGTMessages.push({ role: 'receiver', content: req.body.gtRequest });
+        llmContext.seenByQTMessages.push({ role: 'receiver', content: req.body.qtRequest });
+        await llmContext.save();
 
         // Process QT request
         const qtOutput = await processQtRequest(req.body.qtRequest, llmContext.threadIdQT);
@@ -283,9 +255,10 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
             res.status(404).send({ error: 'No QT response found' });
             return;
         }
-
+        llmContext.seenByQTMessages.push({ role: 'sender', content: qtResponse });
+        await llmContext.save();
         // Parse QT response and prepare GT input
-        const { questionType, questionArgument: untranslatedGoal, used, reverseTranslation:reverseTranslationQT, directResponse } = parseQuestionTranslation(qtResponse);
+        const { questionType, questionArgument: untranslatedGoal, used, reverseTranslation: reverseTranslationQT, directResponse } = parseQuestionTranslation(qtResponse);
 
         if (directResponse != null) {
             res.status(200).send({ data: { directResponse, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT } });
@@ -323,7 +296,7 @@ LLMRouter.post('/qt-then-gt', async (req, res) => {
                 const content = gtOutput.lastAssistantMessage.content[0];
                 if (content && 'text' in content) {
                     gtResponse = content.text.value;
-                    llmContext.seenByGTMessages.push({ role: 'receiver', content: gtResponse });
+                    llmContext.seenByGTMessages.push({ role: 'sender', content: gtResponse });
                     await llmContext.save();
 
                 } else {
@@ -505,5 +478,37 @@ LLMRouter.get('/llm-context', async (req, res) => {
         data: llmContext
     });
 
+});
+
+LLMRouter.post('/set-llm-context-user', async (req, res) => {
+    const user = await UserModel.findOne({ _id: req.body._id as string });
+    if (!user) {
+        return res.status(404).send({ message: `User ${req.body._id} not found.` });
+    }
+    console.log(`user ${req.body._id} found : ${user.name} ; ${user.role}`)
+
+    const domain = "transport";
+    const projectId = req.body.projectId;
+    const assistants = await initializeAssistants("gpt-4o-mini", domain, false);
+
+    const llmContext = new LLMContextModel({
+        user: user._id,
+        project: req.body.projectId,
+        assistantIdGT: assistants.goalTranslator,
+        assistantIdQT: assistants.questionTranslator,
+        assistantIdET: assistants.explanationTranslator,
+        threadIdGT: "",
+        threadIdQT: "",
+        threadIdET: "",
+        visibleMessages: [],
+        visiblePPCreationMessages: [],
+        seenByGTMessages: [],
+        seenByETMessages: [],
+        seenByQTMessages: [],
+    });
+    await llmContext.save();
+    res.send({
+        data: llmContext
+    });
 });
 
