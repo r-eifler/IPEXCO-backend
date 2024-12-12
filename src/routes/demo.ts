@@ -39,28 +39,43 @@ const upload = multer({
 });
 
 
+demoRouter.post('/image', auth, upload.single('summaryImage'), async (req: any, res) => {
 
-demoRouter.post('/', auth, upload.single('summaryImage'), async (req: any, res) => {
+    try {
+        console.log(req);
+        if (!req.file) {
+            return res.status(400).send('upload failed');
+        }
+
+        let imageFilePath = '/uploads/' + req.file.filename;
+        console.log("Image uploaded: " + imageFilePath);
+        
+        res.send({
+            data: imageFilePath
+        });
+
+
+    } catch (ex) {
+        console.log(ex);
+        res.status(400);
+        return;
+    }
+});
+
+
+demoRouter.post('/', auth, async (req: any, res) => {
 
     try {
 
         const demoData: Demo = req.body.demo as Demo;
-        console.log(demoData);
+        // console.log(demoData);
         demoData.domainSpecification = JSON.stringify(demoData.domainSpecification)
         demoData.baseTask.model = JSON.stringify(demoData.baseTask.model)
-        const projectId = demoData.projectId;
-
-        let imageFilePath = null;
-        if (req.file) {
-            console.log("save image");
-            imageFilePath = '/uploads/' + req.file.filename;
-        }
 
         delete demoData._id;
         const demoModel = new DemoModel(demoData);
 
         demoModel.user = req.user._id;
-        demoModel.summaryImage = imageFilePath;
         demoModel.public = false;
         demoModel.status = DemoRunStatus.pending;
         demoModel.globalExplanation = {
@@ -68,7 +83,7 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req: any, res) 
             status: ExplanationRunStatus.running
         }
 
-        console.log(demoData);
+        // console.log(demoData);
 
         if (!demoModel) {
             console.log("create demo failed");
@@ -78,7 +93,7 @@ demoRouter.post('/', auth, upload.single('summaryImage'), async (req: any, res) 
         await demoModel.save();
         
         const planPropertiesData: PlanProperty[] = req.body.planProperties;
-        console.log(planPropertiesData)
+        // console.log(planPropertiesData)
         for (const pp of planPropertiesData) {
 
             let ppData: PlanProperty = pp;
