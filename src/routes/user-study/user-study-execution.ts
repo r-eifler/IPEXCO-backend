@@ -28,6 +28,30 @@ userStudyExecutionRouter.put('/finish', auth, async (req, res) => {
     }
 });
 
+userStudyExecutionRouter.put('/action', auth, async (req, res) => {
+    try {
+
+        console.log('new action ' + req.body.action);
+        const userStudyUser = (req as any).user;
+
+        const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userStudyUser._id})
+            
+        if (!executionData) {
+            return res.status(403).send();
+        }
+
+        const action= req.body.action;
+        executionData.timeLog?.push(action);
+        await executionData.save();
+
+        res.send(true);
+
+    } catch (ex : any) {
+        console.log(error);
+        res.status(500).send();
+    }
+});
+
 
 userStudyExecutionRouter.put('/cancel', auth, async (req, res) => {
     try {

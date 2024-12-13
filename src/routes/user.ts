@@ -58,7 +58,7 @@ userRouter.post('/user-study', async (req, res) => {
             userStudy: userStudy._id,
             finished: false,
             accepted: false,
-            timeLog: '{}',
+            timeLog: [],
             payment: 0,
         }
         const userStudyExecution = new UserStudyExecutionModel(userStudyExecutionData);

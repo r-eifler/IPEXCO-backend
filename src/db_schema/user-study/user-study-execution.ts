@@ -7,7 +7,7 @@ export interface UserStudyExecution extends Document{
     userStudy: string;
     finished?: boolean;
     accepted?: boolean;
-    timeLog?: string;
+    timeLog?: string[];
     payment?: number;
 }
 
@@ -16,7 +16,7 @@ const UserStudyExecutionSchema = new Schema({
     userStudy: {type: mongoose.Schema.Types.ObjectId, ref: 'user-study'},
     finished: {type: String, required: false},
     accepted: {type: Boolean, required: false},
-    timeLog: {type: String, required: false},
+    timeLog: [{type: String, required: false}],
     payment: {type: Number, required: false},
 }, { timestamps: true});
 
