@@ -28,6 +28,28 @@ userStudyExecutionRouter.put('/finish', auth, async (req, res) => {
     }
 });
 
+userStudyExecutionRouter.put('/accept/:id', auth, async (req, res) => {
+    try {
+
+        const userId = req.params.id;
+
+        const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userId})
+            
+        if (!executionData) {
+            return res.status(403).send();
+        }
+
+        executionData.accepted = true;
+        await executionData.save();
+
+        res.send(true);
+
+    } catch (ex : any) {
+        console.log(error);
+        res.status(500).send();
+    }
+});
+
 userStudyExecutionRouter.put('/action', auth, async (req, res) => {
     try {
 

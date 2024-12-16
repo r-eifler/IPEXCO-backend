@@ -14,7 +14,7 @@ export interface UserStudyExecution extends Document{
 const UserStudyExecutionSchema = new Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'user' },
     userStudy: {type: mongoose.Schema.Types.ObjectId, ref: 'user-study'},
-    finished: {type: String, required: false},
+    finished: {type: Boolean, required: false},
     accepted: {type: Boolean, required: false},
     timeLog: [{type: String, required: false}],
     payment: {type: Number, required: false},
