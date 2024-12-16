@@ -23,8 +23,6 @@ const templates = {
     transport: transportTemplates
 }
 
-const domain = "transport";
-
 
 
 // function formatExamples(examples: any[]): string {
@@ -35,7 +33,7 @@ const domain = "transport";
 //         return `Example ${index + 1}:\n${formattedExample}\n`;
 //     }).join('\n');
 // }
-function formatExamples(examples: any[], translatorType: keyof typeof templates[typeof domain]): string {
+function formatExamples(examples: any[], domain:keyof typeof domains, translatorType: keyof typeof templates[typeof domain]): string {
     const template = templates[domain][translatorType];
     
     return examples.map((example, index) => {
@@ -56,9 +54,9 @@ function formatExamples(examples: any[], translatorType: keyof typeof templates[
 }
 
 
-async function createAssistant(name: string, instructions: string, examples: any[], openai: OpenAI, model: OpenAIModelName, translatorType: keyof typeof templates[typeof domain]) {
+async function createAssistant(name: string, instructions: string, examples: any[], domain: keyof typeof domains, openai: OpenAI, model: OpenAIModelName, translatorType: keyof typeof templates[typeof domain]) {
     const assistant = await openai.beta.assistants.create({
-        instructions: `${domains[domain].system}${instructions} \n\nExamples : \n\n${formatExamples(examples, translatorType)}\n\nEnd of the examples.`,
+        instructions: `${domains[domain].system}${instructions} \n\nExamples : \n\n${formatExamples(examples, domain, translatorType)}\n\nEnd of the examples.`,
         name,
         model: model,
         response_format: {
@@ -69,7 +67,7 @@ async function createAssistant(name: string, instructions: string, examples: any
     return assistant.id;
 }
 
-export async function initializeAssistants(model: OpenAIModelName) {
+export async function initializeAssistants(model: OpenAIModelName, domain: keyof typeof domains, saveToEnv: boolean = true) {
     // This function initializes three OpenAI assistants:
     // 1. Goal Translator: Translates user goals into LTLf formulas
     // 2. Question Translator: Interprets user questions and maps them to predefined question types
@@ -90,31 +88,33 @@ export async function initializeAssistants(model: OpenAIModelName) {
 
 
     const assistants = {
-        goalTranslator: await createAssistant("Goal Translator (transport)", transportPrompts.goal_translator, transportPrompts.gt_examples, openai, model, "goal_translator"),
-        questionTranslator: await createAssistant("Question Translator (transport)", transportPrompts.question_translator, transportPrompts.qt_examples, openai, model, "question_translator"),
-        explanationTranslator: await createAssistant("Explanation Translator (transport)", transportPrompts.explanation_translator, transportPrompts.et_examples, openai, model, "explanation_translator"),
-        dispatcher: await createAssistant("Dispatcher (transport)", transportPrompts.dispatcher, transportPrompts.dispatcher_examples, openai, model, "dispatcher"),
+        goalTranslator: await createAssistant("Goal Translator (transport)", transportPrompts.goal_translator, transportPrompts.gt_examples, domain, openai, model, "goal_translator"),
+        questionTranslator: await createAssistant("Question Translator (transport)", transportPrompts.question_translator, transportPrompts.qt_examples, domain, openai, model, "question_translator"),
+        explanationTranslator: await createAssistant("Explanation Translator (transport)", transportPrompts.explanation_translator, transportPrompts.et_examples, domain, openai, model, "explanation_translator"),
+        // dispatcher: await createAssistant("Dispatcher (transport)", transportPrompts.dispatcher, transportPrompts.dispatcher_examples, domain, openai, model, "dispatcher"),
     };
 
-    // Read existing .env file
-    const envPath = path.join(process.cwd(), '.env');
-    let envContent = await fs.readFile(envPath, 'utf-8');
+    if (saveToEnv) {
+        // Read existing .env file
+        const envPath = path.join(process.cwd(), '.env');
+        let envContent = await fs.readFile(envPath, 'utf-8');
 
-    // Replace or add new ASSISTANT_ID_* variables
-    for (const [key, value] of Object.entries(assistants)) {
-        const envKey = `ASSISTANT_ID_${key.toUpperCase()}`;
-        const regex = new RegExp(`^${envKey}=.*$`, 'm');
-        if (envContent.match(regex)) {
-            // Replace existing variable
-            envContent = envContent.replace(regex, `${envKey}=${value}`);
-        } else {
-            // Add new variable
-            envContent += `\n${envKey}=${value}`;
+        // Replace or add new ASSISTANT_ID_* variables
+        for (const [key, value] of Object.entries(assistants)) {
+            const envKey = `ASSISTANT_ID_${key.toUpperCase()}`;
+            const regex = new RegExp(`^${envKey}=.*$`, 'm');
+            if (envContent.match(regex)) {
+                // Replace existing variable
+                envContent = envContent.replace(regex, `${envKey}=${value}`);
+            } else {
+                // Add new variable
+                envContent += `\n${envKey}=${value}`;
+            }
         }
-    }
 
-    // Write updated content back to .env file
-    await fs.writeFile(envPath, envContent);
+        // Write updated content back to .env file
+        await fs.writeFile(envPath, envContent);
+    }
 
     return assistants;
 }
