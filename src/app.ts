@@ -32,10 +32,10 @@ import { initializeAssistants, OpenAIModelName } from './llm/initialize_assistan
 import { reverseTranslatorsRouter } from './routes/reverse-translators';
 
 
-console.log('-------- Initializing LLMs assistants -----');
-const model =  "gpt-4o-mini";
-//process.env.OPENAI_MODEL_NAME ||
-initializeAssistants(model as OpenAIModelName, "transport").then(console.log).catch(console.error);
+// console.log('-------- Initializing LLMs assistants -----');
+// const model =  "gpt-4o-mini";
+// //process.env.OPENAI_MODEL_NAME ||
+// initializeAssistants(model as OpenAIModelName, "transport").then(console.log).catch(console.error);
 
 dotenv.config();
 
