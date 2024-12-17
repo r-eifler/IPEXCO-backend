@@ -53,7 +53,7 @@ LLMRouter.post('/gt', auth, async (req: any, res) => {
 
         const input = req.body.data
 
-        const output = await processGtRequest(input, llmContext.threadIdGT);
+        const output = await processGtRequest(input, llmContext.threadIdGT, llmContext.assistantIdGT);
         if (output == undefined) {
             res.status(500).send({ error: `Run status is null` });
             return;
@@ -123,7 +123,7 @@ LLMRouter.post('/et', auth, async (req: any, res) => {
         console.log("req.body", req.body)
         const input = req.body.data
 
-        const output = await processEtRequest(input, llmContext.threadIdET);
+        const output = await processEtRequest(input, llmContext.threadIdET, llmContext.assistantIdET);
         if (output == undefined) {
             res.status(500).send({ error: `Run status is null` });
             return;
@@ -188,7 +188,7 @@ LLMRouter.post('/qt', auth, async (req: any, res) => {
         await llmContext.save();
 
         // Process QT request
-        const qtOutput = await processQtRequest(req.body.qtRequest, llmContext.threadIdQT);
+        const qtOutput = await processQtRequest(req.body.qtRequest, llmContext.threadIdQT, llmContext.assistantIdQT);
         if (qtOutput == undefined) {
             res.status(500).send({ error: `QT run status is null` });
             return;
@@ -314,7 +314,7 @@ LLMRouter.post('/qt-then-gt', auth, async (req: any, res) => {
         await llmContext.save();
 
         // Process QT request
-        const qtOutput = await processQtRequest(req.body.qtRequest, llmContext.threadIdQT);
+        const qtOutput = await processQtRequest(req.body.qtRequest, llmContext.threadIdQT, llmContext.assistantIdQT);
         if (qtOutput == undefined) {
             res.status(500).send({ error: `QT run status is null` });
             return;
@@ -374,7 +374,7 @@ LLMRouter.post('/qt-then-gt', auth, async (req: any, res) => {
         }
         if (used == 'NEVER-USED' || planProperty == null || planProperty == undefined) {
             console.log("gtInput", gtInput)
-            const gtOutput = await processGtRequest(gtInput, llmContext.threadIdGT);
+            const gtOutput = await processGtRequest(gtInput, llmContext.threadIdGT, llmContext.assistantIdGT);
             if (gtOutput == undefined) {
                 res.status(500).send({ error: `GT run status is null` });
                 return;

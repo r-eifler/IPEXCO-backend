@@ -167,6 +167,7 @@ demoRouter.post('/compute-explanations/:id/finished', async (req: any, res) => {
 
         if(status === 'FINISHED'){
             demo.status = DemoRunStatus.finished;
+            demo.globalExplanation.status = ExplanationRunStatus.finished;
             demo.globalExplanation.MUGS = JSON.stringify(MUGS.subsets)
             demo.globalExplanation.MGCS = JSON.stringify(MGCS.subsets)
         }
@@ -174,6 +175,7 @@ demoRouter.post('/compute-explanations/:id/finished', async (req: any, res) => {
 
         if(status === 'FAILED'){
             demo.status = DemoRunStatus.failed;
+            demo.globalExplanation.status = ExplanationRunStatus.failed;
         }
 
         demo.save()
