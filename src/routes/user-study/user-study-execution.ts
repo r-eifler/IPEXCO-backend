@@ -18,6 +18,7 @@ userStudyExecutionRouter.put('/finish', auth, async (req, res) => {
         }
 
         executionData.finished = true;
+        executionData.finishedAt = new Date();
         await executionData.save();
 
         res.send(true);
