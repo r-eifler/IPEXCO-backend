@@ -2,6 +2,7 @@ import express from 'express';
 import { auth } from '../../middleware/auth';
 import { ParticipantDistribution, ParticipantDistributionModel } from '../../db_schema/user-study/participant-distribution';
 import { error } from 'console';
+import { UserStudyExecutionModel } from '../../db_schema/user-study/user-study-execution';
 
 export const participantDistributerRouter = express.Router();
 
@@ -68,6 +69,49 @@ participantDistributerRouter.get('/', auth, async (req: any, res) => {
     } catch (ex : any) {
         res.send(ex.message);
     }
+
+});
+
+
+participantDistributerRouter.get('/:id/next', async (req: any, res) => {
+
+    const id = req.params.id;
+
+    const participantDistribution = await ParticipantDistributionModel.findOne({ _id: id });
+
+    if (!participantDistribution) { 
+        return res.status(404).send({ message: 'No user study found.' });
+    }
+
+    let numUserStudyParticipants: Record<string, number> = {};
+    for(let us of participantDistribution.userStudies){
+        const participants = await UserStudyExecutionModel.find({userStudy: us.userStudy});
+
+        if (!participants) { 
+            return res.status(404).send({ message: 'No user study found.' });
+        }
+
+        numUserStudyParticipants[us.userStudy] = participants.length;
+    }
+
+    let minProcessed = 1;
+    let minProcessedId = null;
+
+    for(let us of participantDistribution.userStudies){
+        let processedFraction = numUserStudyParticipants[us.userStudy] / us.numberParticipants;
+        if(processedFraction < minProcessed){
+            minProcessed = processedFraction;
+            minProcessedId = us.userStudy;
+        }
+    }
+
+    if (!minProcessedId) { 
+        return res.status(404).send({ message: 'No user study found.' });
+    }
+
+    res.send({
+        data: minProcessedId
+    });
 
 });
 
