@@ -157,44 +157,131 @@ LLMRouter.post('/et', auth, async (req: any, res) => {
     }
 });
 
-// LLMRouter.post('/qt', async (req, res) => {
-//     try {
-//         console.log("req.body", req.body)
-//         const threadId = req.body.threadId == '' ? (await openai_client.beta.threads.create({})).id : req.body.threadId;
-//         console.log("threadId (req.body.threadId)", threadId)
-//         const input = req.body.data
+LLMRouter.post('/qt', auth, async (req: any, res) => {
+    try {
+        console.log("req.body", req.body);
 
-//         const output = await processQtRequest(input, threadId);
-//         if (output == undefined) {
-//             res.status(500).send({ error: `Run status is null ` });
-//             return;
-//         }
+        // check if LLMContextModel exists
+        let llmContext = await LLMContextModel.findOne({ user: req.user._id, project: req.body.projectId });
+        if (!llmContext) {
+            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
+            return;
+        }
+        if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
+            res.status(404).send({ error: 'No assistants found for user ' + req.body.userId + ' and project ' + req.body.projectId });
+            return;
+        }
+        if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
+            const threadIdET = (await openai_client.beta.threads.create({})).id
+            const threadIdGT = (await openai_client.beta.threads.create({})).id
+            const threadIdQT = (await openai_client.beta.threads.create({})).id
 
-//         const lastAssistantMessage = output.lastAssistantMessage;
-//         const run_status = output.run_status;
+            // Update existing llmContext instead of creating new one
+            llmContext.threadIdGT = threadIdGT;
+            llmContext.threadIdQT = threadIdQT;
+            llmContext.threadIdET = threadIdET;
+        }
 
-//         if (lastAssistantMessage) {
-//             const content = lastAssistantMessage.content[0];
-//             if (content && 'text' in content) {
-//                 const response = content.text.value;
-//                 console.log(`Sent value > ${response}`);
-//                 res.status(200).send({ data: { "response": response, "threadId": threadId } });
-//             } else {
-//                 console.log('No valid content in assistant message');
-//                 res.status(404).send({ error: 'No valid content in assistant message' });
-//             }
-//         } else {
-//             console.log('No assistant message found');
-//             res.status(404).send({ error: 'No assistant message found' });
-//         }
+        llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalQuestion, iterationStepId: req.body.iterationStepId });
+        llmContext.seenByGTMessages.push({ role: 'receiver', content: req.body.gtRequest });
+        llmContext.seenByQTMessages.push({ role: 'receiver', content: req.body.qtRequest });
+        await llmContext.save();
 
+        // Process QT request
+        const qtOutput = await processQtRequest(req.body.qtRequest, llmContext.threadIdQT);
+        if (qtOutput == undefined) {
+            res.status(500).send({ error: `QT run status is null` });
+            return;
+        }
 
+        console.log("qtOutput", qtOutput)
 
-//     } catch (error) {
-//         console.error(error);
-//         res.status(500).send(error);
-//     }
-// });
+        // Get QT response
+        let qtResponse;
+        if (qtOutput.lastAssistantMessage) {
+            const content = qtOutput.lastAssistantMessage.content[0];
+            if (content && 'text' in content) {
+                qtResponse = content.text.value;
+                llmContext.seenByQTMessages.push({ role: 'receiver', content: qtResponse });
+                await llmContext.save();
+            } else {
+                res.status(404).send({ error: 'No valid content in QT response assistant message' });
+                return;
+            }
+        }
+
+        console.log("qtResponse", qtResponse)
+
+        if (qtResponse == undefined) {
+            res.status(404).send({ error: 'No QT response found' });
+            return;
+        }
+        llmContext.seenByQTMessages.push({ role: 'sender', content: qtResponse });
+        await llmContext.save();
+        // Parse QT response and prepare GT input
+        const { questionType, questionArgument: untranslatedGoal, used, reverseTranslation: reverseTranslationQT, directResponse } = parseQuestionTranslation(qtResponse);
+
+        if (directResponse != null) {
+            console.log("directResponse is not null, therefore returning directResponse")
+            res.status(200).send({ data: { directResponse, questionType, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT } });
+            return;
+        }
+
+        console.log("output of parseQuestionTranslation", { questionType, untranslatedGoal, used, reverseTranslationQT, directResponse })
+        const gtInput = req.body.gtRequest.replace("{goal_description}", untranslatedGoal);
+        let gtResponse;
+        let planProperty;
+        let reverseTranslationGT;
+        // Process GT request only if used is 'NEVER-USED'
+
+        if (used == "ALREADY-USED") {
+
+            planProperty = await PlanPropertyModel.findOne({
+                name: untranslatedGoal,
+                project: req.body.projectId
+            });
+            if (planProperty != null) {
+                gtResponse = { formula: planProperty.formula, shortName: planProperty.name, reverseTranslation: planProperty.naturalLanguageDescription, feedback: "" };
+            }
+
+            console.log("Because used is ALREADY-USED, planProperty is", planProperty)
+        }
+        if (used == 'NEVER-USED' || planProperty == null || planProperty == undefined) {
+            
+            console.log("used is NEVER-USED or planProperty is null or undefined, therefore returning directResponse")
+            let directResponse = "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
+            res.status(200).send({ data: { directResponse, questionType, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT } });     
+            return;
+        }
+
+        let ppId = planProperty?._id;
+
+        const question: Question = {
+            iterationStepId: req.body.iterationStepId,
+            questionType: questionType as QuestionType,
+            propertyId: ppId
+        };
+
+        console.log("Sending data", { qtResponse, gtResponse, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT })
+        res.status(200).send({
+            data: {
+                qtResponse,
+                gtResponse,
+                threadIdQT: llmContext.threadIdQT,
+                threadIdGT: llmContext.threadIdGT,
+                questionType: questionType as QuestionType,
+                goal: ppId,
+                question: question,
+                reverseTranslationQT: reverseTranslationQT,
+                reverseTranslationGT: reverseTranslationGT
+            }
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send(error);
+    }
+});
 
 LLMRouter.post('/qt-then-gt', auth, async (req: any, res) => {
     try {
@@ -261,7 +348,7 @@ LLMRouter.post('/qt-then-gt', auth, async (req: any, res) => {
         const { questionType, questionArgument: untranslatedGoal, used, reverseTranslation: reverseTranslationQT, directResponse } = parseQuestionTranslation(qtResponse);
 
         if (directResponse != null) {
-            res.status(200).send({ data: { directResponse, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT } });
+            res.status(200).send({ data: { directResponse, questionType, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT } });
             return;
         }
 
@@ -317,7 +404,7 @@ LLMRouter.post('/qt-then-gt', auth, async (req: any, res) => {
                     const { formula, shortName, reverseTranslation: reverseTranslationGT, feedback } = parseGoalTranslation(gtResponse);
 
                     if (feedback != null) {
-                        res.status(200).send({ data: { feedback, threadIdGT: llmContext.threadIdGT, threadIdQT: llmContext.threadIdQT } });
+                        res.status(200).send({ data: { feedback, questionType, threadIdGT: llmContext.threadIdGT, threadIdQT: llmContext.threadIdQT } });
                         return;
                     }
 
@@ -422,6 +509,7 @@ function parseGoalTranslation(gtResponse: string): GoalTranslation {
         // return { formula, shortName };
     } catch (error) {
         console.error('Error parsing goal translation:', error);
+        console.log("gtResponse", gtResponse)
         return {
             formula: '',
             shortName: '',
@@ -481,37 +569,37 @@ LLMRouter.get('/llm-context', async (req, res) => {
 });
 
 LLMRouter.post('/create-llm-context', auth, async (req: any, res) => {
-    
-        let user: User = req.user;
-        console.log(`user ${user._id} found : ${user.name} ; ${user.role}`)
-        console.log(req.body)
-        if (req.body.domain == undefined) {
-            return res.status(404).send({ message: 'no domain specified' });
-        }
-        if (req.body.projectId == undefined) {
-            return res.status(404).send({ message: 'no projectId specified' });
-        }
-        const domain = req.body.domain;
-        const projectId = req.body.projectId;
-        const assistants = await initializeAssistants("gpt-4o-mini", domain, false);
 
-        const llmContext = new LLMContextModel({
-            user: user._id,
-            project: projectId,
-            assistantIdGT: assistants.goalTranslator,
-            assistantIdQT: assistants.questionTranslator,
-            assistantIdET: assistants.explanationTranslator,
-            threadIdGT: "",
-            threadIdQT: "",
-            threadIdET: "",
-            visibleMessages: [],
-            visiblePPCreationMessages: [],
-            seenByGTMessages: [],
-            seenByETMessages: [],
-            seenByQTMessages: [],
-        });
-        console.log("llmContext", llmContext)
-        try {
+    let user: User = req.user;
+    console.log(`user ${user._id} found : ${user.name} ; ${user.role}`)
+    console.log(req.body)
+    if (req.body.domain == undefined) {
+        return res.status(404).send({ message: 'no domain specified' });
+    }
+    if (req.body.projectId == undefined) {
+        return res.status(404).send({ message: 'no projectId specified' });
+    }
+    const domain = req.body.domain;
+    const projectId = req.body.projectId;
+    const assistants = await initializeAssistants("gpt-4o-mini", domain, false);
+
+    const llmContext = new LLMContextModel({
+        user: user._id,
+        project: projectId,
+        assistantIdGT: assistants.goalTranslator,
+        assistantIdQT: assistants.questionTranslator,
+        assistantIdET: assistants.explanationTranslator,
+        threadIdGT: "",
+        threadIdQT: "",
+        threadIdET: "",
+        visibleMessages: [],
+        visiblePPCreationMessages: [],
+        seenByGTMessages: [],
+        seenByETMessages: [],
+        seenByQTMessages: [],
+    });
+    console.log("llmContext", llmContext)
+    try {
         await llmContext.save();
         res.send({
             data: llmContext
