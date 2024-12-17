@@ -37,9 +37,13 @@ participantDistributerRouter.put('/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
 
-        await ParticipantDistributionModel.replaceOne({ _id: refId}, req.body);
+        console.log("Update distribution: " + refId);
+
+        await ParticipantDistributionModel.replaceOne({ _id: refId}, req.body.data);
 
         const participantDistribution: ParticipantDistribution | null = await ParticipantDistributionModel.findOne({ _id: refId});
+
+        console.log(participantDistribution);
 
         if (!participantDistribution) {
             return res.status(403).send('update user study failed');
