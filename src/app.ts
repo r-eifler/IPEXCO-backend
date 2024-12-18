@@ -17,12 +17,11 @@ import { planPropertyRouter } from './routes/plan_property';
 import { iterationStepRouter } from './routes/iteration-step';
 import { demoRouter } from './routes/demo';
 import { userStudyRouter } from './routes/user-study/user-study';
-import { userStudyUserRouter } from './routes/user-study/user-study-user';
 import { Environment } from './environment';
 
 import * as dotenv from "dotenv";
-import { metaStudyRouter } from './routes/user-study/meta-study';
-import { userStudyDataRouter } from './routes/user-study/user-study-data';
+import { participantDistributerRouter } from './routes/user-study/participant-distributer';
+import { userStudyExecutionRouter } from './routes/user-study/user-study-execution';
 import { plannerRouter } from './routes/planner';
 import { pddlRouter } from './routes/pddl';
 import { LLMRouter } from './routes/llm-connector';
@@ -99,10 +98,9 @@ app.use('/api/pddl', pddlRouter);
 
 app.use('/api/users', userRouter);
 
-app.use('/api/user-study-users', userStudyUserRouter);
-app.use('/api/meta-study', metaStudyRouter);
+app.use('/api/user-study-participant-distribution', participantDistributerRouter);
 app.use('/api/user-study', userStudyRouter);
-app.use('/api/user-study-data', userStudyDataRouter);
+app.use('/api/user-study-execution', userStudyExecutionRouter);
 
 app.use('/api/demo', demoRouter);
 app.use('/api/iteration-step', iterationStepRouter);

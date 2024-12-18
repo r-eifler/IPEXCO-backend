@@ -1,7 +1,7 @@
-import { UserStudyDataModel, UserStudyDemoData } from '../db_schema/user-study/user-study-store';
+import { UserStudyExecutionModel } from '../db_schema/user-study/user-study-execution';
 import { IterationStep, IterationStepModel } from '../db_schema/iteration_step';
 import express from 'express';
-import { auth, authUserStudy } from '../middleware/auth';
+import { auth } from '../middleware/auth';
 import { Demo, DemoModel } from '../db_schema/demo';
 import { ExplanationRunStatus } from '../db_schema/explanations';
 

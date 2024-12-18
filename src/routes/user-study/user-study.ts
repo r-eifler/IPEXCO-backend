@@ -1,6 +1,6 @@
 import { UserStudyModel, UserStudy } from '../../db_schema/user-study/user-study';
 import express from 'express';
-import { auth, authForward, authUserStudy } from '../../middleware/auth';
+import { auth } from '../../middleware/auth';
 
 export const userStudyRouter = express.Router();
 
@@ -28,7 +28,7 @@ userStudyRouter.post('/', auth, async (req: any, res) => {
 
     catch (ex : any) {
         console.log(ex.message);
-        res.send(ex.message);
+        res.status(500).send();
     }
 });
 
@@ -53,12 +53,13 @@ userStudyRouter.put('/:id', auth, async (req, res) => {
         });
 
     } catch (ex : any) {
-        res.send(ex.message);
+        console.log(ex.message);
+        res.status(500).send();
     }
 });
 
 
-userStudyRouter.get('/', authForward, async (req: any, res) => {
+userStudyRouter.get('/', auth, async (req: any, res) => {
     try {
         const allStudies: UserStudy[] = await UserStudyModel.find();
 
@@ -76,43 +77,50 @@ userStudyRouter.get('/', authForward, async (req: any, res) => {
             data: studies
         });
     } catch (ex : any) {
-        res.send(ex.message);
+        console.log(ex.message);
+        res.status(500).send();
     }
 
 });
 
 
 
-userStudyRouter.get('/:id', authForward, authUserStudy, async (req: any, res) => {
+userStudyRouter.get('/:id', async (req: any, res) => {
 
-    if (! req.user && ! req.userStudyUser) {
-        return res.status(401).send({ message: 'Not authorized to access this resource' });
+    try {
+        const id = req.params.id;
+        const userStudy = await UserStudyModel.findOne({ _id: id });
+
+        if (!userStudy) { 
+            return res.status(404).send({ message: 'No user study found.' });
+        }
+
+        res.send({
+            data: userStudy
+        });
+    } catch (ex : any) {
+        console.log(ex.message);
+        res.status(500).send();
     }
-
-    const id = req.params.id;
-    const userStudy = await UserStudyModel.findOne({ _id: id });
-
-    if (!userStudy) { 
-        return res.status(404).send({ message: 'No user study found.' });
-    }
-
-    res.send({
-        data: userStudy
-    });
 
 });
 
 userStudyRouter.delete('/:id', auth, async (req, res) => {
 
-    const id = req.params.id;
-    const userStudy = await UserStudyModel.deleteOne({ _id: id });
+    try {
+        const id = req.params.id;
+        const userStudy = await UserStudyModel.deleteOne({ _id: id });
 
-    if (!userStudy) { 
-        return res.status(404).send({ message: 'No user study found.' });
+        if (!userStudy) { 
+            return res.status(404).send({ message: 'No user study found.' });
+        }
+
+        res.send({
+            data: userStudy
+        });
+    } catch (ex : any) {
+        console.log(ex.message);
+        res.status(500).send();
     }
-
-    res.send({
-        data: userStudy
-    });
 
 });
