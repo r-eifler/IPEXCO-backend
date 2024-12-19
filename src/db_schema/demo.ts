@@ -11,7 +11,7 @@ export enum DemoRunStatus {
 
 
 export interface Demo  extends Project{
-    projectId: string,
+    projectId?: string,
     status: DemoRunStatus;
     completion: number;
     summaryImage: string | null;

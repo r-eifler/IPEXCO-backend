@@ -511,3 +511,87 @@ demoRouter.delete('/:id', auth, async (req, res) => {
 
 });
 
+
+demoRouter.post('/upload', auth, async (req: any, res) => {
+
+    try {
+
+        const demoData: Demo = req.body.demo as Demo;
+        demoData.name = 'UPLOADED: ' + demoData.name;
+        // console.log(demoData);
+        delete demoData.projectId;
+        demoData.domainSpecification = JSON.stringify(demoData.domainSpecification)
+        demoData.baseTask.model = JSON.stringify(demoData.baseTask.model)
+        demoData.globalExplanation.status = ExplanationRunStatus.finished;
+        demoData.globalExplanation.MUGS = JSON.stringify(demoData.globalExplanation.MUGS)
+        demoData.globalExplanation.MGCS = JSON.stringify(demoData.globalExplanation.MGCS)
+
+        delete demoData._id;
+        const demoModel = new DemoModel(demoData);
+
+        demoModel.user = req.user._id;
+        demoModel.public = false;
+        demoModel.status = DemoRunStatus.finished;
+
+        // console.log(demoData);
+
+        if (!demoModel) {
+            console.log("create demo failed");
+            return res.status(403).send('create demo failed');
+        }
+
+        await demoModel.save();
+        
+        const planPropertiesData: PlanProperty[] = req.body.planProperties;
+        
+        let planPropertyIdMapping: Record<string, string> = {};
+
+        for (const pp of planPropertiesData) {
+
+            let ppData: PlanProperty = pp;
+            const old_id = ppData._id;
+            delete ppData._id;
+            ppData.project = demoModel._id;
+            const newPP = new PlanPropertyModel(ppData);
+            const newProperty = await newPP.save();
+
+            if(old_id == undefined){
+                return res.status(403);
+            }
+
+            planPropertyIdMapping[old_id] = newProperty._id;
+        }
+
+        // const planProperties = await PlanPropertyModel.find({ project: demoModel._id});
+
+        if(demoModel.globalExplanation.MUGS == undefined || demoModel.globalExplanation.MGCS == undefined){
+            return res.status(403);
+        }
+
+        const MUGS: string[][] = JSON.parse(demoModel.globalExplanation.MUGS);
+        console.log(MUGS);
+        const newMappedMUGS = MUGS.map((mugs) => mugs.map(id => planPropertyIdMapping[id].toString()))
+        demoModel.globalExplanation.MUGS = JSON.stringify(newMappedMUGS);
+        console.log(newMappedMUGS);
+        
+        const MGCS: string[][] = JSON.parse(demoModel.globalExplanation.MGCS);
+        console.log(MGCS);
+        const newMappedMGCS= MGCS.map((mgcs) => mgcs.map(id => planPropertyIdMapping[id].toString()))
+        demoModel.globalExplanation.MGCS = JSON.stringify(newMappedMGCS);
+
+        await demoModel.save();
+        
+        res.send({
+            status: true,
+            message: 'Explain computation registered',
+            data: demoModel._id
+        });
+
+
+    } catch (ex) {
+        console.log(ex);
+        res.status(403);
+        return;
+    }
+});
+
