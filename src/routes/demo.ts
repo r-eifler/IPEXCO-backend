@@ -408,15 +408,17 @@ demoRouter.get('', auth, async (req: any, res) => {
     }
 });
 
-demoRouter.get('/demos', auth, async (req, res) => {
+demoRouter.get('/demos', auth, async (req: any, res) => {
     try {
 
+        let demos = null;
         if (req.query.projectId === undefined) {
-            return res.status(404).send({ message: 'no projectId specified' });
+            demos = await DemoModel.find({ user: req.user._id});
         }
-        const projectId : string = req.query.projectId as string;
-
-        const demos = await DemoModel.find({ projectId: projectId});
+        else{
+            const projectId : string = req.query.projectId as string;
+            demos = await DemoModel.find({ projectId: projectId, user: req.user._id});
+        }
 
         if (!demos) 
             { return res.status(404).send({ message: 'Demos not found.' }); 
