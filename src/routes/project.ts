@@ -1,18 +1,15 @@
 import { BaseProjectModel, Project, ProjectMetaData} from './../db_schema/project';
-import { IterationStep, IterationStepModel} from './../db_schema/iteration_step';
-import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
-import { auth } from '../middleware/auth';
+import { auth, authAny, AuthenticatedRequest } from '../middleware/auth';
 import express from 'express';
 
 import { ProjectModel } from '../db_schema/project';
-import { PlanningTask } from '../db_schema/planning_task';
 import { DemoModel } from '../db_schema/demo';
 
 export const projectRouter = express.Router();
 
 
 
-projectRouter.post('/', auth, async (req: any, res) => {
+projectRouter.post('/', auth, async (req: AuthenticatedRequest, res) => {
     let projectId = null;;
     try {
         const projectData: Project = req.body.data as Project;
@@ -20,6 +17,10 @@ projectRouter.post('/', auth, async (req: any, res) => {
         console.log('-------------------------------------------------')
         console.log(projectData.baseTask)
         console.log('-------------------------------------------------')
+
+        if (!req.user) {
+            return res.status(401).send('Create project failed.');
+        }
 
         projectData.user = req.user._id;
         projectData.domainSpecification = JSON.stringify(projectData.domainSpecification)
@@ -52,7 +53,7 @@ projectRouter.post('/', auth, async (req: any, res) => {
         if(projectId){
             await ProjectModel.deleteOne({ _id: projectId });
         }
-        res.status(404).send(ex.message);
+        res.status(500).send();
     }
 });
 
@@ -88,7 +89,10 @@ projectRouter.put('/:id', auth, async (req, res) => {
 });
 
 
-projectRouter.get('', auth, async (req: any, res) => {
+projectRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
+    if (!req.user) {
+        return res.status(401);
+    }
     const projects = await ProjectModel.find({ user: req.user._id});
     if (!projects) { 
         return res.status(404).send({ message: 'No project found.' });
@@ -100,6 +104,9 @@ projectRouter.get('', auth, async (req: any, res) => {
 });
 
 projectRouter.get('/meta-data', auth, async (req: any, res) => {
+    if (!req.user) {
+        return res.status(401).send('Create project failed.');
+    }
     const projects = await ProjectModel.find({ user: req.user._id}) as Project[];
     if (!projects) { 
         return res.status(404).send({ message: 'No project found.' });
@@ -121,8 +128,13 @@ projectRouter.get('/meta-data', auth, async (req: any, res) => {
 
 
 
-projectRouter.get('/:id', auth, async (req, res) => {
+projectRouter.get('/:id', authAny, async (req: AuthenticatedRequest, res) => {
     try {
+
+        if (!req.user) {
+            return res.status(401).send();
+        }
+
         const id = req.params.id;
 
         if (id == null || id == 'null') { 
@@ -131,9 +143,15 @@ projectRouter.get('/:id', auth, async (req, res) => {
 
         const project = await ProjectModel.findOne({ _id: id });
         if (project) { 
-            return res.send({
-                data: project
-            });
+            if(req.user.role != 'user-study'){
+                return res.send({
+                    data: project
+                });
+            }
+            else{
+                return res.status(401).send()
+            }
+            
         }
 
         const demo = await DemoModel.findOne({ _id: id });
@@ -151,30 +169,39 @@ projectRouter.get('/:id', auth, async (req, res) => {
     }
 });
 
-projectRouter.delete('/meta-data/:id', auth, async (req, res) => {
-    const id = req.params.id;
+projectRouter.delete('/meta-data/:id', auth, async (req: AuthenticatedRequest, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).send();
+        }
 
-    // // delete iteration steps
-    // const iterationsDeleteResult = await IterationStepModel.deleteMany({ project: id});
-    // if (!iterationsDeleteResult) { 
-    //     return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
-    // }
+        const id = req.params.id;
 
-    // // delete properties
-    // const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
-    // if (!propertyDeleteResult) { 
-    //     return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
-    // }
+        // // delete iteration steps
+        // const iterationsDeleteResult = await IterationStepModel.deleteMany({ project: id});
+        // if (!iterationsDeleteResult) { 
+        //     return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
+        // }
 
-    // delete project itself
-    const projectDeleteResult = await ProjectModel.deleteOne({ _id: id });
-    if (!projectDeleteResult) { 
-        return res.status(404).send({ message: 'No project found.' }); 
+        // // delete properties
+        // const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
+        // if (!propertyDeleteResult) { 
+        //     return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
+        // }
+
+        // delete project itself
+        const projectDeleteResult = await ProjectModel.deleteOne({ _id: id, user: req.user._id });
+        if (!projectDeleteResult) { 
+            return res.status(404).send({ message: 'No project found.' }); 
+        }
+
+        res.send({
+            data: projectDeleteResult
+        });
+    } catch (ex : any) {
+        console.log(ex);
+        res.status(500).send();
     }
-
-    res.send({
-        data: projectDeleteResult
-    });
 
 });
 

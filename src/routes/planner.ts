@@ -1,4 +1,4 @@
-import { auth } from '../middleware/auth';
+import { auth, authAny } from '../middleware/auth';
 import express from 'express';
 
 import { ExplainerModel, Planner, PlannerModel } from '../db_schema/runner';
@@ -10,7 +10,7 @@ import { environment } from '../app';
 
 export const plannerRouter = express.Router();
 
-plannerRouter.post('/plan-model', auth, async (req: any, res) => {
+plannerRouter.post('/plan-model', authAny, async (req: any, res) => {
 
     try {
 
@@ -41,7 +41,7 @@ plannerRouter.post('/plan-model', auth, async (req: any, res) => {
 });
 
 
-plannerRouter.post('/plan-step/:id', auth, async (req: any, res) => {
+plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
 
     try {
 
@@ -98,7 +98,7 @@ plannerRouter.post('/plan-step/:id', auth, async (req: any, res) => {
 });
 
 
-plannerRouter.post('/plan-step/temp-goals/:id', auth, async (req: any, res) => {
+plannerRouter.post('/plan-step/temp-goals/:id', authAny, async (req: any, res) => {
 
     try {
 
@@ -230,28 +230,28 @@ plannerRouter.post('/plan-step/finished/:id', async (req: any, res) => {
 });
 
 
-plannerRouter.get('/registered', auth, async (req: any, res) => {
-    const planner = await PlannerModel.find();
-    if (!planner) { 
-        return res.status(404).send({ message: 'No planner found.' });
-    }
-    res.send({
-        data: planner
-    });
+// plannerRouter.get('/registered', auth, async (req: any, res) => {
+//     const planner = await PlannerModel.find();
+//     if (!planner) { 
+//         return res.status(404).send({ message: 'No planner found.' });
+//     }
+//     res.send({
+//         data: planner
+//     });
 
-});
+// });
 
-plannerRouter.delete('/planner/:id', auth, async (req, res) => {
-    const id = req.params.id;
+// plannerRouter.delete('/planner/:id', auth, async (req, res) => {
+//     const id = req.params.id;
 
-    const deleteResult = await PlannerModel.deleteOne({ _id: id});
-    if (!deleteResult) { 
-        return res.status(404).send({ message: 'Problem during planner deletion occurred' }); 
-    }
+//     const deleteResult = await PlannerModel.deleteOne({ _id: id});
+//     if (!deleteResult) { 
+//         return res.status(404).send({ message: 'Problem during planner deletion occurred' }); 
+//     }
 
-    res.send({
-        data: deleteResult
-    });
+//     res.send({
+//         data: deleteResult
+//     });
 
-});
+// });
 

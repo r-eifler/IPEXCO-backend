@@ -1,5 +1,5 @@
 import express from 'express';
-import { auth } from '../../middleware/auth';
+import { auth, authAny, AuthenticatedRequest } from '../../middleware/auth';
 import {UserStudyExecution, UserStudyExecutionModel} from '../../db_schema/user-study/user-study-execution';
 import { User, UserModel } from '../../db_schema/user';
 import { error } from 'console';
@@ -7,9 +7,13 @@ import { IterationStepModel } from '../../db_schema/iteration_step';
 
 export const userStudyExecutionRouter = express.Router();
 
-userStudyExecutionRouter.put('/finish', auth, async (req, res) => {
+userStudyExecutionRouter.put('/finish', authAny, async (req: AuthenticatedRequest, res) => {
     try {
-        const userStudyUser = (req as any).user;
+        if (!req.user) {
+            return res.status(401).send();
+        }
+
+        const userStudyUser = req.user;
 
         const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userStudyUser._id})
             
@@ -51,11 +55,14 @@ userStudyExecutionRouter.put('/accept/:id', auth, async (req, res) => {
     }
 });
 
-userStudyExecutionRouter.put('/action', auth, async (req, res) => {
+userStudyExecutionRouter.put('/action', authAny, async (req: AuthenticatedRequest, res) => {
     try {
 
-        console.log('new action ' + req.body.action);
-        const userStudyUser = (req as any).user;
+        if (!req.user) {
+            return res.status(401).send();
+        }
+
+        const userStudyUser =req.user;
 
         const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userStudyUser._id})
             
@@ -76,9 +83,13 @@ userStudyExecutionRouter.put('/action', auth, async (req, res) => {
 });
 
 
-userStudyExecutionRouter.put('/cancel', auth, async (req, res) => {
+userStudyExecutionRouter.put('/cancel', authAny, async (req: AuthenticatedRequest, res) => {
     try {
-        const userStudyUser = (req as any).user;
+        if (!req.user) {
+            return res.status(401).send();
+        }
+
+        const userStudyUser = req.user;
 
         await UserStudyExecutionModel.deleteMany({ user: userStudyUser._id});
         await IterationStepModel.deleteMany({user: userStudyUser._id});
@@ -128,78 +139,45 @@ userStudyExecutionRouter.delete('/:id', auth, async (req, res) => {
 });
 
 
-// userStudyRouter.get('/:id/data', auth, async (req, res) => {
+
+// userStudyExecutionRouter.get('/:id/users', auth, async (req, res) => {
 //     try {
 //         const refId = req.params.id;
 
-//         const userStudy: UserStudy | null = await UserStudyModel.findOne({ _id: refId});
+//         const dataPoints: any[] = await  UserStudyExecutionModel.find({ userStudy: refId})
+//         .populate('user');
 
-//         if (!userStudy) {
-//             return res.status(403).send('load data user study failed');
-//         }
-
-//         const users: USUser[] = await  USUserModel.find({ userStudy: userStudy._id});
-
-//         const data: UserStudyData[] = [];
-//         for (const user of users) {
-
-//             const userData: UserStudyData | null = await UserStudyDataModel.findOne({user: user._id}).populate('demoSteps');
-//             if (userData)
-//                 data.push(userData);
-//         }
-
+//         let usUSers: User[] = dataPoints.map(dp => dp.user as User);
 
 //         res.send({
 //             status: true,
 //             message: 'user study updated',
-//             data
+//             data: usUSers
 //         });
 
-//     } catch (ex) {
+//     } catch (ex : any) {
 //         res.send(ex.message);
 //     }
 // });
 
 
+// userStudyExecutionRouter.get('/:id/num_accepted_users', async (req, res) => {
+//     try {
+//         const refId = req.params.id;
 
-userStudyExecutionRouter.get('/:id/users', auth, async (req, res) => {
-    try {
-        const refId = req.params.id;
+//         const dataPoints: any[] = await  UserStudyExecutionModel.find({ userStudy: refId});
 
-        const dataPoints: any[] = await  UserStudyExecutionModel.find({ userStudy: refId})
-        .populate('user');
+//         const num = dataPoints.filter(dp => dp.accepted).length;
 
-        let usUSers: User[] = dataPoints.map(dp => dp.user as User);
+//         res.send({
+//             status: true,
+//             message: 'num accepted users',
+//             data: num
+//         });
 
-        res.send({
-            status: true,
-            message: 'user study updated',
-            data: usUSers
-        });
-
-    } catch (ex : any) {
-        res.send(ex.message);
-    }
-});
-
-
-userStudyExecutionRouter.get('/:id/num_accepted_users', async (req, res) => {
-    try {
-        const refId = req.params.id;
-
-        const dataPoints: any[] = await  UserStudyExecutionModel.find({ userStudy: refId});
-
-        const num = dataPoints.filter(dp => dp.accepted).length;
-
-        res.send({
-            status: true,
-            message: 'num accepted users',
-            data: num
-        });
-
-    } catch (ex : any) {
-        res.send(ex.message);
-    }
-});
+//     } catch (ex : any) {
+//         res.send(ex.message);
+//     }
+// });
 
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import { auth } from '../../middleware/auth';
+import { auth, AuthenticatedRequest } from '../../middleware/auth';
 import { ParticipantDistribution, ParticipantDistributionModel } from '../../db_schema/user-study/participant-distribution';
 import { error } from 'console';
 import { UserStudyExecutionModel } from '../../db_schema/user-study/user-study-execution';
@@ -7,8 +7,12 @@ import { UserStudyExecutionModel } from '../../db_schema/user-study/user-study-e
 export const participantDistributerRouter = express.Router();
 
 
-participantDistributerRouter.post('/', auth, async (req: any, res) => {
+participantDistributerRouter.post('/', auth, async (req: AuthenticatedRequest, res) => {
     try {
+        if (!req.user) {
+            return res.status(401).send();
+        }
+
         const participantDistributionData = req.body.data
         participantDistributionData.user = req.user._id;
 
@@ -61,8 +65,12 @@ participantDistributerRouter.put('/:id', auth, async (req, res) => {
 });
 
 
-participantDistributerRouter.get('/', auth, async (req: any, res) => {
+participantDistributerRouter.get('/', auth, async (req: AuthenticatedRequest, res) => {
     try {
+        if (!req.user) {
+            return res.status(401).send();
+        }
+
         const metaStudies = await ParticipantDistributionModel.find({ user: req.user._id});
 
         if (!metaStudies) { return res.status(404).send({ message: 'Lookup user studies failed.' }); }
@@ -78,77 +86,88 @@ participantDistributerRouter.get('/', auth, async (req: any, res) => {
 
 
 participantDistributerRouter.get('/:id/next', async (req: any, res) => {
+    try {
+        const id = req.params.id;
 
-    const id = req.params.id;
+        const participantDistribution = await ParticipantDistributionModel.findOne({ _id: id });
 
-    const participantDistribution = await ParticipantDistributionModel.findOne({ _id: id });
-
-    if (!participantDistribution) { 
-        return res.status(404).send({ message: 'No user study found.' });
-    }
-
-    let numUserStudyParticipants: Record<string, number> = {};
-    for(let us of participantDistribution.userStudies){
-        const participants = await UserStudyExecutionModel.find({userStudy: us.userStudy});
-
-        if (!participants) { 
+        if (!participantDistribution) { 
             return res.status(404).send({ message: 'No user study found.' });
         }
 
-        numUserStudyParticipants[us.userStudy] = participants.length;
-    }
+        let numUserStudyParticipants: Record<string, number> = {};
+        for(let us of participantDistribution.userStudies){
+            const participants = await UserStudyExecutionModel.find({userStudy: us.userStudy});
 
-    let minProcessed = 1;
-    let minProcessedId = null;
+            if (!participants) { 
+                return res.status(404).send({ message: 'No user study found.' });
+            }
 
-    for(let us of participantDistribution.userStudies){
-        let processedFraction = numUserStudyParticipants[us.userStudy] / us.numberParticipants;
-        if(processedFraction < minProcessed){
-            minProcessed = processedFraction;
-            minProcessedId = us.userStudy;
+            numUserStudyParticipants[us.userStudy] = participants.length;
         }
+
+        let minProcessed = 1;
+        let minProcessedId = null;
+
+        for(let us of participantDistribution.userStudies){
+            let processedFraction = numUserStudyParticipants[us.userStudy] / us.numberParticipants;
+            if(processedFraction < minProcessed){
+                minProcessed = processedFraction;
+                minProcessedId = us.userStudy;
+            }
+        }
+
+        if (!minProcessedId) { 
+            return res.status(404).send({ message: 'No user study found.' });
+        }
+
+        res.send({
+            data: minProcessedId
+        });
+    } catch (ex : any) {
+        console.log(ex.message)
+        res.status(500).send();
     }
-
-    if (!minProcessedId) { 
-        return res.status(404).send({ message: 'No user study found.' });
-    }
-
-    res.send({
-        data: minProcessedId
-    });
-
 });
 
 
 participantDistributerRouter.get('/:id', async (req: any, res) => {
+    try{
+        const id = req.params.id;
 
-    const id = req.params.id;
+        const participantDistribution = await ParticipantDistributionModel.findOne({ _id: id });
 
-    const participantDistribution = await ParticipantDistributionModel.findOne({ _id: id });
+        if (!participantDistribution) { 
+            return res.status(404).send({ message: 'No user study found.' });
+        }
 
-    if (!participantDistribution) { 
-        return res.status(404).send({ message: 'No user study found.' });
+        res.send({
+            data: participantDistribution
+        });
+    } catch (ex : any) {
+        console.log(ex.message)
+        res.status(500).send();
     }
-
-    res.send({
-        data: participantDistribution
-    });
 
 });
 
 participantDistributerRouter.delete('/:id', auth, async (req, res) => {
+    try{
+        const id = req.params.id;
 
-    const id = req.params.id;
+        const participantDistribution = await ParticipantDistributionModel.deleteOne({ _id: id });
 
-    const participantDistribution = await ParticipantDistributionModel.deleteOne({ _id: id });
+        if (!participantDistribution) { 
+            return res.status(404).send({ message: 'No user study found.' });
+        }
 
-    if (!participantDistribution) { 
-        return res.status(404).send({ message: 'No user study found.' });
+        res.send({
+            data: participantDistribution
+        });
+    } catch (ex : any) {
+        console.log(ex.message)
+        res.status(500).send();
     }
-
-    res.send({
-        data: participantDistribution
-    });
 
 });
 

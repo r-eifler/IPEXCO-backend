@@ -1,17 +1,20 @@
-import { authForward} from './../middleware/auth';
+import { authAny, AuthenticatedRequest, authForward} from './../middleware/auth';
 import express from 'express';
 import { User, UserData, UserModel } from '../db_schema/user';
 import { auth } from '../middleware/auth';
 import { Response } from 'express';
 import { UserStudy, UserStudyModel } from '../db_schema/user-study/user-study';
-import { UserStudyExecution, UserStudyExecutionModel } from '../db_schema/user-study/user-study-execution';
-import { finished } from 'stream';
+import { UserStudyExecutionModel } from '../db_schema/user-study/user-study-execution';
+import { environment } from '../app';
 
 export const userRouter = express.Router();
 
 
 userRouter.post('/user-study', async (req, res) => {
     try {
+        if(!environment.allowUserStudyUsers){
+            return res.status(403).send('No user study users possible.');
+        }
 
         const userStudyId = req.body.userStudyId;
         if(userStudyId === null || userStudyId === undefined){
@@ -76,6 +79,9 @@ userRouter.post('/user-study', async (req, res) => {
 
 userRouter.post('/', async (req, res) => {
     try {
+        if(!environment.allowRegistration){
+            return res.status(403).send('No registration possible.');
+        }
         const userExists = await UserModel.findOne({ name: req.body.name});
         if (userExists) {
             res.status(400).send('User name already exists.');
@@ -104,9 +110,12 @@ userRouter.post('/', async (req, res) => {
     }
 });
 
-userRouter.post('/login', authForward, async(req: any, res: Response) => {
+userRouter.post('/login', authForward, async(req: AuthenticatedRequest, res: Response) => {
     try {
         if (req.user) {
+            if(req.user.role == 'user-study'){
+                return res.status(401).send({ error: 'Login failed! User study users cannot login'});
+            }
             res.send({ user: req.user, token: req.token });
         }
         const username = req.body.name;
@@ -144,14 +153,22 @@ userRouter.post('/login', authForward, async(req: any, res: Response) => {
 });
 
 
-userRouter.get('', auth, async(req: any, res) => {
-    let user = req.user;
-    const userData: UserData = {
-        _id: user._id,
-        name: user.name,
-        role: user.role,
+userRouter.get('', authAny, async(req: AuthenticatedRequest, res) => {
+    try {
+        if(!req.user){
+            return res.status(400).send();
+        }
+        let user = req.user;
+        const userData: UserData = {
+            _id: user._id,
+            name: user.name,
+            role: user.role,
+        }
+        res.send({ data: userData });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send(false);
     }
-    res.send({ data: userData });
 });
 
 userRouter.post('/logout', authForward, async (req: any, res) => {
@@ -170,31 +187,3 @@ userRouter.post('/logout', authForward, async (req: any, res) => {
     }
 });
 
-userRouter.post('/user-study', async (req, res) => {
-    try {
-
-        const user = req.body as User;
-
-        const user_name_exists= await UserModel.findOne({ name: user.name});
-        if (user_name_exists) {
-            res.status(400).send('User name already exists.');
-            return;
-        }
-
-        if (user.password != null) {
-            res.status(400).send('User study users must not have a password.');
-            return;
-        }
-
-        const userModel = new UserModel(req.body);
-        userModel.role = 'user-study'
-        await userModel.save();
-
-        const token = await userModel.generateAuthToken();
-
-        res.status(201).send({ user: { name: userModel.name}, token });
-    } catch (error) {
-        console.log(error);
-        res.status(400).send(error);
-    }
-});
