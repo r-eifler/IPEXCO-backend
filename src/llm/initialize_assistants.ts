@@ -37,6 +37,11 @@ function formatExamples(examples: any[], domain:keyof typeof domains, translator
     const template = templates[domain][translatorType];
     
     return examples.map((example, index) => {
+        // Handle direct questions that have different format
+        if (example.Input) {
+            return `\n${example.Input}\n${example.Return}\n`;
+        }
+        
         let formattedExample = template;
         
         // Replace each placeholder in the template with its corresponding value

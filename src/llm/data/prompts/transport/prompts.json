@@ -1,5 +1,5 @@
 {
-    "system": "You are an AI assistant that faithfully answers user questions using the help of multiple modules. Carefully follow the instructions without any deviation and never add any comments of your own. \n",
+    "system": "You are an AI assistant that faithfully answers user questions using the help of multiple modules. Carefully follow the instructions without any deviation and never add any comments of your own. \n You can use markdown formatting in your natural language answers.",
     "question_translator": "You will be given a user question that is semantically equivalent to one of these questions : \n\nUS-WHY: \"Why is the task unsolvable?\" ; \nUS-HOW: \"How can I make the task solvable?\" ;\nS-WHY-NOT: \"Why are Q not satisfied?\" ;\nS-WHAT-IF: \"What happens if we enforce Q?\";\nS-CAN: \"Can Q be satisfied?\" ;\nS-HOW: \"How can Q be satisfied?\"/\"How can I improve the plan with respect to o?\" ;\n\nAny question you will be given can be mapped to one of these questions.\nReturn the question type and the goal or plan property the user is refering to, without any additional comments of any kind. First, try to see if the question is about a property that is already existing. If it is, return ALREADY-USED as the last part of your answer and use the exact same name. If it is not, invent a name for this property and use the encoding NEVER-USED. If the question is not about a specific property but about the unsolvability of the task, return NOGOAL as the second part of your answer and ALREADY-USED as the last",
     "goal_translator": "You will be given a goal and a list of allowed predicates and objects from a planning problem and domain.\nReturn the LTLf formula corresponding to the goal, followed by a short summary of the goal in natural language (the fewer words the better) that will be used to refer to it. The LTLf formula must be well-formed and must only contain the predicates and objects given to you. Users might reference previous messages they sent or implicit objects. You should infer that when possible based on the provided information and previous messages. If it is not possible to express the property in LTL using the provided objects and predicates, return UNSUPPORTED ; Unsupported property.",
     "explanation_translator": "You will be given a question, a list of achieved and unachieved goals, and a conflict list with each conflict presented as a Minimum Unsolvable Goal Subset (MUGS) except if the original question is a How question. In that case, you are provided with list of resolutions, presented using  Minimal Goal Correction Sets MGCS. \nAll goals in a Conflicts cannot be achieved in the same plan, but any strict subset of them can be achieved.\nFor example the conflict : [a,b,c] means that it is possible to achieve (a and b) or (a and c) or (b and c) in the same plan, but not (a and b and c). If provided with Resolutions, each set represent a set of goals it is sufficient to forgo to make the planning task solvable. Choosing any of these and making sure that none are enforced should be sufficient. \nAnswer the question using the explanation framework to help users to understand what conflict causes their problem and what they can do to solve it. It is crucial to base anwsers on conflicts or resolutions, to ensure providing faithful explanations. Never mention Conflicts or Resolutions, refer to them as \"conflicts\" or \"resolutions\" and only use vocabulary users will understand.\n\nExamples :\n\n{examples}\n\nEnd of the examples.",
@@ -22,6 +22,14 @@
             "Existing Plan Properties": "[Use t1 for cafe-smith, p0 to cafe, p2 to smith, Never same trucks for p3 and p4]",
             "Solvable": "True",
             "Return": "{\"questionType\": \"S-WHY-NOT\", \"questionArgument\": \"p2 to smith\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"Why is the goal of delivering p2 to smith not satisfied?\", \"directResponse\": null}"
+        },
+        {
+            "Input": "What is the goal of the planning task?",
+            "Return": "{\"questionType\": \"DIRECT-USER\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"The goal of the planning task is to find a plan that satisfies the enforced goals.\"}"
+        },
+        {
+            "Input": "How can I improve utility?",
+            "Return": "{\"questionType\": \"DIRECT-USER\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"You can try to find a better combination of enforced goals. I can help you with that by helping you to understand the dependencies between goals.\"}"
         },
         {
             "Question": "Can we use t2 for bank to supermarket road?",
@@ -51,6 +59,10 @@
             "Return": "{\"questionType\": \"S-CAN\", \"questionArgument\": \"All at packingstation at some point\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"Can all packages visit the packing station?\", \"directResponse\": null}"
         },
         {
+            "Input": "I don't understand. Can you explain it a bit more clearly?",
+            "Return": "{\"questionType\": \"DIRECT-ET\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"I don't understand. Can you explain it a bit more clearly?\"}"
+        },
+        {
             "Question": "What happens if we enforce using the same truck for p1 and p2?",
             "Enforced Goals": "[p0 to bank before p1 to cafe, p0 to cafe]",
             "Satisfied Goals": "[p2 to smith]",
@@ -58,6 +70,10 @@
             "Existing Plan Properties": "[p0 to bank before p1 to cafe, p0 to cafe, p2 to smith, Never different trucks for p1 and p2]",
             "Solvable": "True",
             "Return": "{\"questionType\": \"S-WHAT-IF\", \"questionArgument\": \"Never different trucks for p1 and p2\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"What happens if we enforce using the same truck for p1 and p2?\", \"directResponse\": null}"
+        },
+        { 
+            "Input": "Can you enumerate the conflicts clearly ?",
+            "Return": "{\"questionType\": \"DIRECT-ET\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"Can you enumerate the conflicts clearly ?\"}"
         },
         {
             "Question": "Can we make sure that both t1 and t2 visits the bank?",
@@ -128,6 +144,14 @@
         }
     ],
     "et_examples": [
+        {
+            "Input": "Can you enumerate the conflicts clearly ?",
+            "Return": "{\"output\": \"I can only help you to understand the conflicts with respect to a specific goal. Please specify which goal you want to understand the conflicts for.\\n\"}"
+        },
+        {
+            "Input": "What kind of questions can you answer ?",
+            "Return": "{\"output\": \"I am mainly designed to answer questions about the achievability of goals or the planning task, like : \\n - Why is this planning task unsolvable ?.\\n - Why is this goal not achieved in this plan ?.\\n - Can I enforce this goal ?.\\n - How can I make this goal achievable ?.\\n - What happens if I enforce this goal ?.\\n But you can try more questions and engage in more complex conversations. \\n\"}"
+        },
         {
             "Question": "Why can't I deliver p2 ?",
             "Question Type": "S-WHY-NOT",

@@ -74,14 +74,14 @@
                     },
                     "reverseTranslation": {
                         "type": "string",
-                        "description": "The translation of the question back into natural language to check if the translation is correct. Use this entry to signify \"I understood you question as {reverseTranslation} \" based on the questionType and questionArgument only."
+                        "description": "The translation of the question back into natural language to check if the translation is correct. Use this entry to signify \"I understood you question as {reverseTranslation} \" based on the questionType and questionArgument only. Only use this entry for S- and US- question types."
                     },
                     "directResponse": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "description": "Response provided to the user if the translation to a structured question is not possible. Only use this entry in this case to respond directly to the user."
+                        "description": "Response provided to the user if the translation to a structured question is not possible. Only use this entry for DIRECT question types. When the questionType is DIRECT-USER, reply to the user direcltly using this field. When the questionType is DIRECT-ET, just copy the question in this field."
                     }
                 },
                 "required": [
