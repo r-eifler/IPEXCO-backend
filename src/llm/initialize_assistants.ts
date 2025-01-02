@@ -5,6 +5,8 @@ import blocksworldTemplates from "./data/prompts/blocksworld/templates.json";
 import transportPrompts from "./data/prompts/transport/prompts.json";
 import transportTemplates from "./data/prompts/transport/templates.json";
 import belugaTemplates from "./data/prompts/beluga/templates.json";
+import parentsafternoonPrompts from "./data/prompts/parentsafternoon/prompts.json";
+import parentsafternoonTemplates from "./data/prompts/parentsafternoon/templates.json";
 import outputSchemas from "./output_schemas.json";
 import fs from 'fs/promises';
 import path from 'path';
@@ -14,13 +16,15 @@ export type OpenAIModelName = "gpt-4o-mini" | "gpt-4o" ;
 const domains = {
     beluga: belugaPrompts,
     blocksworld: blocksworldPrompts,
-    transport: transportPrompts
+    transport: transportPrompts,
+    parentsafternoon: parentsafternoonPrompts
 }
 
 const templates = {
     blocksworld: blocksworldTemplates,
     beluga: belugaTemplates,
-    transport: transportTemplates
+    transport: transportTemplates,
+    parentsafternoon: parentsafternoonTemplates
 }
 
 
@@ -93,10 +97,33 @@ export async function initializeAssistants(model: OpenAIModelName, domain: keyof
 
 
     const assistants = {
-        goalTranslator: await createAssistant("Goal Translator (transport)", transportPrompts.goal_translator, transportPrompts.gt_examples, domain, openai, model, "goal_translator"),
-        questionTranslator: await createAssistant("Question Translator (transport)", transportPrompts.question_translator, transportPrompts.qt_examples, domain, openai, model, "question_translator"),
-        explanationTranslator: await createAssistant("Explanation Translator (transport)", transportPrompts.explanation_translator, transportPrompts.et_examples, domain, openai, model, "explanation_translator"),
-        // dispatcher: await createAssistant("Dispatcher (transport)", transportPrompts.dispatcher, transportPrompts.dispatcher_examples, domain, openai, model, "dispatcher"),
+        goalTranslator: await createAssistant(
+            `Goal Translator (${domain})`, 
+            domains[domain].goal_translator, 
+            domains[domain].gt_examples, 
+            domain, 
+            openai, 
+            model, 
+            "goal_translator"
+        ),
+        questionTranslator: await createAssistant(
+            `Question Translator (${domain})`, 
+            domains[domain].question_translator, 
+            domains[domain].qt_examples, 
+            domain, 
+            openai, 
+            model, 
+            "question_translator"
+        ),
+        explanationTranslator: await createAssistant(
+            `Explanation Translator (${domain})`, 
+            domains[domain].explanation_translator, 
+            domains[domain].et_examples, 
+            domain, 
+            openai, 
+            model, 
+            "explanation_translator"
+        ),
     };
 
     if (saveToEnv) {

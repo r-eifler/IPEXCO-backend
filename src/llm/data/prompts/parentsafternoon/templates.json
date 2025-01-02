@@ -1,0 +1,6 @@
+{
+    "goal_translator":"Goal: {Goal}\nPredicates: {Predicates}\nObjects: {Objects}\nExisting Plan Properties: {Existing Plan Properties}\nReturn: {Return}",
+    "question_translator":"Question: {Question}\nEnforced Goals: {Enforced Goals}\nSatisfied Goals: {Satisfied Goals}\nUnsatisfied Goals: {Unsatisfied Goals}\nExisting Plan Properties: {Existing Plan Properties}\nSolvable: {Solvable}\nReturn: {Return}",
+    "explanation_translator":"Question: {Question}\nQuestion Type: {Question Type}\nQuestion Arguments: {Question Arguments}\nConflicts: {Conflicts}\nResolutions: {Resolutions}\nEnforced Goals: {Enforced Goals}\nSatisfied Goals: {Satisfied Goals}\nUnsatisfied Goals: {Unsatisfied Goals}\nExisting Plan Properties: {Existing Plan Properties}\nReturn: {Return}",
+    "dispatcher": "User: {message}\nReturn: {Return}"
+}
