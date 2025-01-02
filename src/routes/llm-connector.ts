@@ -1,5 +1,5 @@
 import express from 'express';
-import { auth } from '../middleware/auth';
+import { auth, authAdmin, authAny } from '../middleware/auth';
 // import { convertToCoreMessages, CoreMessage, streamText } from 'ai';
 import { openai_client } from '../llm/openai_client';
 // import { openai } from '@ai-sdk/openai';
@@ -19,7 +19,8 @@ export const LLMRouter = express.Router();
 
 export const maxDuration = 30;
 
-LLMRouter.post('/gt', auth, async (req: any, res) => {
+
+LLMRouter.post('/gt', authAny, async (req: any, res) => {
     try {
 
         // check if LLMContextModel exists
@@ -86,7 +87,7 @@ LLMRouter.post('/gt', auth, async (req: any, res) => {
     }
 });
 
-LLMRouter.post('/et', auth, async (req: any, res) => {
+LLMRouter.post('/et', authAny, async (req: any, res) => {
     try {
         console.log("req.body", req.body);
         if (req.body.projectId == undefined || req.body.iterationStepId == undefined || req.body.originalRequest == undefined) {
@@ -161,7 +162,7 @@ LLMRouter.post('/et', auth, async (req: any, res) => {
     }
 });
 
-LLMRouter.post('/qt', auth, async (req: any, res) => {
+LLMRouter.post('/qt', authAny, async (req: any, res) => {
     try {
         console.log("req.body", req.body);
 
@@ -292,7 +293,7 @@ LLMRouter.post('/qt', auth, async (req: any, res) => {
     }
 });
 
-LLMRouter.post('/qt-then-gt', auth, async (req: any, res) => {
+LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
     try {
         console.log("req.body", req.body);
 
@@ -559,7 +560,7 @@ async function listPlanProperties(projectId: string) {
 }
 
 
-LLMRouter.get('/llm-context', async (req, res) => {
+LLMRouter.get('/llm-context', authAdmin, async (req, res) => {
 
     if (req.query.projectId === undefined) {
         return res.status(404).send({ message: 'no projectId specified' });
@@ -577,7 +578,7 @@ LLMRouter.get('/llm-context', async (req, res) => {
 
 });
 
-LLMRouter.post('/create-llm-context', auth, async (req: any, res) => {
+LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
 
     let user: User = req.user;
     console.log(`user ${user._id} found : ${user.name} ; ${user.role}`)
