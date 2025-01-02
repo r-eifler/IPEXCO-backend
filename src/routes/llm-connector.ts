@@ -32,7 +32,7 @@ LLMRouter.post('/gt', auth, async (req: any, res) => {
             return;
         }
         if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
-            res.status(404).send({ error: 'No assistants found for user ' + req.body.userId + ' and project ' + req.body.projectId });
+            res.status(404).send({ error: 'No assistants found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
         }
         if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
@@ -89,6 +89,10 @@ LLMRouter.post('/gt', auth, async (req: any, res) => {
 LLMRouter.post('/et', auth, async (req: any, res) => {
     try {
         console.log("req.body", req.body);
+        if (req.body.projectId == undefined || req.body.iterationStepId == undefined || req.body.originalRequest == undefined) {
+            res.status(404).send({ error: `At least one of the following is missing: projectId (${req.body.projectId}), iterationStepId (${req.body.iterationStepId}), or originalRequest (${req.body.originalRequest})` });
+            return;
+        }
 
         // check if LLMContextModel exists
         let llmContext = await LLMContextModel.findOne({ user: req.user._id, project: req.body.projectId });
@@ -97,7 +101,7 @@ LLMRouter.post('/et', auth, async (req: any, res) => {
             return;
         }
         if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
-            res.status(404).send({ error: 'No assistants found for user ' + req.body.userId + ' and project ' + req.body.projectId });
+            res.status(404).send({ error: 'No assistants found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
         }
         if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
@@ -163,12 +167,13 @@ LLMRouter.post('/qt', auth, async (req: any, res) => {
 
         // check if LLMContextModel exists
         let llmContext = await LLMContextModel.findOne({ user: req.user._id, project: req.body.projectId });
+        console.log("after findOne llmContext", llmContext)
         if (!llmContext) {
             res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
         }
         if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
-            res.status(404).send({ error: 'No assistants found for user ' + req.body.userId + ' and project ' + req.body.projectId });
+            res.status(404).send({ error: 'No assistants found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
         }
         if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
@@ -181,11 +186,20 @@ LLMRouter.post('/qt', auth, async (req: any, res) => {
             llmContext.threadIdQT = threadIdQT;
             llmContext.threadIdET = threadIdET;
         }
-
+        console.log("Will push visible messages then save")
+        if (req.body.qtRequest == undefined) {
+            res.status(404).send({ error: 'No qtRequest found' });
+            return;
+        }
+        if (req.body.originalQuestion == undefined) {
+            res.status(404).send({ error: 'No originalQuestion found' });
+            return;
+        }
         llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalQuestion, iterationStepId: req.body.iterationStepId });
-        llmContext.seenByGTMessages.push({ role: 'receiver', content: req.body.gtRequest });
         llmContext.seenByQTMessages.push({ role: 'receiver', content: req.body.qtRequest });
+        console.log("Pushed visible messages, now saving")
         await llmContext.save();
+        console.log("Saved")
 
         // Process QT request
         const qtOutput = await processQtRequest(req.body.qtRequest, llmContext.threadIdQT, llmContext.assistantIdQT);
@@ -228,11 +242,8 @@ LLMRouter.post('/qt', auth, async (req: any, res) => {
         }
 
         console.log("output of parseQuestionTranslation", { questionType, untranslatedGoal, used, reverseTranslationQT, directResponse })
-        const gtInput = req.body.gtRequest.replace("{goal_description}", untranslatedGoal);
-        let gtResponse;
+        
         let planProperty;
-        let reverseTranslationGT;
-        // Process GT request only if used is 'NEVER-USED'
 
         if (used == "ALREADY-USED") {
 
@@ -240,8 +251,9 @@ LLMRouter.post('/qt', auth, async (req: any, res) => {
                 name: untranslatedGoal,
                 project: req.body.projectId
             });
-            if (planProperty != null) {
-                gtResponse = { formula: planProperty.formula, shortName: planProperty.name, reverseTranslation: planProperty.naturalLanguageDescription, feedback: "" };
+            if (planProperty == null) {
+                res.status(404).send({ error: 'No plan property found' });
+                return;
             }
 
             console.log("Because used is ALREADY-USED, planProperty is", planProperty)
@@ -250,7 +262,7 @@ LLMRouter.post('/qt', auth, async (req: any, res) => {
             
             console.log("used is NEVER-USED or planProperty is null or undefined, therefore returning directResponse")
             let directResponse = "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
-            res.status(200).send({ data: { directResponse, questionType, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT } });     
+            res.status(200).send({ data: { directResponse, questionType, threadIdQT: llmContext.threadIdQT } });     
             return;
         }
 
@@ -262,18 +274,15 @@ LLMRouter.post('/qt', auth, async (req: any, res) => {
             propertyId: ppId
         };
 
-        console.log("Sending data", { qtResponse, gtResponse, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT })
+        console.log("Sending data", { qtResponse, threadIdQT: llmContext.threadIdQT})
         res.status(200).send({
             data: {
                 qtResponse,
-                gtResponse,
                 threadIdQT: llmContext.threadIdQT,
-                threadIdGT: llmContext.threadIdGT,
                 questionType: questionType as QuestionType,
                 goal: ppId,
                 question: question,
                 reverseTranslationQT: reverseTranslationQT,
-                reverseTranslationGT: reverseTranslationGT
             }
         });
 
@@ -294,7 +303,7 @@ LLMRouter.post('/qt-then-gt', auth, async (req: any, res) => {
             return;
         }
         if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
-            res.status(404).send({ error: 'No assistants found for user ' + req.body.userId + ' and project ' + req.body.projectId });
+            res.status(404).send({ error: 'No assistants found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
         }
         if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
@@ -403,7 +412,7 @@ LLMRouter.post('/qt-then-gt', auth, async (req: any, res) => {
                     const gtResponse = content.text.value;
                     const { formula, shortName, reverseTranslation: reverseTranslationGT, feedback } = parseGoalTranslation(gtResponse);
 
-                    if (feedback != null) {
+                    if (feedback != null && feedback.trim() !== '') {
                         res.status(200).send({ data: { feedback, questionType, threadIdGT: llmContext.threadIdGT, threadIdQT: llmContext.threadIdQT } });
                         return;
                     }
@@ -583,6 +592,15 @@ LLMRouter.post('/create-llm-context', auth, async (req: any, res) => {
     const projectId = req.body.projectId;
     const assistants = await initializeAssistants("gpt-4o-mini", domain, false);
 
+    const dummyVisibleMessage = {
+        role: "receiver",
+        content: "Dummy visible message"
+    }
+    const dummyLLMMessage = {
+        role: "receiver",
+        content: "Dummy LLM message"
+    }
+
     const llmContext = new LLMContextModel({
         user: user._id,
         project: projectId,
@@ -592,11 +610,11 @@ LLMRouter.post('/create-llm-context', auth, async (req: any, res) => {
         threadIdGT: "",
         threadIdQT: "",
         threadIdET: "",
-        visibleMessages: [],
-        visiblePPCreationMessages: [],
-        seenByGTMessages: [],
-        seenByETMessages: [],
-        seenByQTMessages: [],
+        visibleMessages: [dummyVisibleMessage],
+        visiblePPCreationMessages: [dummyVisibleMessage],
+        seenByGTMessages: [dummyLLMMessage],
+        seenByETMessages: [dummyLLMMessage],
+        seenByQTMessages: [dummyLLMMessage],
     });
     console.log("llmContext", llmContext)
     try {

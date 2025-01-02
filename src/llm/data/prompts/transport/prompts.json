@@ -211,6 +211,18 @@
             "Unsatisfied Goals": "[p2 to bank, p4 to supermarket]",
             "Existing Plan Properties": "[p0 to cafe, p1 to lopez, p2 to bank, p3 to smith, p4 to supermarket]",
             "Return": "{\"output\": \"Because it is not possible to deliver all three of (p0, p1 and p2) nor (p1, p2 and p3) in this planning task.\\n\\nYou must forgo either p1 or both p0 and p3 to be able to deliver p2 to bank.\\n\"}"
+        },
+        {
+            "Question": "Why is p2 to smith unsatisfied?",
+            "Question Type": "S-WHY-NOT",
+            "Question Arguments": "p2 to smith",
+            "Conflicts": "",
+            "Resolutions": "",
+            "Enforced Goals": "[p0 to cafe, p1 to lopez, p3 to smith]",
+            "Satisfied Goals": "[]",
+            "Unsatisfied Goals": "[p2 to smith, p4 to supermarket]",
+            "Existing Plan Properties": "[p0 to cafe, p1 to lopez, p2 to smith, p3 to smith, p4 to supermarket]",
+            "Return": "{\"output\": \"For no particular reason : it is not in conflict with any enforced goals. If you enforce this goal in another iteration, it should be satisfied.\\n\"}"
         }
     ],
     "dispatcher_examples": [
