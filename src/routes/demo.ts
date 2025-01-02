@@ -124,10 +124,15 @@ demoRouter.post('/', auth, async (req: any, res) => {
         const explainerRequest = new Request(explainerServiceURL + '/explain/all-mugs-msgs', 
             {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
+                headers: {
+                    "Content-Type": "application/json",
+                    authorization: "Bearer " + process.env.EXPLAINER_KEY
+                },
                 body: payload,
             }
         )
+
+        console.log(explainerRequest.headers);
 
         fetch(explainerRequest).then
             (resp => console.log("Explain computation request submitted."),
@@ -251,9 +256,13 @@ demoRouter.put('/:id', auth, async (req, res) => {
 
         const demoData = req.body.demo as Demo;
 
+        console.log(demoData);
+
         demo.name = demoData.name;
         demo.description = demoData.description;
-        // demo.taskInfo = demoData.taskInfo;
+        demo.summaryImage = demoData.summaryImage;
+        demo.domainInfo = demoData.domainInfo;
+        demo.instanceInfo = demoData.instanceInfo;
         demo.settings = demoData.settings;
 
         await demo.save();

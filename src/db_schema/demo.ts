@@ -27,7 +27,8 @@ const DemoSchema = new Schema({
     completion: { type: Number, required: true},
     summaryImage: { type: String, required: false},
     introduction: { type: String, required: false},
-    taskInfo: { type: String, required: false},
+    domainInfo: { type: String, required: false},
+    instanceInfo: { type: String, required: false},
     globalExplanation: {type: GlobalExplanationSchema, required: false},
     maxUtility: { type: String, required: false},
 });
