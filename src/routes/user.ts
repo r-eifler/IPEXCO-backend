@@ -18,20 +18,20 @@ userRouter.post('/user-study', async (req, res) => {
 
         const userStudyId = req.body.userStudyId;
         if(userStudyId === null || userStudyId === undefined){
-            return res.status(400).send();
+            return res.status(400).send('No user study specified!');
         }
 
         const userStudy: UserStudy | null = await UserStudyModel.findById(userStudyId);
 
         if(userStudy === null || userStudy?.startDate === undefined || userStudy?.endDate === undefined){
-            return res.status(400).send();
+            return res.status(400).send('User Study not available anymore!');
         }
 
         const now = new Date();
         const start  = new Date(userStudy?.startDate);
         const end = new Date(userStudy.endDate); 
         if (now < start || now > end){
-            return res.status(400).send();
+            return res.status(400).send('User Study not available anymore!');
         }
 
         console.log('User study valid and running.');

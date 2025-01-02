@@ -91,9 +91,24 @@ userStudyRouter.get('/:id', authForward, async (req: AuthenticatedRequest, res) 
         const id = req.params.id;
         const userStudy = await UserStudyModel.findOne({ _id: id });
 
-        if (!userStudy || (! userStudy.available && ((req.user && userStudy.user.toString() !== req.user._id.toString())))) { 
+        if (!userStudy) { 
             return res.status(404).send({ message: 'No user study found.' });
         }
+
+        if (req.user && userStudy.user.toString() !== req.user._id.toString()){
+            if(! userStudy.available){
+                return res.status(404).send({ message: 'User study currently not available.' });
+            }
+
+            const now = new Date();
+            const start  = new Date(userStudy?.startDate);
+            const end = new Date(userStudy.endDate); 
+            if (now < start || now > end){
+                return res.status(404).send('User Study not available anymore!');
+            } 
+        }
+
+
 
         res.send({
             data: userStudy
