@@ -14,16 +14,10 @@ function extractGoal(node: PddlSyntaxNode): PDDLFact[] | null{
 
     if(node.getToken().type == PddlTokenType.OpenBracketOperator){
         if(node.getToken().tokenText.includes('goal')){
-            // console.log(node.getChildren())
-            // console.log("--------------------------------")
             for(let c of node.getChildren()){
-                // console.log(c.getToken().type)
-                // console.log(c.getToken().tokenText)
                 if(c.getToken().type == PddlTokenType.OpenBracketOperator || c.getToken().type == PddlTokenType.OpenBracket){
-                    console.log(c.getChildren())
                     return extractFactsFromParseTree(c)
                 }
-                // console.log("-------------")
             }
         }
     }
@@ -71,10 +65,6 @@ function extractFact(node: PddlSyntaxNode): PDDLFact{
 
     for(let c of node.getChildren()){
         if(c.getToken().type != PddlTokenType.OpenBracketOperator){
-            console.log(c.getToken().tokenText)
-            console.log(c.getToken().type)
-            console.log("equal operator")
-            console.log(c.getChildren().length)
             let fact = extractFact(c.getChildren()[0]);
             fact.name = '=';
             return fact
@@ -132,15 +122,13 @@ function extractFactsFromParseTree(node: PddlSyntaxNode) {
 pddlRouter.post('/domain', auth,  async (req, res) => {
     try {
         let domainText = req.body.data
-        console.log(domainText)
+        // console.log(domainText)
         let domainParsed = parser.PddlDomainParser.parseText(domainText)
 
         if(domainParsed == undefined) {
             res.status(500).send("Parsing domain failed!");
             return
         }
-
-        // console.log(domainParsed)
 
         let domain: PlanningDomain = {
             constants: [],
@@ -168,9 +156,6 @@ pddlRouter.post('/domain', auth,  async (req, res) => {
         
 
         for(let a of domainParsed.getActions() as InstantAction[]){
-            // console.log('--------------------- ' + a.name + ' ---------------------------')
-            // console.log(a)
-            // console.log( a.parameters)
             
             if(a.preCondition == undefined || a.effect == undefined){
                 break
@@ -185,11 +170,6 @@ pddlRouter.post('/domain', auth,  async (req, res) => {
 
             action.precondition = extractFactsFromParseTree(a.preCondition)
             action.effect = extractFactsFromParseTree(a.effect)
-
-            console.log(action.name);
-            console.log(action.parameters);
-            console.log(action.precondition);
-            console.log(action.effect);
 
             action = {
                 name: action.name.toLowerCase(),
@@ -209,7 +189,7 @@ pddlRouter.post('/domain', auth,  async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        res.status(400).send(error);
+        res.status(400).send();
     }
 });
 
@@ -264,17 +244,13 @@ pddlRouter.post('/problem', auth,  async (req, res) => {
             goal: goals.map(g => ({...g, name: g.name.toLowerCase(), arguments: g.arguments.filter(a => a != '').map(a => a.toLowerCase())}))
         }
 
-        console.log(problem.objects)
-        console.log(problem.initial)
-        console.log(problem.goal)
-
         //TODO metrics
 
         res.status(200).send({data: problem})
 
     } catch (error) {
         console.log(error);
-        res.status(400).send(error);
+        res.status(500).send();
     }
 });
 
@@ -297,6 +273,6 @@ pddlRouter.post('/model', auth,  async (req, res) => {
 
     } catch (error) {
         console.log(error);
-        res.status(400).send(error);
+        res.status(500).send();
     }
 });
