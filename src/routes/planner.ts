@@ -1,4 +1,4 @@
-import { auth, authAny } from '../middleware/auth';
+import { auth, authAny, authPlanner } from '../middleware/auth';
 import express from 'express';
 
 import { ExplainerModel, Planner, PlannerModel } from '../db_schema/runner';
@@ -134,16 +134,21 @@ plannerRouter.post('/plan-step/temp-goals/:id', authAny, async (req: any, res) =
             temp_goals: JSON.stringify(exp_settings)
         })
 
-        console.log(payload)
+        // console.log(payload)
 
         const plannerServiceURL = process.env.PLANNER_SERVICE
         const plannerRequest = new Request(plannerServiceURL + '/plan/temp-goals', 
             {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
+                headers: {
+                    "content-type": "application/json",
+                    authorization: "Bearer " + process.env.PLANNER_KEY
+                },
                 body: payload,
             }
         )
+
+        console.log(plannerRequest.headers);
 
         fetch(plannerRequest).then
             (resp => console.log("Plan computation request submitted."),
@@ -163,7 +168,7 @@ plannerRouter.post('/plan-step/temp-goals/:id', authAny, async (req: any, res) =
 });
 
 
-plannerRouter.post('/plan-step/finished/:id', async (req: any, res) => {
+plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res) => {
 
     try {
 

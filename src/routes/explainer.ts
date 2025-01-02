@@ -1,4 +1,4 @@
-import { auth } from '../middleware/auth';
+import { auth, authExplainer } from '../middleware/auth';
 import express from 'express';
 
 import { ExplainerModel, Planner, PlannerModel } from '../db_schema/runner';
@@ -71,7 +71,10 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
         const explainerRequest = new Request(explainerServiceURL + '/explain/all-mugs-msgs', 
             {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
+                headers: {
+                    "Content-Type": "application/json",
+                    authorization: "Bearer " + process.env.EXPLAINER_KEY
+                },
                 body: payload,
             }
         )
@@ -100,7 +103,7 @@ interface Result {
     subsets: string[][]
   }
 
-  explainerRouter.post('/explain-step/:id/finished', async (req: any, res) => {
+  explainerRouter.post('/explain-step/:id/finished', authExplainer, async (req: any, res) => {
 
       try {
   

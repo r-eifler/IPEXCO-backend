@@ -125,3 +125,59 @@ export const authForward = async(req: any, res: Response, next: NextFunction) =>
     }
 
 };
+
+
+export const authPlanner = async(req: Request, res: Response, next: NextFunction) => {
+
+    try {
+        if (! req.header('Authorization')) {
+            console.log("Not authorized to access this resource")
+            res.status(401).send({ error: 'Not authorized to access this resource' });
+            return;
+        }
+
+        const token: string | undefined = req.header('Authorization')?.replace('Bearer ', '');
+        if (token === undefined) {
+            res.status(401).send({ error: 'Not authorized to access this resource' });
+            return;
+        }
+        
+        if(token != environment.plannerKey){
+            return res.status(401).send({ error: 'Not authorized to access this resource' });
+        }
+
+        next();
+
+    } catch (error) {
+        res.status(401).send({ error: 'Not authorized to access this resource' });
+    }
+
+};
+
+
+export const authExplainer = async(req: Request, res: Response, next: NextFunction) => {
+
+    try {
+        if (! req.header('Authorization')) {
+            console.log("Not authorized to access this resource")
+            res.status(401).send({ error: 'Not authorized to access this resource' });
+            return;
+        }
+
+        const token: string | undefined = req.header('Authorization')?.replace('Bearer ', '');
+        if (token === undefined) {
+            res.status(401).send({ error: 'Not authorized to access this resource' });
+            return;
+        }
+        
+        if(token != environment.explainerKey){
+            return res.status(401).send({ error: 'Not authorized to access this resource' });
+        }
+
+        next();
+
+    } catch (error) {
+        res.status(401).send({ error: 'Not authorized to access this resource' });
+    }
+
+};
