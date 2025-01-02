@@ -124,10 +124,15 @@ demoRouter.post('/', auth, async (req: any, res) => {
         const explainerRequest = new Request(explainerServiceURL + '/explain/all-mugs-msgs', 
             {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
+                headers: {
+                    "Content-Type": "application/json",
+                    authorization: "Bearer " + process.env.EXPLAINER_KEY
+                },
                 body: payload,
             }
         )
+
+        console.log(explainerRequest.headers);
 
         fetch(explainerRequest).then
             (resp => console.log("Explain computation request submitted."),
