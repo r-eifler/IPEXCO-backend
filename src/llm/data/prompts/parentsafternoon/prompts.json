@@ -6,142 +6,26 @@
     "dispatcher": "You will be in charge of transferring the user message to the correct assistant. The message will be given in natural language, and you should return the name of the assistant that is best suited to answer the question. If the message is not clear or notsuited for any assistant, respond directly to the user.",
     "qt_examples": [
         {
-            "Question": "How can I make the task solvable?",
-            "Enforced Goals": "[Never same trucks for p3 and p4,Use t1 for cafe-smith]",
+            "Question": "",
+            "Enforced Goals": "[]",
             "Satisfied Goals": "[]",
-            "Unsatisfied Goals": "[Visit jones with t1]",
-            "Existing Plan Properties": "[Use t1 for cafe-smith,Never same trucks for p3 and p4, Visit jones with t1]",
-            "Solvable": "False",
-            "Return": "{\"questionType\": \"US-HOW\", \"questionArgument\": \"NOGOAL\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"How can I make this planning task solvable?\", \"directResponse\": null}"
-        },
-        {
-            "Question": "Why is p2 to smith not reached?",
-            "Enforced Goals": "[Use t1 for cafe-smith]",
-            "Satisfied Goals": "[p0 to cafe]",
-            "Unsatisfied Goals": "[p2 to smith, Never same trucks for p3 and p4]",
-            "Existing Plan Properties": "[Use t1 for cafe-smith, p0 to cafe, p2 to smith, Never same trucks for p3 and p4]",
-            "Solvable": "True",
-            "Return": "{\"questionType\": \"S-WHY-NOT\", \"questionArgument\": \"p2 to smith\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"Why is the goal of delivering p2 to smith not satisfied?\", \"directResponse\": null}"
-        },
-        {
-            "Input": "What is the goal of the planning task?",
-            "Return": "{\"questionType\": \"DIRECT-USER\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"The goal of the planning task is to find a plan that satisfies the enforced goals.\"}"
-        },
-        {
-            "Input": "How can I improve utility?",
-            "Return": "{\"questionType\": \"DIRECT-USER\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"You can try to find a better combination of enforced goals. I can help you with that by helping you to understand the dependencies between goals.\"}"
-        },
-        {
-            "Question": "Can we use t2 for bank to supermarket road?",
-            "Enforced Goals": "[p1 to bank before p0 to cafe]",
-            "Satisfied Goals": "[p0 to cafe]",
-            "Unsatisfied Goals": "[Use t2 for bank-supermarket]",
-            "Existing Plan Properties": "[p1 to bank before p0 to cafe, p0 to cafe, Use t2 for bank-supermarket]",
-            "Solvable": "True",
-            "Return": "{\"questionType\": \"S-CAN\", \"questionArgument\": \"Use t2 for bank-supermarket\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"Can we enforce using t2 for the bank to supermarket route?\", \"directResponse\": null}"
-        },
-        {
-            "Question": "Why can't I deliver p4 before p3?",
-            "Enforced Goals": "[Never same trucks for p3 and p4, p0 to cafe]",
-            "Satisfied Goals": "[Use t1 for cafe-smith]",
-            "Unsatisfied Goals": "[p4 to supermarket before p3 to lopez]",
-            "Existing Plan Properties": "[Never same trucks for p3 and p4, p0 to cafe, Use t1 for cafe-smith, p4 to supermarket before p3 to lopez]",
-            "Solvable": "True",
-            "Return": "{\"questionType\": \"S-WHY-NOT\", \"questionArgument\": \"p4 to supermarket before p3 to lopez\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"Why is the goal of delivering p4 to supermarket before p3 to lopez not satisfied?\", \"directResponse\": null}"
-        },
-        {
-            "Question": "Can all packages visit the packing station?",
-            "Enforced Goals": "[p0 to bank before p1 to cafe]",
-            "Satisfied Goals": "[Never different trucks for p1 and p2, p5 to lopez]",
-            "Unsatisfied Goals": "[All at packingstation at some point]",
-            "Existing Plan Properties": "[p0 to bank before p1 to cafe, Never different trucks for p1 and p2, p5 to lopez, All at packingstation at some point]",
-            "Solvable": "True",
-            "Return": "{\"questionType\": \"S-CAN\", \"questionArgument\": \"All at packingstation at some point\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"Can all packages visit the packing station?\", \"directResponse\": null}"
-        },
-        {
-            "Input": "I don't understand. Can you explain it a bit more clearly?",
-            "Return": "{\"questionType\": \"DIRECT-ET\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"I don't understand. Can you explain it a bit more clearly?\"}"
-        },
-        {
-            "Question": "What happens if we enforce using the same truck for p1 and p2?",
-            "Enforced Goals": "[p0 to bank before p1 to cafe, p0 to cafe]",
-            "Satisfied Goals": "[p2 to smith]",
-            "Unsatisfied Goals": "[Never different trucks for p1 and p2]",
-            "Existing Plan Properties": "[p0 to bank before p1 to cafe, p0 to cafe, p2 to smith, Never different trucks for p1 and p2]",
-            "Solvable": "True",
-            "Return": "{\"questionType\": \"S-WHAT-IF\", \"questionArgument\": \"Never different trucks for p1 and p2\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"What happens if we enforce using the same truck for p1 and p2?\", \"directResponse\": null}"
-        },
-        { 
-            "Input": "Can you enumerate the conflicts clearly ?",
-            "Return": "{\"questionType\": \"DIRECT-ET\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"Can you enumerate the conflicts clearly ?\"}"
-        },
-        {
-            "Question": "Can we make sure that both t1 and t2 visits the bank?",
-            "Enforced Goals": "[p0 to cafe]",
-            "Satisfied Goals": "[Use t1 for cafe-smith]",
             "Unsatisfied Goals": "[]",
-            "Existing Plan Properties": "[p0 to cafe, Use t1 for cafe-smith]",
-            "Solvable": "True",
-            "Return": "{\"questionType\": \"S-CAN\", \"questionArgument\": \"both t1 and t2 visits the bank\", \"used\": \"NEVER-USED\", \"reverseTranslation\": \"Can we make sure that both t1 and t2 visits the bank?\", \"directResponse\": null}"
+            "Existing Plan Properties": "[]",
+            "Solvable": "False",
+            "Return": "{\"questionType\": \"\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": null}"
+        },
+        {
+            "Question": "",
+            "Enforced Goals": "[]",
+            "Satisfied Goals": "[]",
+            "Unsatisfied Goals": "[]",
+            "Existing Plan Properties": "[]",
+            "Solvable": "False",
+            "Return": "{\"questionType\": \"\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": null}"
         }
     ],
     "gt_examples": [
-        {
-            "Goal": "make sure p1 visits the packingstation at some point",
-            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
-            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
-            "Existing Plan Properties": "[p0 to cafe, p2 to smith, t1 always above level5]",
-            "Return": "{\"formula\": \"F at(p1,packingstation)\", \"shortName\": \"p1 visits packingstation\", \"reverseTranslation\": \"p1 must be at the packingstation at some point during the plan\", \"feedback\": null}"
-        },
-        {
-            "Goal": "and also p2",
-            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
-            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
-            "Existing Plan Properties": "[p0 to cafe, p2 to smith, t1 always above level5]",
-            "Return": "{\"formula\": \"& F at(p1,packingstation) F at(p2,packingstation)\", \"shortName\": \"p1 and p2 visit packingstation\", \"reverseTranslation\": \"p1 and p2 must be at the packingstation at some point during the plan\", \"feedback\": null}"
-        },
-        {
-            "Goal": "t1 should never be empty after visiting the bank",
-            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
-            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
-            "Existing Plan Properties": "[p3 to lopez, t2 visits packingstation, p1 and p2 same truck]",
-            "Return": "{\"formula\": \"G -> at(t1,bank) ! X empty(t1)\", \"shortName\": \"t1 not empty after bank\", \"reverseTranslation\": \"t1 must not be empty after visiting the bank\", \"feedback\": null}"
-        },
-        {
-            "Goal": "p2 must be delivered before p3",
-            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
-            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
-            "Existing Plan Properties": "[t1 visits bank, p4 to supermarket, p0 to cafe, p2 to smith, p3 to lopez]",
-            "Return": "{\"formula\": \"U ! at(p3,lopez) at(p2,smith)\", \"shortName\": \"p2 to smith before p3 to lopez\", \"reverseTranslation\": \"p2 must be delivered to smith before p3 is delivered lopez\", \"feedback\": null}"
-        },
-        {
-            "Goal": "t2 must maintain fuel above level5 throughout the plan",
-            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
-            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4, level5]",
-            "Existing Plan Properties": "[p1 to cafe, t1 visits jones, p3 and p4 different trucks]",
-            "Return": "{\"formula\": \"G | fuel(t2,level5) | fuel(t2,level6) | fuel(t2,level7) | fuel(t2,level8) | fuel(t2,level9) | fuel(t2,level10) | fuel(t2,level11) | fuel(t2,level12) fuel(t2,level13)\", \"shortName\": \"t2 always above level5\", \"reverseTranslation\": \"It is always the case that t2 fuel is above level5 throughout the plan\", \"feedback\": null}"
-        },
-        {
-            "Goal": "p0 and p1 must be transported in the same truck",
-            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
-            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
-            "Existing Plan Properties": "[p1 to cafe, p3 and p4 different trucks]",
-            "Return": "{\"formula\": \"G ! | & in(p0,t1) in(p1,t2) & in(p0,t2) in(p1,t1)\", \"shortName\": \"p0 and p1 same truck\", \"reverseTranslation\": \"It must never be the case that p0 and p1 are in different trucks at the same moment\", \"feedback\": null}"
-        },
-        {
-            "Goal": "p0 must be delivered before p1",
-            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
-            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
-            "Existing Plan Properties": "[p0 to supermarket, p1 to taylor]",
-            "Return": "{\"formula\": \"U ! at(p1,taylor) at(p0,supermarket)\", \"shortName\": \"p0 before p1\", \"reverseTranslation\": \"p0 must be delivered to supermarket before p1 is delivered to taylor\", \"feedback\": null}"
-        },
-        {
-            "Goal": "do not transport food in t1",
-            "Predicates": "[(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]",
-            "Objects": "[postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]",
-            "Existing Plan Properties": "[p0 to supermarket, p1 to taylor]",
-            "Return": "{\"formula\": \"\", \"shortName\": \"\", \"reverseTranslation\": \"\", \"feedback\": \"This goal is currently not supported. Please try something else.\"}"
-        }
+        
     ],
     "et_examples": [
         {
@@ -225,6 +109,5 @@
             "Return": "{\"output\": \"For no particular reason : it is not in conflict with any enforced goals. If you enforce this goal in another iteration, it should be satisfied.\\n\"}"
         }
     ]
-   
 }
     
