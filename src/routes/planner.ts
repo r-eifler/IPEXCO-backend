@@ -1,4 +1,4 @@
-import { auth } from '../middleware/auth';
+import { auth, authAny, authPlanner } from '../middleware/auth';
 import express from 'express';
 
 import { ExplainerModel, Planner, PlannerModel } from '../db_schema/runner';
@@ -10,7 +10,7 @@ import { environment } from '../app';
 
 export const plannerRouter = express.Router();
 
-plannerRouter.post('/plan-model', auth, async (req: any, res) => {
+plannerRouter.post('/plan-model', authAny, async (req: any, res) => {
 
     try {
 
@@ -41,7 +41,7 @@ plannerRouter.post('/plan-model', auth, async (req: any, res) => {
 });
 
 
-plannerRouter.post('/plan-step/:id', auth, async (req: any, res) => {
+plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
 
     try {
 
@@ -64,7 +64,7 @@ plannerRouter.post('/plan-step/:id', auth, async (req: any, res) => {
         let [domain, problem] = planning_task.toPDDL()
 
 
-        const baseURL = process.env.BASE_URL
+        const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
         let payload = JSON.stringify({
             callback:baseURL + '/api/runner/planner/finished/' + refId,
             domain,
@@ -98,7 +98,7 @@ plannerRouter.post('/plan-step/:id', auth, async (req: any, res) => {
 });
 
 
-plannerRouter.post('/plan-step/temp-goals/:id', auth, async (req: any, res) => {
+plannerRouter.post('/plan-step/temp-goals/:id', authAny, async (req: any, res) => {
 
     try {
 
@@ -127,23 +127,28 @@ plannerRouter.post('/plan-step/temp-goals/:id', auth, async (req: any, res) => {
             soft_goals: []
         }
 
-        const baseURL = process.env.BASE_URL
+        const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
         let payload = JSON.stringify({
             callback:baseURL + '/api/planner/plan-step/finished/' + refId,
             model,
             temp_goals: JSON.stringify(exp_settings)
         })
 
-        console.log(payload)
+        // console.log(payload)
 
         const plannerServiceURL = process.env.PLANNER_SERVICE
         const plannerRequest = new Request(plannerServiceURL + '/plan/temp-goals', 
             {
                 method: "POST",
-                headers: {"Content-Type": "application/json"},
+                headers: {
+                    "content-type": "application/json",
+                    authorization: "Bearer " + process.env.PLANNER_KEY
+                },
                 body: payload,
             }
         )
+
+        console.log(plannerRequest.headers);
 
         fetch(plannerRequest).then
             (resp => console.log("Plan computation request submitted."),
@@ -163,7 +168,7 @@ plannerRouter.post('/plan-step/temp-goals/:id', auth, async (req: any, res) => {
 });
 
 
-plannerRouter.post('/plan-step/finished/:id', async (req: any, res) => {
+plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res) => {
 
     try {
 
@@ -230,28 +235,28 @@ plannerRouter.post('/plan-step/finished/:id', async (req: any, res) => {
 });
 
 
-plannerRouter.get('/registered', auth, async (req: any, res) => {
-    const planner = await PlannerModel.find();
-    if (!planner) { 
-        return res.status(404).send({ message: 'No planner found.' });
-    }
-    res.send({
-        data: planner
-    });
+// plannerRouter.get('/registered', auth, async (req: any, res) => {
+//     const planner = await PlannerModel.find();
+//     if (!planner) { 
+//         return res.status(404).send({ message: 'No planner found.' });
+//     }
+//     res.send({
+//         data: planner
+//     });
 
-});
+// });
 
-plannerRouter.delete('/planner/:id', auth, async (req, res) => {
-    const id = req.params.id;
+// plannerRouter.delete('/planner/:id', auth, async (req, res) => {
+//     const id = req.params.id;
 
-    const deleteResult = await PlannerModel.deleteOne({ _id: id});
-    if (!deleteResult) { 
-        return res.status(404).send({ message: 'Problem during planner deletion occurred' }); 
-    }
+//     const deleteResult = await PlannerModel.deleteOne({ _id: id});
+//     if (!deleteResult) { 
+//         return res.status(404).send({ message: 'Problem during planner deletion occurred' }); 
+//     }
 
-    res.send({
-        data: deleteResult
-    });
+//     res.send({
+//         data: deleteResult
+//     });
 
-});
+// });
 

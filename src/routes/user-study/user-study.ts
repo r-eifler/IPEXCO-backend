@@ -1,6 +1,6 @@
 import { UserStudyModel, UserStudy } from '../../db_schema/user-study/user-study';
 import express from 'express';
-import { auth } from '../../middleware/auth';
+import { auth, AuthenticatedRequest, authForward } from '../../middleware/auth';
 
 export const userStudyRouter = express.Router();
 
@@ -37,7 +37,6 @@ userStudyRouter.put('/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
         const userStudyData = req.body.data as UserStudy;
-        console.log(userStudyData);
         await UserStudyModel.replaceOne({ _id: req.params.id}, userStudyData);
 
         const userStudy: UserStudy | null = await UserStudyModel.findOne({ _id: refId});
@@ -59,16 +58,17 @@ userStudyRouter.put('/:id', auth, async (req, res) => {
 });
 
 
-userStudyRouter.get('/', auth, async (req: any, res) => {
+userStudyRouter.get('/', auth, async (req: AuthenticatedRequest, res) => {
     try {
+        if (!req.user) {
+            return res.status(401).send();
+        }
         const allStudies: UserStudy[] = await UserStudyModel.find();
 
-        console.log("#allStudies: " + allStudies.length);
         const studies = allStudies.filter(
             s => s.available || (req.user && s.user.toString() == req.user._id.toString())
         );
 
-        console.log("#studies: " + studies.length);
         if (!studies) { 
             return res.status(404).send({ message: 'Lookup user studies failed.' });
         }
@@ -85,7 +85,7 @@ userStudyRouter.get('/', auth, async (req: any, res) => {
 
 
 
-userStudyRouter.get('/:id', async (req: any, res) => {
+userStudyRouter.get('/:id', authForward, async (req: AuthenticatedRequest, res) => {
 
     try {
         const id = req.params.id;
@@ -94,6 +94,21 @@ userStudyRouter.get('/:id', async (req: any, res) => {
         if (!userStudy) { 
             return res.status(404).send({ message: 'No user study found.' });
         }
+
+        if (req.user && userStudy.user.toString() !== req.user._id.toString()){
+            if(! userStudy.available){
+                return res.status(404).send({ message: 'User study currently not available.' });
+            }
+
+            const now = new Date();
+            const start  = new Date(userStudy?.startDate);
+            const end = new Date(userStudy.endDate); 
+            if (now < start || now > end){
+                return res.status(404).send('User Study not available anymore!');
+            } 
+        }
+
+
 
         res.send({
             data: userStudy
@@ -105,11 +120,15 @@ userStudyRouter.get('/:id', async (req: any, res) => {
 
 });
 
-userStudyRouter.delete('/:id', auth, async (req, res) => {
+userStudyRouter.delete('/:id', auth, async (req: AuthenticatedRequest, res) => {
 
     try {
+        if (!req.user) {
+            return res.status(401).send();
+        }
+
         const id = req.params.id;
-        const userStudy = await UserStudyModel.deleteOne({ _id: id });
+        const userStudy = await UserStudyModel.deleteOne({ _id: id, user: req.user._id});
 
         if (!userStudy) { 
             return res.status(404).send({ message: 'No user study found.' });

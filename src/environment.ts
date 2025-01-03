@@ -20,6 +20,11 @@ export class Environment {
 
     public port = process.env.PORT  ? process.env.PORT : '';
     public jwtKey = process.env.JWT_KEY ? process.env.JWT_KEY : '';
+    public allowRegistration = process.env.ALLOW_REGISTRATION ? process.env.ALLOW_REGISTRATION == 'true' : false;
+    public allowUserStudyUsers = process.env.ALLOW_USER_STUDY_USERS ? process.env.ALLOW_USER_STUDY_USERS == 'true' : false;
+
+    public plannerKey = process.env.PLANNER_KEY ? process.env.PLANNER_KEY : '';
+    public explainerKey = process.env.EXPLAINER_KEY ? process.env.EXPLAINER_KEY : '';
 
     constructor() { }
 

@@ -2,21 +2,26 @@ import mongoose, { Schema } from "mongoose";
 import { PlanProperty } from "./plan-properties/plan_property";
 
 export enum QuestionType {
-    // TODO
-    why_not,
-    how
-}
+    WHY_PLAN = 'US-WHY', // Why is the task unsolvable?
+    HOW_PLAN = 'US-HOW', // How can I make the task solvable?
+    WHY_NOT_PROPERTY = 'S-WHY-NOT',// Why are Q not satisfied?
+    WHAT_IF_PROPERTY = 'S-WHAT-IF', // What happens if we enforce Q?
+    CAN_PROPERTY = 'S-CAN', // Can Q be satisfied?
+    HOW_PROPERTY = 'S-HOW', // How can Q be satisfied?
+  }
 
-export interface Question{
-    input: string;
-    type: QuestionType
-    parameters: PlanProperty[];
-}
+
+export type Question = {
+    iterationStepId: string,
+    propertyId?: string,
+    questionType: QuestionType,
+}; 
+  
 
 export const QuestionSchema = new Schema({
-    input: { type: String, required: true},
-    type: { type: Number, required: true},
-    parameters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }]
+    iterationStepId: { type: String, required: true},
+    propertyId: { type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' },
+    questionType: { type: Number, required: true},
 });
 
 
