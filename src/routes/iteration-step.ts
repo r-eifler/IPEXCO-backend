@@ -1,4 +1,4 @@
-import { IterationStep, IterationStepModel } from '../db_schema/iteration_step';
+import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
 import express from 'express';
 import { auth, authAny, AuthenticatedRequest } from '../middleware/auth';
 import { Demo, DemoModel } from '../db_schema/demo';
@@ -52,7 +52,7 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
 
     try {
         if (!req.user) {
-            return res.status(401).send('Create project failed.');
+            return res.status(401).send('Create iteration step failed.');
         }
         console.log("create iter step");
         let iterStepData = req.body.data as IterationStep;
@@ -86,6 +86,53 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
 
 });
 
+
+iterationStepRouter.post('/cancel', authAny, async (req, res) => {
+
+    try {
+
+        const id = req.body.iterationStepId;
+        console.log('Cancel: ' + id);
+
+        const step = await IterationStepModel.findById(id);
+
+        if (!step) {
+            return res.status(404).send({ message: 'No step found.' });
+        }
+
+        if (!step.plan) {
+            return res.status(404).send({ message: 'No step found.' });
+        }
+
+        step.status = StepStatus.unknown;
+        step.plan.status = PlanRunStatus.canceled;
+        step.save();
+
+        const plannerServiceURL = process.env.PLANNER_SERVICE
+        const plannerRequest = new Request(plannerServiceURL + '/plan/cancel', 
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    authorization: "Bearer " + process.env.PLANNER_KEY
+                },
+                body: JSON.stringify({id}),
+            }
+        )
+
+        fetch(plannerRequest).then
+            (resp => console.log("Cancel computation request submitted."),
+            error => console.log(error)
+        )
+    
+        res.send({
+            data: {canceled: true}
+        });
+    } catch (ex) {
+        res.status(500);
+    }
+
+});
 
 
 

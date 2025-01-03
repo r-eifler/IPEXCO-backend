@@ -67,7 +67,7 @@ console.log('---> statically served path');
 // }
 
 export const environment = new Environment();
-console.log(environment)
+// console.log(environment)
 
 const app = express();
 const cors = require('cors');

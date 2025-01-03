@@ -116,6 +116,7 @@ demoRouter.post('/', auth, async (req: any, res) => {
         const baseURL = process.env.BASE_URL
         let payload = JSON.stringify({
             callback:baseURL + '/api/demo/compute-explanations/' + demoModel._id + '/finished',
+            id: demoModel._id,
             model,
             exp_setting: JSON.stringify(exp_settings)
         })
@@ -132,7 +133,6 @@ demoRouter.post('/', auth, async (req: any, res) => {
             }
         )
 
-        console.log(explainerRequest.headers);
 
         fetch(explainerRequest).then
             (resp => console.log("Explain computation request submitted."),
@@ -151,6 +151,65 @@ demoRouter.post('/', auth, async (req: any, res) => {
         res.status(403);
         return;
     }
+});
+
+
+demoRouter.post('/cancel', auth, async (req: AuthenticatedRequest, res) => {
+
+    try {
+        if (!req.user) {
+            return res.status(401).send();
+        }
+
+        const id = req.body.demoId;
+        console.log('Cancel: ' + id);
+
+        const demo: Demo | null = await DemoModel.findOne({_id: id, user: req.user._id});
+
+        if (! demo) { 
+            return res.status(404).send({ message: 'Demo not found.' });
+        }
+
+        if (demo.status !== DemoRunStatus.pending && demo.status !== DemoRunStatus.running) { 
+            return res.status(400).send({ message: 'Demo computation already finished.' });
+        }
+
+        const explainerServiceURL = process.env.EXPLAINER_SERVICE
+        const explainerRequest = new Request(explainerServiceURL + '/explain/cancel', 
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    authorization: "Bearer " + process.env.EXPLAINER_KEY
+                },
+                body: JSON.stringify({id: demo._id}),
+            }
+        )
+
+        fetch(explainerRequest).then
+            (resp => console.log("Cancel computation request submitted."),
+            error => console.log(error)
+        )
+
+        // delete properties
+        const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
+        if (!propertyDeleteResult) { 
+            return res.status(404).send({ message: 'Demo deletion failed.' });
+        }
+
+        const result = await DemoModel.deleteOne({ _id: id });
+        if (!result) { 
+            return res.status(404).send({ message: 'Demo deletion failed.' });
+        }
+
+        res.send({
+            // data: result
+        });
+    } catch (ex) {
+        console.log(ex)
+        res.status(500);
+    }
+
 });
 
 interface Result {
@@ -382,7 +441,7 @@ demoRouter.delete('/:id', auth, async (req: AuthenticatedRequest, res) => {
 
         const id = req.params.id;
 
-        const demo: Demo | null = await DemoModel.findOne({id, user: req.user});
+        const demo: Demo | null = await DemoModel.findOne({_id: id, user: req.user._id});
         if (!demo) { return res.status(404).send({ message: 'Demo not found.' }); }
 
         // if (demo.summaryImage) {
