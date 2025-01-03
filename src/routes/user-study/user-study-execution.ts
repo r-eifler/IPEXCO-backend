@@ -4,6 +4,8 @@ import {UserStudyExecution, UserStudyExecutionModel} from '../../db_schema/user-
 import { User, UserModel } from '../../db_schema/user';
 import { error } from 'console';
 import { IterationStepModel } from '../../db_schema/iteration_step';
+import { LLMContext } from '../../db_schema/LLM/llm-context';
+import { LLMContextModel } from '../../db_schema/LLM/llm-context';
 
 export const userStudyExecutionRouter = express.Router();
 
@@ -72,6 +74,48 @@ userStudyExecutionRouter.put('/action', authAny, async (req: AuthenticatedReques
 
         const action= req.body.action;
         executionData.timeLog?.push(action);
+        await executionData.save();
+
+        res.send(true);
+
+    } catch (ex : any) {
+        console.log(error);
+        res.status(500).send();
+    }
+});
+
+userStudyExecutionRouter.put('/save-llm-context', authAny, async (req: AuthenticatedRequest, res) => {
+    try {
+
+        if (!req.user) {
+            return res.status(401).send();
+        }
+
+        if (!req.body.projectId) {
+            return res.status(401).send();
+        }
+
+        const userStudyUser = req.user;
+        const projectId = req.body.projectId;
+
+        const llmContext: LLMContext | null = await LLMContextModel.findOne({ user: userStudyUser._id, project: projectId})
+        const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userStudyUser._id})
+            
+        if (!executionData) {
+            return res.status(403).send("Execution data not found");
+        }
+
+        if (!llmContext) {
+            return res.status(403).send("LLM Context not found");
+        }
+
+        const action = {
+            type: "LLM_CONTEXT",
+            timeStamp: new Date(),
+            data: llmContext
+        };
+        
+        executionData.timeLog?.push(JSON.stringify(action));
         await executionData.save();
 
         res.send(true);
