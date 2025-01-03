@@ -11,7 +11,7 @@ import { User } from './user';
 export enum StepStatus{
     unknown,
     solvable,
-    unsolvable
+    unsolvable,
   }
 
 export enum PlanRunStatus {
@@ -20,6 +20,7 @@ export enum PlanRunStatus {
     failed,
     plan_found,
     not_solvable,
+    canceled,
 }
 
 

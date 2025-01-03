@@ -131,7 +131,8 @@ plannerRouter.post('/plan-step/temp-goals/:id', authAny, async (req: any, res) =
         let payload = JSON.stringify({
             callback:baseURL + '/api/planner/plan-step/finished/' + refId,
             model,
-            temp_goals: JSON.stringify(exp_settings)
+            temp_goals: JSON.stringify(exp_settings),
+            id: iterationStep._id
         })
 
         // console.log(payload)
@@ -182,6 +183,10 @@ plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res)
 
         if (!iterationStep.plan) {
             return res.status(404).send('update plan failed');
+        }
+
+        if (iterationStep.plan.status !== PlanRunStatus.canceled) {
+            return res.status(200).send('Plan run was canceled.');
         }
 
         let actions = req.body.actions as string
