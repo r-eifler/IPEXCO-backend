@@ -185,7 +185,7 @@ plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res)
             return res.status(404).send('update plan failed');
         }
 
-        if (iterationStep.plan.status !== PlanRunStatus.canceled) {
+        if (iterationStep.plan.status == PlanRunStatus.canceled) {
             return res.status(200).send('Plan run was canceled.');
         }
 
