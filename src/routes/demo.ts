@@ -13,6 +13,8 @@ import { ExplanationRunStatus } from '../db_schema/explanations';
 
 export const demoRouter = express.Router();
 
+demoRouter.use('/uploads', express.static(path.join(__dirname, '..', 'data/uploads')));
+
 const imgPort = 'http://localhost:3000';
 
 const storage = multer.diskStorage({
