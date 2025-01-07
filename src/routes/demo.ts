@@ -108,8 +108,8 @@ demoRouter.post('/', auth, async (req: any, res) => {
 
         const exp_settings = {
             plan_properties: planProperties,
-            hard_goals: [],
-            soft_goals: planProperties.map(pp => pp.name)
+            hard_goals: planProperties.filter(pp => pp.globalHardGoal).map(pp => pp.name),
+            soft_goals: planProperties.filter(pp => !pp.globalHardGoal).map(pp => pp.name)
         }
 
         const model = demoData.baseTask.model
