@@ -58,9 +58,9 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             soft_goals: used_plan_properties.map(pp => pp.name)
         }
 
-        const baseURL = process.env.BASE_URL
+        const baseURL = process.env.BASE_URL || 'host.docker.internal:3000'
         let payload = JSON.stringify({
-            callback:baseURL + '/api/explainer/explain-step/' + refId + '/finished',
+            callback: baseURL + '/api/explainer/explain-step/' + refId + '/finished',
             model,
             exp_setting: JSON.stringify(exp_settings)
         })

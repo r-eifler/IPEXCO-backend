@@ -1,0 +1,144 @@
+{
+    "system": "You are an AI assistant that faithfully answers user questions using the help of multiple modules. Carefully follow the instructions without any deviation and never add any comments of your own.",
+    "question_translator": "You will be given a user question that is semantically equivalent to one of these questions : \n\nWHY_PLAN: \"Why is the task unsolvable?\" ; \nHOW_PLAN: \"How can I make the task solvable?\" ;\nWHY_NOT_PROPERTY: \"Why are Q not satisfied?\" ;\nWHAT_IF_PROPERTY: \"What happens if we enforce Q?\";\nCAN_PROPERTY: \"Can Q be satisfied?\" ;\nHOW_PROPERTY: \"How can Q be satisfied?\"/\"How can I improve the plan with respect to o?\" ;\n\nAny question you will be given can be mapped to one of these questions.\nReturn the question type and the goal or plan property the user is refering to, without any additional comments of any kind. First, try to see if the question is about a property that is already existing. If it is, return EXISTING as the last part of your answer and use the exact same name. If it is not, invent a name for this property and use the encoding NONEXISTING. If the question is not about a specific property but about the unsolvability of the task, return NOGOAL as the second part of your answer and EXISTING as the last",
+    "goal_translator": "You will be given a goal and a list of allowed predicates and objects from a planning problem and domain.\nReturn the LTLf formula corresponding to the goal.\n\nExamples :\n\n{examples}\n\nEnd of the examples.",
+    "explanation_translator": "You will be given a question, a list of achieved and unachieved goals, and a conflict list. Each conflict is presented as a Minimum Unsolvable Goal Subset (MUGS).\nAll goals in a MUGS cannot be achieved in the same plan, but any strict subset of them can be achieved.\nFor example the conflict : [a,b,c] means that it is possible to achieve (a and b) or (a and c) or (b and c) in the same plan, but not (a and b and c).\nWhen a goal is numeric (for example swaps < 5), there is still an interpretation of conflicts, for example here : [rack empty, deliver p1, swaps < 5] means that it is possible to achieve (rack empty and deliver p1 and swaps < 6) or (deliver p1 and swaps < 5) or (swaps < 5 and rack empty) in the same plan, but not (rack empty and deliver p1 and swaps < 5).\nAnswer the question using the explanation framework. It is important to base anwsers on conflicts, to ensure providing faithful explanations.\n\nExamples :\n\n{examples}\n\nEnd of the examples.",
+    "qt_examples": [
+        {
+            "question": "How can I make the task solvable?",
+            "enforced_goals": "",
+            "satisfied_goals": "",
+            "unsatisfied_goals": "",
+            "existing_plan_properties": "",
+            "return": "HOW_PLAN ; NOGOAL; EXISTING"
+        },
+        {
+            "question": "Why is no rack left free?",
+            "enforced_goals": "",
+            "satisfied_goals": "",
+            "unsatisfied_goals": "",
+            "existing_plan_properties": "[packages 1 and 2 together, packages 2 and 4 not together, deliver p1 to bank, deliver p2 to bank, deliver p4 to post office,  ]",
+            "return": "WHY_NOT_PROPERTY ; keep one rack empty ; EXISTING"
+        },
+        {
+            "question": "What happens if we remove one rack for maintenance?",
+            "enforced_goals": "",
+            "satisfied_goals": "",
+            "unsatisfied_goals": "",
+            "existing_plan_properties": "[swaps < 5]",
+            "return": "WHAT_IF_PROPERTY ; keep one rack empty ; NONEXISTING"
+        }
+    ],
+    "gt_examples": [
+        {
+            "goal": "leave one rack empty",
+            "predicates": [
+                "empty rack00",
+                "empty rack01",
+                "empty rack02",
+                "empty rack03"
+            ],
+            "objects": [
+                "rack00",
+                "rack01",
+                "rack02",
+                "rack03"
+            ],
+            "existing_plan_properties": "",
+            "return": "G((empty rack00) or (empty rack01) or (empty rack02) or (empty rack03))"
+        },
+        {
+            "goal": "deliver p1 before p2",
+            "predicates": [
+                ""
+            ],
+            "objects": [
+                "p1",
+                "p2"
+            ],
+            "existing_plan_properties": "",
+            "return": "G((deliver p1 p2) or (ontable p1) or (ontable p2))"
+        },
+        {}
+    ],
+    "et_examples": [
+        {
+            "question": "Why is no rack left empty?",
+            "question_type": "",
+            "question_arguments": "",
+            "mugs": "",
+            "mgcs": "",
+            "enforced_goals": "",
+            "achieved_goals": [
+                "deliver p1",
+                "deliver p2",
+                "deliver p3",
+                "swaps < 5",
+                "load j1",
+                "load j2",
+                "load j3"
+            ],
+            "unachieved_goals": [
+                "free rack",
+                "put j1 next to j2",
+                "swaps < 4"
+            ],
+            "existing_plan_properties": "",
+            "conflict": [
+                [
+                    "deliver p1",
+                    "load j2",
+                    "swaps <5",
+                    "free rack"
+                ],
+                [
+                    "free rack",
+                    "load j1",
+                    "load j2",
+                    "deliver p3",
+                    "swaps < 6"
+                ]
+            ],
+            "return": "Because if you want to deliver all pieces and load all jigs according to the schedule, keeping one rack empty is in conflict with keeping the number of swaps below 5."
+        },
+        {
+            "question": "Can I keep one rack empty?",
+            "question_type": "",
+            "question_arguments": "",
+            "mugs": "",
+            "mgcs": "",
+            "enforced_goals": "",
+            "achieved_goals": [
+                "deliver p1",
+                "deliver p2",
+                "deliver p3",
+                "swaps < 5",
+                "load j1",
+                "load j2",
+                "load j3"
+            ],
+            "unachieved_goals": [
+                "free rack",
+                "put j1 next to j2",
+                "swaps < 4"
+            ],
+            "existing_plan_properties": "",
+            "conflict": [
+                [
+                    "deliver p1",
+                    "load j2",
+                    "swaps <5",
+                    "free rack"
+                ],
+                [
+                    "free rack",
+                    "load j1",
+                    "load j2",
+                    "deliver p3",
+                    "swaps < 6"
+                ]
+            ],
+            "return": "Yes, do you want me to try?"
+        }
+    ]
+}

@@ -25,7 +25,16 @@ import { userStudyExecutionRouter } from './routes/user-study/user-study-executi
 import { plannerRouter } from './routes/planner';
 import { pddlRouter } from './routes/pddl';
 import { LLMRouter } from './routes/llm-connector';
+
 import { explainerRouter } from './routes/explainer';
+import { initializeAssistants, OpenAIModelName } from './llm/initialize_assistants';
+
+
+console.log('-------- Initializing LLMs assistants -----');
+const model =  "gpt-4o-mini";
+//process.env.OPENAI_MODEL_NAME ||
+initializeAssistants(model as OpenAIModelName).then(console.log).catch(console.error);
+
 dotenv.config();
 
 console.log('-------- IPEXCO BACK END ---------');
@@ -34,26 +43,27 @@ const results_folder = path.join(__dirname, 'data/results');
 const uploads_folder = path.join(__dirname, 'data/uploads');
 const images_folder = path.join(__dirname, 'data/images')
 
+
 // create folders if not already exist
 console.log('---> statically served path');
 
-console.log(uploads_folder);
-if(! fs.existsSync(uploads_folder)){
-  fs.mkdirSync(uploads_folder)
-  console.log(uploads_folder + " created");
-}
+// console.log(uploads_folder);
+// if(! fs.existsSync(uploads_folder)){
+//   fs.mkdirSync(uploads_folder)
+//   console.log(uploads_folder + " created");
+// }
 
-console.log(results_folder);
-if(! fs.existsSync(results_folder)){
-  fs.mkdirSync(results_folder)
-  console.log(results_folder + " created");
-}
+// console.log(results_folder);
+// if(! fs.existsSync(results_folder)){
+//   fs.mkdirSync(results_folder)
+//   console.log(results_folder + " created");
+// }
 
-console.log(images_folder);
-if(! fs.existsSync(images_folder)){
-  fs.mkdirSync(images_folder)
-  console.log(images_folder + " created");
-}
+// console.log(images_folder);
+// if(! fs.existsSync(images_folder)){
+//   fs.mkdirSync(images_folder)
+//   console.log(images_folder + " created");
+// }
 
 export const environment = new Environment();
 // console.log(environment)
