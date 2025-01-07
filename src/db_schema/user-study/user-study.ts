@@ -4,6 +4,8 @@ export enum UserStudyStepType {
     description = 'description',
     form = 'form',
     demo = 'demo',
+    demoInfo = 'demoInfo',
+    userManual = 'userManual'
   }
   
   export interface UserStudyStep {
