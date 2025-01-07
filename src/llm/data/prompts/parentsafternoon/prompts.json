@@ -6,42 +6,94 @@
     "dispatcher": "You will be in charge of transferring the user message to the correct assistant. The message will be given in natural language, and you should return the name of the assistant that is best suited to answer the question. If the message is not clear or notsuited for any assistant, respond directly to the user.",
     "qt_examples": [
         {
-            "Question": "",
-            "Enforced Goals": "[]",
+            "Question": "Why is the task unsolvable ?",
+            "Enforced Goals": "[do sports, do bring kid1 home]",
             "Satisfied Goals": "[]",
-            "Unsatisfied Goals": "[]",
-            "Existing Plan Properties": "[]",
+            "Unsatisfied Goals": "[do shopping]",
+            "Existing Plan Properties": "[do sports, do bring kid1 home, do shopping]",
             "Solvable": "False",
-            "Return": "{\"questionType\": \"\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": null}"
+            "Return": "{\"questionType\": \"US-WHY\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"Why is the planning task unsolvable ?\", \"directResponse\": null}"
         },
         {
-            "Question": "",
-            "Enforced Goals": "[]",
-            "Satisfied Goals": "[]",
-            "Unsatisfied Goals": "[]",
-            "Existing Plan Properties": "[]",
+            "Question": "Why can't I do music lesson ?",
+            "Enforced Goals": "[do sports, do shopping grandma]",
+            "Satisfied Goals": "[do bring kid1 home, bring food to home]",
+            "Unsatisfied Goals": "[do music lesson]",
+            "Existing Plan Properties": "[do sports, do shopping grandma, do bring kid1 home, bring food to home, do music lesson]",
+            "Solvable": "True",
+            "Return": "{\"questionType\": \"S-WHY-NOT\", \"questionArgument\": \"do music lesson\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"Why is the goal of doing music lesson not satisfied ?\", \"directResponse\": null}"
+        },
+        {
+            "Question": "What kind of questions can you answer ?",
+            "Enforced Goals": "[do bring kid1 home, do bring kid2 home, do music lesson, do bring friend sport]",
+            "Satisfied Goals": "[do sports, bring food to home]",
+            "Unsatisfied Goals": "[do shopping grandma, do shopping before sports]",
+            "Existing Plan Properties": "[do bring kid1 home, do bring kid2 home, do music lesson, do bring friend sport, do sports, bring food to home, do shopping grandma, do shopping before sports, grandma and friend not together in car]",
+            "Solvable": "True",
+            "Return": "{\"questionType\": \"DIRECT-USER\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"I can help you to understand why unsolved goals are unsatisfied, or how to make them satisfied. I can also help you to understand why an iteration step is unsolvable, or how to make it solvable.\"}"
+        },
+        {
+            "Question": "How can I make sure that grandma and friend are never together in the car ?",
+            "Enforced Goals": "[do bring kid1 home, do bring kid2 home, do music lesson, do bring friend sport]",
+            "Satisfied Goals": "[do sports, bring food to home, do shopping grandma]",
+            "Unsatisfied Goals": "[do shopping before sports, grandma and friend not together in car]",
+            "Existing Plan Properties": "[do bring kid1 home, do bring kid2 home, do music lesson, do bring friend sport, do sports, bring food to home, do shopping grandma, do shopping before sports, grandma and friend not together in car]",
+            "Solvable": "True",
+            "Return": "{\"questionType\": \"S-HOW\", \"questionArgument\": \"grandma and friend not together in car\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"How can I get a plan where \"grandma and friend are never together in the car\" is satisfied?\", \"directResponse\": null}"
+        },
+        {
+            "Question": "What happens if I enforce do shopping before sports ?",
+            "Enforced Goals": "[do bring kid1 home, do bring kid2 home, do music lesson, do bring friend sport, do soccer training]",
+            "Satisfied Goals": "[do sports, bring food to home, do shopping grandma, bring grandma to grandma house]",
+            "Unsatisfied Goals": "[do shopping before sports, grandma and friend not together in car]",
+            "Existing Plan Properties": "[do bring kid1 home, do bring kid2 home, do music lesson, do bring friend sport, do soccer training, do sports, bring food to home, do shopping grandma, bring grandma to grandma house, do shopping before sports, grandma and friend not together in car]",
+            "Solvable": "True",
+            "Return": "{\"questionType\": \"S-WHAT-IF\", \"questionArgument\": \"do shopping before sports\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"What happens if I enforce the goal \"do shopping before sports\" ?\", \"directResponse\": null}"
+        },
+        {
+            "Question": "detail a bit more the possible actions",
+            "Enforced Goals": "[do bring kid1 home, do bring kid2 home, do music lesson, do bring friend sport, do soccer training, do kid training]",
+            "Satisfied Goals": "[do sports, bring food to home, do shopping grandma, bring grandma to grandma house, bring food grandma to grandma house]",
+            "Unsatisfied Goals": "[do shopping before sports, grandma and friend not together in car]",
+            "Existing Plan Properties": "[do bring kid1 home, do bring kid2 home, do music lesson, do bring friend sport, do soccer training, do kid training, do sports, bring food to home, do shopping grandma, bring grandma to grandma house, bring food grandma to grandma house, do shopping before sports, grandma and friend not together in car]",
+            "Solvable": "True",
+            "Return": "{\"questionType\": \"DIRECT-ET\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"detail a bit more the possible actions\"}"
+        },
+        {
+            "Question": "How to make it solvable ?",
+            "Enforced Goals": "[do sports, do shopping]",
+            "Satisfied Goals": "[do bring kid1 home]",
+            "Unsatisfied Goals": "[bring food to home]",
+            "Existing Plan Properties": "[do sports, do shopping, do bring kid1 home, bring food to home]",
             "Solvable": "False",
-            "Return": "{\"questionType\": \"\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": null}"
+            "Return": "{\"questionType\": \"US-HOW\", \"questionArgument\": \"NOGOAL\", \"used\": \"\", \"reverseTranslation\": \"How to make the planning task solvable ?\", \"directResponse\": null}"
+        },
+        {
+            "Question": "Why can't I do music lesson ?",
+            "Enforced Goals": "[do bring kid1 home, do music lesson]",
+            "Satisfied Goals": "[do sports, bring food to home]",
+            "Unsatisfied Goals": "[do shopping grandma, do shopping before sports]",
+            "Existing Plan Properties": "[do bring kid1 home, do music lesson, do sports, bring food to home, do shopping grandma, do shopping before sports]",
+            "Solvable": "True",
+            "Return": "{\"questionType\": \"S-CAN\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": null}"
         }
     ],
-    "gt_examples": [
-        
-    ],
+    "gt_examples": [],
     "et_examples": [
         {
             "Input": "Can you enumerate the conflicts clearly ?",
-            "Return": "{\"output\": \"I can only help you to understand the conflicts with respect to a specific goal. Please specify which goal you want to understand the conflicts for.\\n\"}"
+            "Return": "{\"output\": \"When the planning task is solvable, I can only help you to understand the conflicts with respect to a specific goal. Please specify which goal you want to understand the conflicts for.\\n\"}"
         },
         {
             "Input": "What kind of questions can you answer ?",
             "Return": "{\"output\": \"I am mainly designed to answer questions about the achievability of goals or the planning task, like : \\n - Why is this planning task unsolvable ?.\\n - Why is this goal not achieved in this plan ?.\\n - Can I enforce this goal ?.\\n - How can I make this goal achievable ?.\\n - What happens if I enforce this goal ?.\\n But you can try more questions and engage in more complex conversations. \\n\"}"
         },
         {
-            "Question": "Why can't I deliver p2 ?",
+            "Question": "Why can't  ?",
             "Question Type": "S-WHY-NOT",
             "Question Arguments": "p2 to smith",
             "Conflicts": "[[p0 to cafe], [Use t1 for cafe-smith]]",
-            "Resolutions": "",
+            "Resolutions": "[[Use t1 for cafe-smith]]",
             "Enforced Goals": "[Use t1 for cafe-smith, Never same trucks for p3 and p4]",
             "Satisfied Goals": "[p0 to cafe, p1 to packingstation]",
             "Unsatisfied Goals": "[p2 to smith, p4 to supermarket]",
@@ -110,4 +162,3 @@
         }
     ]
 }
-    
