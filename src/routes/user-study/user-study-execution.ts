@@ -1,9 +1,11 @@
 import express from 'express';
 import { auth, authAny, AuthenticatedRequest } from '../../middleware/auth';
-import {UserStudyExecution, UserStudyExecutionModel} from '../../db_schema/user-study/user-study-execution';
+import { UserStudyExecution, UserStudyExecutionModel } from '../../db_schema/user-study/user-study-execution';
 import { User, UserModel } from '../../db_schema/user';
 import { error } from 'console';
 import { IterationStepModel } from '../../db_schema/iteration_step';
+import { LLMContext } from '../../db_schema/LLM/llm-context';
+import { LLMContextModel } from '../../db_schema/LLM/llm-context';
 
 export const userStudyExecutionRouter = express.Router();
 
@@ -15,8 +17,8 @@ userStudyExecutionRouter.put('/finish', authAny, async (req: AuthenticatedReques
 
         const userStudyUser = req.user;
 
-        const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userStudyUser._id})
-            
+        const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userStudyUser._id })
+
         if (!executionData) {
             return res.status(403).send();
         }
@@ -27,7 +29,7 @@ userStudyExecutionRouter.put('/finish', authAny, async (req: AuthenticatedReques
 
         res.send(true);
 
-    } catch (ex : any) {
+    } catch (ex: any) {
         console.log(error);
         res.status(500).send();
     }
@@ -38,8 +40,8 @@ userStudyExecutionRouter.put('/accept/:id', auth, async (req, res) => {
 
         const userId = req.params.id;
 
-        const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userId})
-            
+        const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userId })
+
         if (!executionData) {
             return res.status(403).send();
         }
@@ -49,7 +51,7 @@ userStudyExecutionRouter.put('/accept/:id', auth, async (req, res) => {
 
         res.send(true);
 
-    } catch (ex : any) {
+    } catch (ex: any) {
         console.log(error);
         res.status(500).send();
     }
@@ -62,25 +64,66 @@ userStudyExecutionRouter.put('/action', authAny, async (req: AuthenticatedReques
             return res.status(401).send();
         }
 
-        const userStudyUser =req.user;
+        const userStudyUser = req.user;
 
-        const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userStudyUser._id})
-            
+        const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userStudyUser._id })
+
         if (!executionData) {
             return res.status(403).send();
         }
 
-        const action= req.body.action;
+        const action = req.body.action;
         executionData.timeLog?.push(action);
         await executionData.save();
 
         res.send(true);
 
-    } catch (ex : any) {
+    } catch (ex: any) {
         console.log(error);
         res.status(500).send();
     }
 });
+
+userStudyExecutionRouter.put('/save-llm-context', authAny, async (req: AuthenticatedRequest, res) => {
+    try {
+
+        if (!req.user) {
+            return res.status(401).send();
+        }
+
+        const userStudyUser = req.user;
+
+        const llmContexts: LLMContext[] = await LLMContextModel.find({ user: userStudyUser._id })
+        
+
+        if (llmContexts.length === 0) {
+            return res.status(404).send("No LLM contexts found for this user");
+        }
+
+        for (const llmContext of llmContexts) {
+            let projectId = llmContext.project;
+            const executionData: UserStudyExecution | null = await UserStudyExecutionModel.findOne({ user: userStudyUser._id })
+
+            if (!executionData) {
+                return res.status(403).send("Execution data not found");
+            }
+            const action = {
+                type: "LLM_CONTEXT",
+                timeStamp: new Date(),
+                data: llmContext
+            };
+
+            executionData.timeLog?.push(JSON.stringify(action));
+            await executionData.save();
+        }
+
+            res.send(true);
+
+        } catch (ex: any) {
+            console.log(error);
+            res.status(500).send();
+        }
+    });
 
 
 userStudyExecutionRouter.put('/cancel', authAny, async (req: AuthenticatedRequest, res) => {
@@ -91,14 +134,14 @@ userStudyExecutionRouter.put('/cancel', authAny, async (req: AuthenticatedReques
 
         const userStudyUser = req.user;
 
-        await UserStudyExecutionModel.deleteMany({ user: userStudyUser._id});
-        await IterationStepModel.deleteMany({user: userStudyUser._id});
-        await UserModel.deleteOne({_id: userStudyUser._id});
+        await UserStudyExecutionModel.deleteMany({ user: userStudyUser._id });
+        await IterationStepModel.deleteMany({ user: userStudyUser._id });
+        await UserModel.deleteOne({ _id: userStudyUser._id });
 
 
         res.send(true);
 
-    } catch (ex : any) {
+    } catch (ex: any) {
         console.log(error);
         res.status(500).send();
     }
@@ -109,18 +152,18 @@ userStudyExecutionRouter.put('/cancel', authAny, async (req: AuthenticatedReques
 userStudyExecutionRouter.get('/', auth, async (req: any, res) => {
     try {
 
-        const refIdUserStudy : string = req.query.userStudyId as string;
+        const refIdUserStudy: string = req.query.userStudyId as string;
         console.log("Study ID: " + refIdUserStudy);
-        const allExecutions: UserStudyExecution[] = await UserStudyExecutionModel.find({userStudy: refIdUserStudy});
+        const allExecutions: UserStudyExecution[] = await UserStudyExecutionModel.find({ userStudy: refIdUserStudy });
 
-        if (!allExecutions) { 
+        if (!allExecutions) {
             return res.status(404).send({ message: 'Lookup user study data failed.' });
         }
 
         res.send({
             data: allExecutions
         });
-    } catch (ex : any) {
+    } catch (ex: any) {
         console.log(ex)
         res.status(500).send();
     }

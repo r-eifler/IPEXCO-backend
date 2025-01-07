@@ -1,87 +1,87 @@
 {
     "system": "You are an AI assistant that faithfully helps users to solve a planning task. Carefully follow the instructions without any deviation and never add any comments of your own. Always use the structure you are presented in these instructions so you can be reliable.",
-    "question_translator": "You will be given a user question that is semantically equivalent to one of these questions : \n\nWHY_PLAN: \"Why is the task unsolvable?\" ; \nHOW_PLAN: \"How can I make the task solvable?\" ;\nWHY_NOT_PROPERTY: \"Why are Q not satisfied?\" ;\nWHAT_IF_PROPERTY: \"What happens if we enforce Q?\";\nCAN_PROPERTY: \"Can Q be satisfied?\" ;\nHOW_PROPERTY: \"How can Q be satisfied?\"/\"How can I improve the plan with respect to o?\" ;\n\nAny question you will be given can be mapped to one of these questions.\nReturn the question type and the goal or plan property the user is refering to, without any additional comments of any kind. First, try to see if the question is about a property that is already existing. If it is, return EXISTING as the last part of your answer and use the exact same name. If it is not, invent a name for this property and use the encoding NONEXISTING. If the question is not about a specific property but about the unsolvability of the task, return NOGOAL as the second part of your answer and EXISTING as the last",
-    "goal_translator": "You will be given a goal and a list of allowed predicates and objects from a planning problem and domain.\nReturn the LTLf formula corresponding to the goal, followed by a short definition of the goal in natural language. The LTLf formula must be valid and must only contain the predicates and objects given to you. If it is not possible to express the property in LTL using the provided objects and predicates, return UNSUPPORTED ; Unsupported property.",
-    "explanation_translator": "You will be given a question, a list of achieved and unachieved goals,and a conflict list (MUGS) or a resolution list (MGCS). Each conflict is presented as a Minimum Unsolvable Goal Subset (MUGS).\nAll goals in a MUGS cannot be achieved in the same plan, but any strict subset of them can be achieved.\nFor example the conflict : [a,b,c] means that it is possible to achieve (a and b) or (a and c) or (b and c) in the same plan, but not (a and b and c).\nAnswer the question using the explanation framework. It is important to base anwsers on conflicts, to ensure providing faithful explanations.",
+    "question_translator": "You will be given a user question that is semantically equivalent to one of these questions : \n\nWHY_PLAN: \"Why is the task unsolvable?\" ; \nHOW_PLAN: \"How can I make the task solvable?\" ;\nWHY_NOT_PROPERTY: \"Why are Q not satisfied?\" ;\nWHAT_IF_PROPERTY: \"What happens if we enforce Q?\";\nCAN_PROPERTY: \"Can Q be satisfied?\" ;\nHOW_PROPERTY: \"How can Q be satisfied?\"/\"How can I improve the plan with respect to o?\" ;\n\nAny question you will be given can be mapped to one of these questions.\nReturn the question type and the goal or plan property the user is refering to, without any additional comments of any kind. First, try to see if the question is about a property that is already existing. If it is, return ALREADY-USED as the last part of your answer and use the exact same name. If it is not, invent a name for this property and use the encoding NEVER-USED. If the question is not about a specific property but about the unsolvability of the task, return NOGOAL as the second part of your answer and ALREADY-USED as the last",
+    "goal_translator": "You will be given a goal and a list of allowed predicates and objects from a planning problem and domain.\nReturn the LTLf formula corresponding to the goal, followed by a short definition of the goal in natural language. The LTLf formula must be well-formed and must only contain the predicates and objects given to you. If it is not possible to express the property in LTL using the provided objects and predicates, return UNSUPPORTED ; Unsupported property.",
+    "explanation_translator": "You will be given a question, a list of achieved and unachieved goals,and a conflict list (MUGS) or a resolution list MGCS. Each conflict is presented as a Minimum Unsolvable Goal Subset (MUGS).\nAll goals in a Conflicts cannot be achieved in the same plan, but any strict subset of them can be achieved.\nFor example the conflict : [a,b,c] means that it is possible to achieve (a and b) or (a and c) or (b and c) in the same plan, but not (a and b and c).\nAnswer the question using the explanation framework. It is important to base anwsers on conflicts, to ensure providing faithful explanations.",
     "qt_examples": [
         {
-            "question": "How can I make the task solvable?",
-            "enforced_goals": ["A on top of B","B on table","D always clear"],
-            "satisfied_goals": [],
-            "unsatisfied_goals": ["C never on table"],
+            "Question": "How can I make the task solvable?",
+            "Enforced Goals": ["A on top of B","B on table","D always clear"],
+            "Satisfied Goals": [],
+            "Unsatisfied Goals": ["C never on table"],
             "Existing plan properties": ["A on top of B", "C never on table", "B on table", "D always clear", "C before B"],
-            "return": "HOW_PLAN ; NOGOAL ; EXISTING"
+            "Return": "HOW_PLAN ; NOGOAL ; ALREADY-USED"
         },
         {
-            "question": "Why does C has to be on table at one point?",
-            "enforced_goals": ["A on top of B","B on table","D always clear"],
-            "satisfied_goals": [],
-            "unsatisfied_goals": ["C never on table"],
+            "Question": "Why does C has to be on table at one point?",
+            "Enforced Goals": ["A on top of B","B on table","D always clear"],
+            "Satisfied Goals": [],
+            "Unsatisfied Goals": ["C never on table"],
             "Existing plan properties": ["A on top of B", "C never on table", "B on table", "D always clear", "C before B"],
-            "return": "WHY_NOT_PROPERTY ; C never on table ; EXISTING"
+            "Return": "WHY_NOT_PROPERTY ; C never on table ; ALREADY-USED"
         },
         {
-            "question": "Can I keep D on the table throughout the plan?",
-            "enforced_goals": ["A on top of B", "C never held", "B on table"],
-            "satisfied_goals": ["D on C at some point"],
-            "unsatisfied_goals": [],
+            "Question": "Can I keep D on the table throughout the plan?",
+            "Enforced Goals": ["A on top of B", "C never held", "B on table"],
+            "Satisfied Goals": ["D on C at some point"],
+            "Unsatisfied Goals": [],
             "Existing plan properties": ["A on top of B", "B on table", "C never held", "D on C at some point"],
-            "return": "CAN_PROPERTY ; D always on table ; NONEXISTING"
+            "Return": "CAN_PROPERTY ; D always on table ; NEVER-USED"
         }
 
     ],
     
     "gt_examples": [
         {
-            "goal": "always have B alone on the table",
-            "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
-            "objects": ["A", "B", "C", "D"],
-            "existing_plan_properties": ["A on top of C", "C never on table", "D on table", "C before B"],
-            "return": "G((ontable(B)) and (clear(B))) ; B alone on the table"
+            "Goal": "always have B alone on the table",
+            "Predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
+            "Objects": ["A", "B", "C", "D"],
+            "Existing Plan Properties": ["A on top of C", "C never on table", "D on table", "C before B"],
+            "Return": "G((ontable(B)) and (clear(B))) ; B alone on the table"
         },
         {
-            "goal": "at some point have A on top of B",
-            "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
-            "objects": ["A", "B", "C", "D"],
-            "existing_plan_properties": ["D on top of C", "B on table", "A never held"],
-            "return": "F(on(A,B)) ; A on top of B"
+            "Goal": "at some point have A on top of B",
+            "Predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
+            "Objects": ["A", "B", "C", "D"],
+            "Existing Plan Properties": ["D on top of C", "B on table", "A never held"],
+            "Return": "F(on(A,B)) ; A on top of B"
         },
         {
-            "goal": "C is not touching the table at the end",
-            "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
-            "objects": ["A", "B", "C", "D"],
-            "existing_plan_properties": ["A on top of B", "D always clear", "C on D at some point"],
-            "return": "G(F(!(ontable(C)))) ; C not touching table at the end"
+            "Goal": "C is not touching the table at the end",
+            "Predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
+            "Objects": ["A", "B", "C", "D"],
+            "Existing Plan Properties": ["A on top of B", "D always clear", "C on D at some point"],
+            "Return": "G(F(!(ontable(C)))) ; C not touching table at the end"
         },
         {
-            "goal": "only A can be on top of D",
-            "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
-            "objects": ["A", "B", "C", "D"],
-            "existing_plan_properties": ["B never moved", "C always on table", "A clear at some point"],
-            "return": "G((clear(D)) or (on(A,D))) ; Only A on top of D"
+            "Goal": "only A can be on top of D",
+            "Predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
+            "Objects": ["A", "B", "C", "D"],
+            "Existing Plan Properties": ["B never moved", "C always on table", "A clear at some point"],
+            "Return": "G((clear(D)) or (on(A,D))) ; Only A on top of D"
         },
         {
-            "goal": "A can only be held after B is moved for the first time",
-            "predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
-            "objects": ["A", "B", "C", "D"],
-            "existing_plan_properties": ["D never held", "D on top of C","B on table"],
-            "return": "! (holding(A)) U (holding(B)) ; move A after B "
+            "Goal": "A can only be held after B is moved for the first time",
+            "Predicates": ["(on ?x ?y)", "(ontable ?x)", "(clear ?x)", "(handempty)", "(holding ?x)"],
+            "Objects": ["A", "B", "C", "D"],
+            "Existing Plan Properties": ["D never held", "D on top of C","B on table"],
+            "Return": "! (holding(A)) U (holding(B)) ; move A after B "
         }
 
     ],
     "et_examples": [
         {
-            "question": "",
-            "question_type": "",
-            "question_arguments": "",
-            "mugs": "",
-            "mgcs": "",
-            "enforced_goals": "",
+            "Question": "",
+            "Question Type": "",
+            "Question Arguments": "",
+            "Conflicts": "",
+            "Resolutions": "",
+            "Enforced Goals": "",
             "achieved_goals": [],
             "unachieved_goals": [],
-            "existing_plan_properties": "",
+            "Existing Plan Properties": "",
             "conflict": [],
-            "return": ""
+            "Return": ""
         }
     ]
 }

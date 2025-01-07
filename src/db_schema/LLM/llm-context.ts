@@ -27,6 +27,9 @@ const LLMMessageSchema = new Schema<LLMMessage>({
 }, { timestamps: true }); 
 
 export interface LLMContext extends Document {
+    assistantIdGT: string;
+    assistantIdQT: string;
+    assistantIdET: string;
     threadIdQT: string;
     threadIdGT: string;
     threadIdET: string;
@@ -36,18 +39,23 @@ export interface LLMContext extends Document {
     seenByETMessages: LLMMessage[];
     seenByQTMessages: LLMMessage[];
     project: string | null;
+    user: string | null;
 }
 
 export const LLMContextSchema = new Schema({
-    threadIdQT: { type: String, required: true},
-    threadIdGT: { type: String, required: true},
-    threadIdET: { type: String, required: true},
+    assistantIdGT: { type: String, required: true},
+    assistantIdQT: { type: String, required: true},
+    assistantIdET: { type: String, required: true},
+    threadIdQT: { type: String, required: false},
+    threadIdGT: { type: String, required: false},
+    threadIdET: { type: String, required: false},
     visibleMessages: [visibleLLMMessageSchema],
     visiblePPCreationMessages: [visibleLLMMessageSchema],
     seenByGTMessages: [LLMMessageSchema],
     seenByETMessages: [LLMMessageSchema],
     seenByQTMessages: [LLMMessageSchema],
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User'},
 }, { timestamps: true}); 
 
 

@@ -13,6 +13,8 @@ import { ExplanationRunStatus } from '../db_schema/explanations';
 
 export const demoRouter = express.Router();
 
+demoRouter.use('/uploads', express.static(path.join(__dirname, '..', 'data/uploads')));
+
 const imgPort = 'http://localhost:3000';
 
 const storage = multer.diskStorage({
@@ -240,6 +242,7 @@ demoRouter.post('/compute-explanations/:id/finished', async (req: any, res) => {
 
         if(status === 'FINISHED'){
             demo.status = DemoRunStatus.finished;
+            demo.globalExplanation.status = ExplanationRunStatus.finished;
             demo.globalExplanation.MUGS = JSON.stringify(MUGS.subsets)
             demo.globalExplanation.MGCS = JSON.stringify(MGCS.subsets)
         }
@@ -247,6 +250,7 @@ demoRouter.post('/compute-explanations/:id/finished', async (req: any, res) => {
 
         if(status === 'FAILED'){
             demo.status = DemoRunStatus.failed;
+            demo.globalExplanation.status = ExplanationRunStatus.failed;
         }
 
         demo.save()
