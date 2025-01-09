@@ -65,7 +65,7 @@
                     },
                     "used": {
                         "type": "string",
-                        "description": "Describes if the questionArgument is in the provided list of Existing Plan Properties (ALREADY-USED) or not (NEVER-USED). Only use this entry if the questionType is S- or US-.",
+                        "description": "Describes if the questionArgument is in the provided list of Existing Plan Properties (ALREADY-USED) or not (NEVER-USED). Only use this entry if the questionType is S- .",
                         "enum": [
                             "ALREADY-USED",
                             "NEVER-USED",

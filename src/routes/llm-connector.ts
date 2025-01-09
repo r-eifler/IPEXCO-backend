@@ -27,11 +27,14 @@ LLMRouter.post('/gt', authAny, async (req: any, res) => {
         console.log("req.body", req.body);
 
         // check if LLMContextModel exists
-        let llmContext = await LLMContextModel.findOne({ user: req.user._id, project: req.body.projectId });
-        if (!llmContext) {
+        let llmContexts = await LLMContextModel.find({ user: req.user._id, project: req.body.projectId }).sort({ createdAt: -1 }).limit(1);
+        if (llmContexts.length === 0) {
             res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
-        }
+        } 
+
+        let llmContext = llmContexts[0];
+
         if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
             res.status(404).send({ error: 'No assistants found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
@@ -96,11 +99,13 @@ LLMRouter.post('/et', authAny, async (req: any, res) => {
         }
 
         // check if LLMContextModel exists
-        let llmContext = await LLMContextModel.findOne({ user: req.user._id, project: req.body.projectId });
-        if (!llmContext) {
+        let llmContexts = await LLMContextModel.find({ user: req.user._id, project: req.body.projectId }).sort({ createdAt: -1 }).limit(1);
+        if (llmContexts.length === 0) {
             res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
-        }
+        } 
+
+        let llmContext = llmContexts[0];
         if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
             res.status(404).send({ error: 'No assistants found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
@@ -167,17 +172,20 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
         console.log("req.body", req.body);
 
         // check if LLMContextModel exists
-        let llmContext = await LLMContextModel.findOne({ user: req.user._id, project: req.body.projectId });
-        console.log("after findOne llmContext", llmContext)
-        if (!llmContext) {
+        let llmContexts = await LLMContextModel.find({ user: req.user._id, project: req.body.projectId }).sort({ createdAt: -1 }).limit(1);
+        if (llmContexts.length === 0) {
             res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
-        }
+        } 
+
+        let llmContext = llmContexts[0];
+    
         if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
             res.status(404).send({ error: 'No assistants found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
         }
         if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
+            console.log("Creating new threads")
             const threadIdET = (await openai_client.beta.threads.create({})).id
             const threadIdGT = (await openai_client.beta.threads.create({})).id
             const threadIdQT = (await openai_client.beta.threads.create({})).id
@@ -246,7 +254,7 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
         
         let planProperty;
 
-        if (used == "ALREADY-USED") {
+        if (used == "ALREADY-USED" && untranslatedGoal != "") {
 
             planProperty = await PlanPropertyModel.findOne({
                 name: untranslatedGoal,
@@ -259,11 +267,11 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
 
             console.log("Because used is ALREADY-USED, planProperty is", planProperty)
         }
-        if (used == 'NEVER-USED' || planProperty == null || planProperty == undefined) {
+        if (used == 'NEVER-USED' ) {
             
-            console.log("used is NEVER-USED or planProperty is null or undefined, therefore returning directResponse")
+            console.log("used is NEVER-USED, therefore returning directResponse")
             let directResponse = "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
-            res.status(200).send({ data: { directResponse, questionType, threadIdQT: llmContext.threadIdQT } });     
+            res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER", threadIdQT: llmContext.threadIdQT } });     
             return;
         }
 
