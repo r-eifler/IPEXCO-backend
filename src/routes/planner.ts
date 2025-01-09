@@ -206,9 +206,17 @@ plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res)
             let check = new PropertyCheck(environment.experimentsRootPath, iterationStep, plan_properties);
             let sat_properties = await check.executeRun();
 
+            console.log('Enforced Properties')
+            console.log(iterationStep.hardGoals);
             console.log('Satisfied Properties')
-            console.log(sat_properties)
+            console.log(sat_properties);
             const sat_properties_ids = plan_properties.filter(pp => sat_properties.includes(pp.name)).map(pp => pp._id);
+            console.log(sat_properties_ids);
+
+            // Check all enforced goals also satisfied
+            if(! iterationStep.hardGoals.every(id => sat_properties_ids.includes(id))){
+                throw Error('Not all enforced goals are identified as satisfied by the property checker!');
+            }
 
             iterationStep.plan.satisfied_properties =  sat_properties_ids.filter(id => id != undefined);
 
