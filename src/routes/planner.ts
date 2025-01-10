@@ -149,7 +149,7 @@ plannerRouter.post('/plan-step/temp-goals/:id', authAny, async (req: any, res) =
             }
         )
 
-        console.log(plannerRequest.headers);
+        // console.log(plannerRequest.headers);
 
         fetch(plannerRequest).then
             (resp => console.log("Plan computation request submitted."),
@@ -173,7 +173,7 @@ plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res)
 
     try {
 
-        console.log(req.body)
+        // console.log(req.body)
         const refId = req.params.id;
         const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
 
@@ -187,6 +187,14 @@ plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res)
 
         if (iterationStep.plan.status == PlanRunStatus.canceled) {
             return res.status(200).send('Plan run was canceled.');
+        }
+
+        if (iterationStep.plan.status == PlanRunStatus.not_solvable || 
+            iterationStep.plan.status == PlanRunStatus.plan_found || 
+            iterationStep.plan.status == PlanRunStatus.failed
+        ) {
+            console.log('Got repeated response fall pla call: ' + iterationStep._id);
+            return res.status(200).send('Plan run already set.');
         }
 
         let actions = req.body.actions as string
