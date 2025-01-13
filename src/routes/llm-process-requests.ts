@@ -10,18 +10,31 @@ export async function processQtRequest(input: string, threadId: string, assistan
         content: input,
     });
 
-    console.log("createdMessage", createdMessage)
-    let run = await openai_client.beta.threads.runs.createAndPoll(
+    let run = await openai_client.beta.threads.runs.create(
         threadId, 
         { 
           assistant_id: assistantId
         }
-      );
+    );
+    
+    // Poll and log status every 2 seconds
+    while (true) {
+        run = await openai_client.beta.threads.runs.retrieve(threadId, run.id);
+        console.log(`Current run status: ${run.status}`);
+        
+        if (run.status === 'completed' || run.status === 'failed') {
+            break;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+    }
+    
     let run_status = run.status
     if (run.status === 'completed') {
         const messages = await openai_client.beta.threads.messages.list(
           run.thread_id
         );
+        console.log("\n------MESSAGES FOR THIS THREAD------\n")
         for (const message of messages.data.reverse()) {
             const content = message.content[0];
             if (content && 'text' in content) {
@@ -48,18 +61,31 @@ export async function processGtRequest(input: string, threadId: string, assistan
         content: input,
     });
 
-    console.log("createdMessage", createdMessage)
-    let run = await openai_client.beta.threads.runs.createAndPoll(
+    let run = await openai_client.beta.threads.runs.create(
         threadId, 
         { 
           assistant_id: assistantId
         }
     );
+    
+    // Poll and log status every 2 seconds
+    while (true) {
+        run = await openai_client.beta.threads.runs.retrieve(threadId, run.id);
+        console.log(`Current run status: ${run.status}`);
+        
+        if (run.status === 'completed' || run.status === 'failed') {
+            break;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+    }
+    
     let run_status = run.status
     if (run.status === 'completed') {
         const messages = await openai_client.beta.threads.messages.list(
           run.thread_id
         );
+        console.log("\n------MESSAGES FOR THIS THREAD------\n")
         for (const message of messages.data.reverse()) {
             const content = message.content[0];
             if (content && 'text' in content) {
@@ -86,18 +112,31 @@ export async function processEtRequest(input: string, threadId: string, assistan
         content: input,
     });
 
-    console.log("createdMessage", createdMessage)
-    let run = await openai_client.beta.threads.runs.createAndPoll(
+    let run = await openai_client.beta.threads.runs.create(
         threadId, 
         { 
           assistant_id: assistantId
         }
     );
+    
+    // Poll and log status every 2 seconds
+    while (true) {
+        run = await openai_client.beta.threads.runs.retrieve(threadId, run.id);
+        console.log(`Current run status: ${run.status}`);
+        
+        if (run.status === 'completed' || run.status === 'failed') {
+            break;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+    }
+    
     let run_status = run.status
     if (run.status === 'completed') {
         const messages = await openai_client.beta.threads.messages.list(
           run.thread_id
         );
+        console.log("\n------MESSAGES FOR THIS THREAD------\n")
         for (const message of messages.data.reverse()) {
             const content = message.content[0];
             if (content && 'text' in content) {

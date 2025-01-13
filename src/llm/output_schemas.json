@@ -47,7 +47,7 @@
                 "properties": {
                     "questionType": {
                         "type": "string",
-                        "description": "The type of question that was asked. S- means solvable planning task and US- means unsolvable planning task. DIRECT-USER means the question cannot be translated to a structured question and that you should answer directly. DIRECT-ET means the question is a follow-up question about the explanation and should be answered directly by the explanation translator.",
+                        "description": "The type of question that was asked. S- means solvable planning task and US- means unsolvable planning task. DIRECT-USER means the question cannot be translated to a structured question and that you should answer directly. DIRECT-ET means the question is a follow-up question about the explanation and should be answered directly by the explanation translator. US- question type can only be used if the Solvable field of the input is False. and S- question type can only be used if the Solvable field of the input is True and the question is about a single property. In other cases, use DIRECT-USER or DIRECT-ET (you can decide what questions are follow-up questions to the explanation translator).",
                         "enum": [
                             "S-WHY-NOT",
                             "S-HOW",
