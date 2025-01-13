@@ -61,7 +61,7 @@
                     },
                     "questionArgument": {
                         "type": "string",
-                        "description": "The argument of the question that was asked, i.e. the goal or plan property that was asked about. Only use this entry if the questionType is S- or US-. You should only use this entry if the question is about a single property, not multiple properties. "
+                        "description": "The argument of the question that was asked, i.e. the goal or plan property that was asked about. Only use this entry if the questionType is S- or US-. You should only use this entry if the question is about a single property, not multiple properties. This field can only be filled by an element of the Existing Plan Properties field."
                     },
                     "used": {
                         "type": "string",
