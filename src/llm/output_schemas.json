@@ -61,11 +61,11 @@
                     },
                     "questionArgument": {
                         "type": "string",
-                        "description": "The argument of the question that was asked, i.e. the goal or plan property that was asked about. Only use this entry if the questionType is S- or US-. You should only use this entry if the question is about a single property, not multiple properties. This field can only be filled by an element of the Existing Plan Properties field."
+                        "description": "The argument of the question that was asked, i.e. the goal or plan property that was asked about. Only use this entry if the questionType is S- or US-. You should only use this entry if the question is about a single property, not multiple properties. This field can only be filled by an element of one of the goals fields."
                     },
                     "used": {
                         "type": "string",
-                        "description": "Describes if the questionArgument is in the provided list of Existing Plan Properties (ALREADY-USED) or not (NEVER-USED). Only use this entry if the questionType is S- .",
+                        "description": "Describes if the questionArgument is in the provided list of goals (ALREADY-USED) or not (NEVER-USED). Only use this entry if the questionType is S- .",
                         "enum": [
                             "ALREADY-USED",
                             "NEVER-USED",
