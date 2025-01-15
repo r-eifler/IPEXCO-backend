@@ -65,7 +65,7 @@
                     },
                     "used": {
                         "type": "string",
-                        "description": "Describes if the questionArgument is in the provided list of goals (ALREADY-USED) or not (NEVER-USED). Only use this entry if the questionType is S- .",
+                        "description": "Describes if the questionArgument is in the provided list of goals (ALREADY-USED) or not (NEVER-USED). Only use this entry if the questionType is S-, i.e. if Solvable field is True.",
                         "enum": [
                             "ALREADY-USED",
                             "NEVER-USED",
