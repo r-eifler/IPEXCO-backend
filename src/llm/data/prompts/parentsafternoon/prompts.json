@@ -198,6 +198,17 @@
             "Return": "{\"output\": \"If you enforce do kid training, you will have to forgo either **do music lesson** or both **do sports** and **do bring kid1 home**.\\n\"}"
         },
         {
+            "Question": "How can I make sure that kid2 is home ?",
+            "Question Type": "S-HOW",
+            "Question Arguments": "do bring kid2 home",
+            "Conflicts": "[]",
+            "Resolutions": "[]",
+            "Enforced Goals": "[do sports, do shopping, grandma and friend not together in car, go to supermarket]",
+            "Satisfied Goals": "[do bring kid1 home]",
+            "Unsatisfied Goals": "[do soccer training, do bring kid2 home]",
+            "Return": "{\"output\": \"You can just enforce it, it is not in conflict with any goals you enforced.\\n\"}"
+        },
+        {
             "Question": "Can I enforce bring food to home?",
             "Question Type": "S-CAN",
             "Question Arguments": "bring food to home",
