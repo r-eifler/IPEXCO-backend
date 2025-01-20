@@ -65,11 +65,11 @@
                     },
                     "used": {
                         "type": "string",
-                        "description": "Describes if the questionArgument is in the provided list of goals (ALREADY-USED) or not (NEVER-USED). Only use this entry if the questionType is S-, i.e. if Solvable field is True.",
+                        "description": "Describes if the questionArgument is in one of the provided list of goals (ALREADY-USED) or not (NEVER-USED). If the questionType is US- or DIRECT- , use NO-ARGUMENT-REQUIRED. If the questionType is S- and the questionArgument is in one of the provided list of goals, use ALREADY-USED.",
                         "enum": [
                             "ALREADY-USED",
                             "NEVER-USED",
-                            ""
+                            "NO-ARGUMENT-REQUIRED"
                         ]
                     },
                     "reverseTranslation": {

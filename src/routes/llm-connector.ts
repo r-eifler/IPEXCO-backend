@@ -266,12 +266,21 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
             }
 
             console.log("Because used is ALREADY-USED, planProperty is", planProperty)
-        }
-        if (used == 'NEVER-USED' ) {
+        } else if (used == 'NEVER-USED' ) {
             
             console.log("used is NEVER-USED, therefore returning directResponse")
             let directResponse = "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
             res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER", threadIdQT: llmContext.threadIdQT } });     
+            return;
+        } else if (used == 'NO-ARGUMENT-REQUIRED' && !['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
+            console.log("used is unexpectedly NO-ARGUMENT-REQUIRED, therefore returning directResponse")
+            let directResponse = "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
+            res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER", threadIdQT: llmContext.threadIdQT } });     
+            return;
+        } else if (used == 'NO-ARGUMENT-REQUIRED' && ['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
+            console.log("used is NO-ARGUMENT-REQUIRED and its expected because of questionType", questionType, "therefore continuing")
+        } else {
+            res.status(404).send({ error: 'No valid used found' });
             return;
         }
 

@@ -11,7 +11,7 @@
             "Satisfied Goals": "[]",
             "Unsatisfied Goals": "[do shopping]",
             "Solvable": "False",
-            "Return": "{\"questionType\": \"US-WHY\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"Why is the planning task unsolvable ?\", \"directResponse\": null}"
+            "Return": "{\"questionType\": \"US-WHY\", \"questionArgument\": \"\", \"used\": \"NO-ARGUMENT-REQUIRED\", \"reverseTranslation\": \"Why is the planning task unsolvable ?\", \"directResponse\": null}"
         },
         {
             "Question": "Why can't I do music lesson ?",
@@ -27,7 +27,7 @@
             "Satisfied Goals": "[do bring kid1 home, bring food to home]",
             "Unsatisfied Goals": "[do music lesson]",
             "Solvable": "True",
-            "Return": "{\"questionType\": \"DIRECT-ET\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"yes enumerate the conflicts\"}"
+            "Return": "{\"questionType\": \"DIRECT-ET\", \"questionArgument\": \"\", \"used\": \"NO-ARGUMENT-REQUIRED\", \"reverseTranslation\": \"\", \"directResponse\": \"yes enumerate the conflicts\"}"
         },
         {
             "Question": "What kind of questions can you answer ?",
@@ -35,7 +35,7 @@
             "Satisfied Goals": "[do sports, bring food to home]",
             "Unsatisfied Goals": "[do shopping grandma, do shopping before sports]",
             "Solvable": "True",
-            "Return": "{\"questionType\": \"DIRECT-USER\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"I can help you to understand why unsolved goals are unsatisfied, or how to make them satisfied. I can also help you to understand why an iteration step is unsolvable, or how to make it solvable.\"}"
+            "Return": "{\"questionType\": \"DIRECT-USER\", \"questionArgument\": \"\", \"used\": \"NO-ARGUMENT-REQUIRED\", \"reverseTranslation\": \"\", \"directResponse\": \"I can help you to understand why unsolved goals are unsatisfied, or how to make them satisfied. I can also help you to understand why an iteration step is unsolvable, or how to make it solvable.\"}"
         },
         {
             "Question": "and what is the best option if i want to keep do bring kid1 home ?",
@@ -43,7 +43,7 @@
             "Satisfied Goals": "[do bring kid1 home, bring food to home]",
             "Unsatisfied Goals": "[do music lesson]",
             "Solvable": "True",
-            "Return": "{\"questionType\": \"DIRECT-ET\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"and what is the best option if i want to keep do bring kid1 home ?\"}"
+            "Return": "{\"questionType\": \"DIRECT-ET\", \"questionArgument\": \"\", \"used\": \"NO-ARGUMENT-REQUIRED\", \"reverseTranslation\": \"\", \"directResponse\": \"and what is the best option if i want to keep do bring kid1 home ?\"}"
         },
         {
             "Question": "How can I make sure that grandma and friend are never together in the car ?",
@@ -67,7 +67,7 @@
             "Satisfied Goals": "[do sports, bring food to home, do shopping grandma, bring grandma to grandma house, bring food grandma to grandma house]",
             "Unsatisfied Goals": "[do shopping before sports, grandma and friend not together in car]",
             "Solvable": "True",
-            "Return": "{\"questionType\": \"DIRECT-ET\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"detail a bit more the possible actions\"}"
+            "Return": "{\"questionType\": \"DIRECT-ET\", \"questionArgument\": \"\", \"used\": \"NO-ARGUMENT-REQUIRED\", \"reverseTranslation\": \"\", \"directResponse\": \"detail a bit more the possible actions\"}"
         },
         {
             "Question": "Why isnt grandma and friend not together in car satisfied?",
@@ -75,7 +75,7 @@
             "Satisfied Goals": "[do sports, bring food to home, do shopping grandma, bring grandma to grandma house, bring food grandma to grandma house, grandma and friend not together in car]",
             "Unsatisfied Goals": "[do bring friend sport, do soccer training, do kid training]",
             "Solvable": "True",
-            "Return": "{\"questionType\": \"DIRECT-USER\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"**grandma and friend not together in car** is satisfied in this iteration step.\"}"
+            "Return": "{\"questionType\": \"DIRECT-USER\", \"questionArgument\": \"\", \"used\": \"NO-ARGUMENT-REQUIRED\", \"reverseTranslation\": \"\", \"directResponse\": \"**grandma and friend not together in car** is satisfied in this iteration step.\"}"
         },
         {
             "Question": "How to make it solvable ?",
@@ -83,7 +83,7 @@
             "Satisfied Goals": "[]",
             "Unsatisfied Goals": "[bring food to home, do bring kid1 home]",
             "Solvable": "False",
-            "Return": "{\"questionType\": \"US-HOW\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"How to make the planning task solvable ?\", \"directResponse\": null}"
+            "Return": "{\"questionType\": \"US-HOW\", \"questionArgument\": \"\", \"used\": \"NO-ARGUMENT-REQUIRED\", \"reverseTranslation\": \"How to make the planning task solvable ?\", \"directResponse\": null}"
         },
         {
             "Question": "What other goals can I enforce ?",
@@ -91,7 +91,7 @@
             "Satisfied Goals": "[do sports, bring food to home, do shopping grandma, bring grandma to grandma house, bring food grandma to grandma house, grandma and friend not together in car]",
             "Unsatisfied Goals": "[do bring friend sport, do soccer training, do kid training]",
             "Solvable": "True",
-            "Return": "{\"questionType\": \"DIRECT-USER\", \"questionArgument\": \"\", \"used\": \"\", \"reverseTranslation\": \"\", \"directResponse\": \"I cannot help you to understand the conflicts for multiple goals at the same time. Try to ask about one goal at a time.\"}"
+            "Return": "{\"questionType\": \"DIRECT-USER\", \"questionArgument\": \"\", \"used\": \"NO-ARGUMENT-REQUIRED\", \"reverseTranslation\": \"\", \"directResponse\": \"I cannot help you to understand the conflicts for multiple goals at the same time. Try to ask about one goal at a time.\"}"
         },
         {
             "Question": "Why can't I do music lesson ?",
