@@ -99,7 +99,7 @@
             "Satisfied Goals": "[do sports, bring food to home]",
             "Unsatisfied Goals": "[do shopping grandma, do shopping before sports]",
             "Solvable": "True",
-            "Return": "{\"questionType\": \"S-CAN\", \"questionArgument\": \"do music lesson\", \"used\": \"\", \"reverseTranslation\": \"Why is the goal **do music lesson** not satisfied ?\", \"directResponse\": null}"
+            "Return": "{\"questionType\": \"S-CAN\", \"questionArgument\": \"do music lesson\", \"used\": \"ALREADY-USED\", \"reverseTranslation\": \"Why is the goal **do music lesson** not satisfied ?\", \"directResponse\": null}"
         }
     ],
     "gt_examples": [],
