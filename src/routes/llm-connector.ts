@@ -4,14 +4,12 @@ import { auth, authAdmin, authAny } from '../middleware/auth';
 import { openai_client } from '../llm/openai_client';
 // import { openai } from '@ai-sdk/openai';
 // import { AssistantResponse } from 'ai';
-import { prepareGoalTranslatorMessage, prepareQuestionTranslatorMessage, prepareExplanationTranslatorMessage } from '../llm/route';
 import { processEtRequest, processGtRequest, processQtRequest } from './llm-process-requests';
 import { RunStatus } from 'openai/resources/beta/threads/runs/runs';
 import { Message } from 'openai/resources/beta/threads/messages';
 import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Question, QuestionType } from '../db_schema/explanations';
-import { showFullContextThread } from './llm-process-requests';
-import { LLMContext, LLMContextModel } from '../db_schema/LLM/llm-context';
+import { LLMContext, LLMContextModel } from '../db_schema/llm-context';
 import { User, UserModel } from '../db_schema/user';
 import { initializeAssistants } from '../llm/initialize_assistants';
 
@@ -35,20 +33,7 @@ LLMRouter.post('/gt', authAny, async (req: any, res) => {
 
         let llmContext = llmContexts[0];
 
-        if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
-            res.status(404).send({ error: 'No assistants found for user ' + req.user._id + ' and project ' + req.body.projectId });
-            return;
-        }
-        if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
-            const threadIdET = (await openai_client.beta.threads.create({})).id
-            const threadIdGT = (await openai_client.beta.threads.create({})).id
-            const threadIdQT = (await openai_client.beta.threads.create({})).id
-
-            // Update existing llmContext instead of creating new one
-            llmContext.threadIdGT = threadIdGT;
-            llmContext.threadIdQT = threadIdQT;
-            llmContext.threadIdET = threadIdET;
-        }
+        
         llmContext.visiblePPCreationMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
         llmContext.seenByGTMessages.push({ role: 'receiver', content: req.body.data });
         await llmContext.save();
@@ -57,7 +42,7 @@ LLMRouter.post('/gt', authAny, async (req: any, res) => {
 
         const input = req.body.data
 
-        const output = await processGtRequest(input, llmContext.threadIdGT, llmContext.assistantIdGT);
+        const output = await processGtRequest(input, llmContext);
         if (output == undefined) {
             res.status(500).send({ error: `Run status is null` });
             return;
@@ -106,30 +91,13 @@ LLMRouter.post('/et', authAny, async (req: any, res) => {
         } 
 
         let llmContext = llmContexts[0];
-        if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
-            res.status(404).send({ error: 'No assistants found for user ' + req.user._id + ' and project ' + req.body.projectId });
-            return;
-        }
-        if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
-            const threadIdET = (await openai_client.beta.threads.create({})).id
-            const threadIdGT = (await openai_client.beta.threads.create({})).id
-            const threadIdQT = (await openai_client.beta.threads.create({})).id
-
-            // Update existing llmContext instead of creating new one
-            llmContext.threadIdGT = threadIdGT;
-            llmContext.threadIdQT = threadIdQT;
-            llmContext.threadIdET = threadIdET;
-        }
-
+    
         llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
         llmContext.seenByETMessages.push({ role: 'receiver', content: req.body.data });
         await llmContext.save();
         console.log("LLMContext updated and saved")
 
-        if (llmContext.threadIdGT == null) {
-            res.status(404).send({ error: 'No threadIdGT found' });
-            return;
-        }
+    
         console.log("req.body", req.body)
         const input = req.body.data
 
@@ -180,21 +148,6 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
 
         let llmContext = llmContexts[0];
     
-        if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
-            res.status(404).send({ error: 'No assistants found for user ' + req.user._id + ' and project ' + req.body.projectId });
-            return;
-        }
-        if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
-            console.log("Creating new threads")
-            const threadIdET = (await openai_client.beta.threads.create({})).id
-            const threadIdGT = (await openai_client.beta.threads.create({})).id
-            const threadIdQT = (await openai_client.beta.threads.create({})).id
-
-            // Update existing llmContext instead of creating new one
-            llmContext.threadIdGT = threadIdGT;
-            llmContext.threadIdQT = threadIdQT;
-            llmContext.threadIdET = threadIdET;
-        }
         console.log("Will push visible messages then save")
         if (req.body.qtRequest == undefined) {
             res.status(404).send({ error: 'No qtRequest found' });
@@ -211,7 +164,7 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
         console.log("Saved")
 
         // Process QT request
-        const qtOutput = await processQtRequest(req.body.qtRequest, llmContext.threadIdQT, llmContext.assistantIdQT);
+        const qtOutput = await processQtRequest(req.body.qtRequest, llmContext);
         if (qtOutput == undefined) {
             res.status(500).send({ error: `QT run status is null` });
             return;
@@ -221,8 +174,8 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
 
         // Get QT response
         let qtResponse;
-        if (qtOutput.lastAssistantMessage) {
-            const content = qtOutput.lastAssistantMessage.content[0];
+        if (qtOutput.outputMessage) {
+            const content = qtOutput.outputMessage.content[0];
             if (content && 'text' in content) {
                 qtResponse = content.text.value;
                 llmContext.seenByQTMessages.push({ role: 'receiver', content: qtResponse });
@@ -270,12 +223,12 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
             
             console.log("used is NEVER-USED, therefore returning directResponse")
             let directResponse = "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
-            res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER", threadIdQT: llmContext.threadIdQT } });     
+            res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER" } });     
             return;
         } else if (used == 'NO-ARGUMENT-REQUIRED' && !['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
             console.log("used is unexpectedly NO-ARGUMENT-REQUIRED, therefore returning directResponse")
             let directResponse = "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
-            res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER", threadIdQT: llmContext.threadIdQT } });     
+            res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER" } });     
             return;
         } else if (used == 'NO-ARGUMENT-REQUIRED' && ['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
             console.log("used is NO-ARGUMENT-REQUIRED and its expected because of questionType", questionType, "therefore continuing")
@@ -292,11 +245,10 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
             propertyId: ppId
         };
 
-        console.log("Sending data", { qtResponse, threadIdQT: llmContext.threadIdQT})
+        console.log("Sending data", { qtResponse})
         res.status(200).send({
             data: {
                 qtResponse,
-                threadIdQT: llmContext.threadIdQT,
                 questionType: questionType as QuestionType,
                 goal: ppId,
                 question: question,
@@ -320,20 +272,6 @@ LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
             res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
         }
-        if (llmContext.assistantIdGT == "" || llmContext.assistantIdQT == "" || llmContext.assistantIdET == "") {
-            res.status(404).send({ error: 'No assistants found for user ' + req.user._id + ' and project ' + req.body.projectId });
-            return;
-        }
-        if (llmContext.threadIdGT == "" || llmContext.threadIdQT == "" || llmContext.threadIdET == "") {
-            const threadIdET = (await openai_client.beta.threads.create({})).id
-            const threadIdGT = (await openai_client.beta.threads.create({})).id
-            const threadIdQT = (await openai_client.beta.threads.create({})).id
-
-            // Update existing llmContext instead of creating new one
-            llmContext.threadIdGT = threadIdGT;
-            llmContext.threadIdQT = threadIdQT;
-            llmContext.threadIdET = threadIdET;
-        }
 
         llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalQuestion, iterationStepId: req.body.iterationStepId });
         llmContext.seenByGTMessages.push({ role: 'receiver', content: req.body.gtRequest });
@@ -341,7 +279,7 @@ LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
         await llmContext.save();
 
         // Process QT request
-        const qtOutput = await processQtRequest(req.body.qtRequest, llmContext.threadIdQT, llmContext.assistantIdQT);
+        const qtOutput = await processQtRequest(req.body.qtRequest, llmContext);
         if (qtOutput == undefined) {
             res.status(500).send({ error: `QT run status is null` });
             return;
@@ -351,8 +289,8 @@ LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
 
         // Get QT response
         let qtResponse;
-        if (qtOutput.lastAssistantMessage) {
-            const content = qtOutput.lastAssistantMessage.content[0];
+        if (qtOutput.outputMessage) {
+            const content = qtOutput.outputMessage.content[0];
             if (content && 'text' in content) {
                 qtResponse = content.text.value;
                 llmContext.seenByQTMessages.push({ role: 'receiver', content: qtResponse });
@@ -375,7 +313,7 @@ LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
         const { questionType, questionArgument: untranslatedGoal, used, reverseTranslation: reverseTranslationQT, directResponse } = parseQuestionTranslation(qtResponse);
 
         if (directResponse != null) {
-            res.status(200).send({ data: { directResponse, questionType, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT } });
+            res.status(200).send({ data: { directResponse, questionType } });
             return;
         }
 
@@ -401,13 +339,13 @@ LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
         }
         if (used == 'NEVER-USED' || planProperty == null || planProperty == undefined) {
             console.log("gtInput", gtInput)
-            const gtOutput = await processGtRequest(gtInput, llmContext.threadIdGT, llmContext.assistantIdGT);
+            const gtOutput = await processGtRequest(gtInput, llmContext);
             if (gtOutput == undefined) {
                 res.status(500).send({ error: `GT run status is null` });
                 return;
             }
-            if (gtOutput.lastAssistantMessage) {
-                const content = gtOutput.lastAssistantMessage.content[0];
+            if (gtOutput.outputMessage) {
+                const content = gtOutput.outputMessage.content[0];
                 if (content && 'text' in content) {
                     gtResponse = content.text.value;
                     llmContext.seenByGTMessages.push({ role: 'sender', content: gtResponse });
@@ -424,14 +362,14 @@ LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
             }
 
             // Get GT response to save plan property
-            if (gtOutput.lastAssistantMessage) {
-                const content = gtOutput.lastAssistantMessage.content[0];
+            if (gtOutput.outputMessage) {
+                const content = gtOutput.outputMessage.content[0];
                 if (content && 'text' in content) {
                     const gtResponse = content.text.value;
                     const { formula, shortName, reverseTranslation: reverseTranslationGT, feedback } = parseGoalTranslation(gtResponse);
 
                     if (feedback != null && feedback.trim() !== '') {
-                        res.status(200).send({ data: { feedback, questionType, threadIdGT: llmContext.threadIdGT, threadIdQT: llmContext.threadIdQT } });
+                        res.status(200).send({ data: { feedback, questionType } });
                         return;
                     }
 
@@ -469,13 +407,11 @@ LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
             propertyId: ppId
         };
 
-        console.log("Sending data", { qtResponse, gtResponse, threadIdQT: llmContext.threadIdQT, threadIdGT: llmContext.threadIdGT })
+        console.log("Sending data", { qtResponse, gtResponse })
         res.status(200).send({
             data: {
                 qtResponse,
                 gtResponse,
-                threadIdQT: llmContext.threadIdQT,
-                threadIdGT: llmContext.threadIdGT,
                 questionType: questionType as QuestionType,
                 goal: ppId,
                 question: question,
@@ -562,28 +498,17 @@ function parseExplanationTranslation(etResponse: string): ExplanationTranslation
     }
 }
 
-async function listPlanProperties(projectId: string) {
-    const planProperties = await PlanPropertyModel.find({ project: projectId });
 
-    console.log('Plan Properties for project', projectId, ':');
-    planProperties.forEach(prop => {
-        console.log(`- Name: ${prop.name}`);
-        console.log(`  Formula: ${prop.formula}`);
-        console.log(`  Description: ${prop.naturalLanguageDescription}`);
-        console.log('---');
-    });
-
-    return planProperties;
-}
 
 
 LLMRouter.get('/llm-context', authAdmin, async (req, res) => {
-
+    //todo update
     if (req.query.projectId === undefined) {
         return res.status(404).send({ message: 'no projectId specified' });
     }
     const projectId: string = req.query.projectId as string;
-    const llmContext = await LLMContextModel.findOne({ project: projectId, assistantIdGT: process.env.ASSISTANT_ID_GOALTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_GOALTRANSLATOR is not set') })(), assistantIdQT: process.env.ASSISTANT_ID_QUESTIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_QUESTIONTRANSLATOR is not set') })(), assistantIdET: process.env.ASSISTANT_ID_EXPLANATIONTRANSLATOR ?? (() => { throw new Error('ASSISTANT_ID_EXPLANATIONTRANSLATOR is not set') })() });
+    const user: User = req.user;
+    const llmContext = await LLMContextModel.findOne({ project: projectId });
 
     if (!llmContext) {
         return res.status(404).send({ message: 'No LLMContext found.' });
