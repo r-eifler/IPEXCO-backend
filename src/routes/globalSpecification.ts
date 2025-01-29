@@ -75,7 +75,26 @@ domainSpecificationRouter.get('', authAny, async (req, res) => {
 
 });
 
-domainSpecificationRouter.delete('/explainer/:id', auth, async (req, res) => {
+domainSpecificationRouter.get('/:id', authAny, async (req, res) => {
+    try {
+
+        const domainSpecification = await DomainSpecificationModel.findById(req.params.id);
+
+        if (!domainSpecification) { 
+            return res.status(404).send({ message: 'No domainSpecification found.' });
+        }
+
+        res.send({
+            data: domainSpecification
+        });
+    } catch (ex : any) {
+        console.log(ex.message);
+        res.status(500).send();
+    }
+
+});
+
+domainSpecificationRouter.delete('/:id', auth, async (req, res) => {
 
     try{
         const result = await DomainSpecificationModel.deleteOne({ _id: req.params.id});
