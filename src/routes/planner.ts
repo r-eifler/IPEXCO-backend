@@ -1,7 +1,7 @@
 import { auth, authAny, authPlanner } from '../middleware/auth';
 import express from 'express';
 
-import { ExplainerModel, Planner, PlannerModel } from '../db_schema/runner';
+import { ExplainerModel, Planner, PlannerModel } from '../db_schema/services';
 import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
 import { PlanningTask } from '../db_schema/planning_task';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';

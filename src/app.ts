@@ -29,6 +29,9 @@ import { LLMRouter } from './routes/llm-connector';
 import { explainerRouter } from './routes/explainer';
 import { initializeAssistants, OpenAIModelName } from './llm/initialize_assistants';
 import { reverseTranslatorsRouter } from './routes/reverse-translators';
+import { domainSpecificationRouter } from './routes/globalSpecification';
+import { promptRouter } from './routes/prompt';
+import { serviceRouter } from './routes/services';
 
 
 // console.log('-------- Initializing LLMs assistants -----');
@@ -97,6 +100,10 @@ app.use('/', indexRouter);
 app.use('/api/pddl', pddlRouter);
 
 app.use('/api/users', userRouter);
+
+app.use('/api/domain-spec', domainSpecificationRouter);
+app.use('/api/prompts', promptRouter);
+app.use('/api/services', serviceRouter);
 
 app.use('/api/user-study-participant-distribution', participantDistributerRouter);
 app.use('/api/user-study', userStudyRouter);
