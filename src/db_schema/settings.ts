@@ -17,7 +17,7 @@ export interface PaymentInfo {
     LLM_CHAT = "LLM_CHAT",
   }
   
-  export interface GeneralSettings extends Document{
+  export interface GeneralSettings {
     main: {
         public: boolean;
         maxRuns: number;
@@ -71,6 +71,47 @@ export interface PaymentInfo {
         maxCompletionTokens: { type: Number, required: false},
         prompts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'prompt' }],
         outputSchema: [{ type: mongoose.Schema.Types.ObjectId, ref: 'output-schema' }],
+    },
+    userStudy: {
+        introTask: { type: Boolean, required: true},
+        checkMaxUtility: { type: Boolean, required: true},
+        showPaymentInfo: { type: Boolean, required: true},
+        paymentInfo: {
+            min: { type: Number, required: false},
+            max: { type: Number, required: false},
+            steps: [{ type: Number, required: false}],
+        }
     }
 });
 
+
+export const defaultGeneralSetting: GeneralSettings = {
+    main: {
+      public: false,
+      maxRuns: 100,
+      usePlanPropertyUtility: false,
+    },
+    services: {
+        computePlanAutomatically: true,
+        computeExplanationsAutomatically: true,
+        planners: [],
+        explainer: [],
+    },
+    interfaces: {
+        explanationInterfaceType: ExplanationInterfaceType.TEMPLATE_QUESTION_ANSWER,
+        propertyCreationInterfaceType: PropertyCreationInterfaceType.TEMPLATE_BASED,
+    },
+    llmConfig: {
+      model: 'gpt-4o-mini',
+      temperature: 0,
+      maxCompletionTokens: null,
+      prompts: [],
+      outputSchema: [],
+    },
+    userStudy: {
+        introTask: false,
+        checkMaxUtility: true,
+        showPaymentInfo: false,
+        paymentInfo: { min: 0, max: 10, steps: [0.5, 0.75, 1] }
+    }
+  };

@@ -69,8 +69,6 @@ demoRouter.post('/', auth, async (req: any, res) => {
     try {
 
         const demoData: Demo = req.body.demo as Demo;
-        demoData.domainSpecification = JSON.stringify(demoData.domainSpecification)
-        demoData.baseTask.model = JSON.stringify(demoData.baseTask.model)
 
         delete demoData._id;
         const demoModel = new DemoModel(demoData);
@@ -481,7 +479,6 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
         const demoData: Demo = req.body.demo as Demo;
         demoData.name = 'UPLOADED: ' + demoData.name;
         delete demoData.projectId;
-        demoData.domainSpecification = JSON.stringify(demoData.domainSpecification)
         demoData.baseTask.model = JSON.stringify(demoData.baseTask.model)
         demoData.globalExplanation.status = ExplanationRunStatus.finished;
         demoData.globalExplanation.MUGS = JSON.stringify(demoData.globalExplanation.MUGS)
