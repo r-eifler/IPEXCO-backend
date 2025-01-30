@@ -27,14 +27,8 @@ import { pddlRouter } from './routes/pddl';
 import { LLMRouter } from './routes/llm-connector';
 
 import { explainerRouter } from './routes/explainer';
-import { initializeAssistants, OpenAIModelName } from './llm/initialize_assistants';
-import { reverseTranslatorsRouter } from './routes/reverse-translators';
 
 
-// console.log('-------- Initializing LLMs assistants -----');
-// const model =  "gpt-4o-mini";
-// //process.env.OPENAI_MODEL_NAME ||
-// initializeAssistants(model as OpenAIModelName, "transport").then(console.log).catch(console.error);
 
 dotenv.config();
 
@@ -118,7 +112,6 @@ app.use('/api/run', iterationStepRouter);
 app.use('/api/project', projectRouter);
 
 app.use('/api/llm', LLMRouter);
-app.use('/api/reverse-translators', reverseTranslatorsRouter);
 
 // catch 404 and forward to error handler
 app.all('*', (req, res, next) => {

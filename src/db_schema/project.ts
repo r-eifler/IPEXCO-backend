@@ -22,7 +22,7 @@ export interface Project extends Document{
     name: string;
     public: boolean;
     user: User;
-    domainSpecification: string;
+    domainSpecification: any;
     description: string;
     baseTask: PlanningTask; 
     settings: any;
@@ -32,7 +32,7 @@ const BaseProjectSchema = new Schema({
     name: { type: String, required: true},
     public: { type: Boolean, required: true},
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    domainSpecification: { type: String, required: true},
+    domainSpecification: { type: Object, required: true},
     description: { type: String, required: true},
     baseTask: { type: PlanningTaskSchema, required: true},
     settings: { type: Object, required: false},

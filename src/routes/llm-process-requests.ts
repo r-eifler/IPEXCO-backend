@@ -1,38 +1,50 @@
 import { openai_client } from "../llm/openai_client";
 import { LLMContext, LLMMessage, OutputFormat } from '../db_schema/llm-context';
 
-export async function processQtRequest(input: string, llmContext: LLMContext) {
+export async function processQtRequest(input: string, llmContext: LLMContext, settings: any) {
     const context = llmContext.seenByQTMessages;
     const outputFormat = llmContext.outputFormatQT;
 
-    return await processAnyRequest(input, context, outputFormat)
+    return await processAnyRequest(input, context, outputFormat, settings)
 }
 
-export async function processGtRequest(input: string, llmContext: LLMContext) {
+export async function processGtRequest(input: string, llmContext: LLMContext, settings: any) {
     const context = llmContext.seenByGTMessages;
     const outputFormat = llmContext.outputFormatGT;
 
-    return await processAnyRequest(input, context, outputFormat)
+    return await processAnyRequest(input, context, outputFormat, settings)
 }
 
-export async function processEtRequest(input: string, llmContext: LLMContext) {
+export async function processEtRequest(input: string, llmContext: LLMContext, settings: any) {
     const context = llmContext.seenByETMessages;
     const outputFormat = llmContext.outputFormatET;
 
-    return await processAnyRequest(input, context, outputFormat)
+
+    return await processAnyRequest(input, context, outputFormat, settings)
 }
 
-async function processAnyRequest(input: string, previousMessages: LLMMessage[], outputFormat: OutputFormat) {
+async function processAnyRequest(input: string, previousMessages: LLMMessage[], outputFormat: OutputFormat, settings: any) {
     
     // Map "receiver" to "user" and "sender" to "assistant"
     const messages = previousMessages.map((message) => ({
-        role: message.role === "receiver" ? "user" : "assistant",
+        role: message.role === "receiver" ? Role.user : message.role === "sender" ? Role.assistant : Role.system,
         content: message.content,
     }));
     
-    let outputMessage = ""
-    let runStatus = ""
+    const response = await openai_client.chat.completions.create({
+        model: settings.model,
+        temperature: settings.temperature,
+        max_completion_tokens: settings.maxCompletionTokens,
+        messages: [...messages, { role: Role.user, content: input }],
+        response_format: outputFormat.structured && outputFormat.schema ? JSON.parse(outputFormat.schema) : undefined,
+    });
 
-    // TODO: implement the logic for the request
-    return {outputMessage, runStatus}
+    return response.choices[0] ;
+    
+}
+
+enum Role {
+    user = "user",
+    assistant = "assistant",
+    system = "system",
 }

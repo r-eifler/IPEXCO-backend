@@ -9,10 +9,9 @@ export interface visibleLLMMessage{
 }
   
 export interface LLMMessage{
-    role: 'sender' | 'receiver',
+    role: 'sender' | 'receiver' | 'developer',
     content: string,
 }
-
 
 
 export interface OutputFormat{
@@ -40,6 +39,7 @@ const LLMMessageSchema = new Schema<LLMMessage>({
 export interface LLMContext extends Document {
     project: string | null;
     user: string | null;
+    iterationStepId: string | null;
     visibleMessages: visibleLLMMessage[];
     visiblePPCreationMessages: visibleLLMMessage[];
     seenByGTMessages: LLMMessage[];
@@ -48,11 +48,13 @@ export interface LLMContext extends Document {
     outputFormatQT: OutputFormat;
     outputFormatET: OutputFormat;
     outputFormatGT: OutputFormat;
+    settings: any;
 }
 
 export const LLMContextSchema = new Schema({
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+    iterationStepId: { type: mongoose.Schema.Types.ObjectId, ref: 'iteration-step' },
     visibleMessages: [visibleLLMMessageSchema],
     visiblePPCreationMessages: [visibleLLMMessageSchema],
     seenByGTMessages: [LLMMessageSchema],
@@ -61,6 +63,7 @@ export const LLMContextSchema = new Schema({
     outputFormatQT: OutputFormatSchema,
     outputFormatET: OutputFormatSchema,
     outputFormatGT: OutputFormatSchema,
+    settings: { type: Object, required: true},
 }, { timestamps: true}); 
 
 

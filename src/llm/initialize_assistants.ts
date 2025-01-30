@@ -11,21 +11,24 @@ import outputSchemas from "./output_schemas.json";
 import fs from 'fs/promises';
 import path from 'path';
 import { openai_client } from "./openai_client";
+import { BaseProjectModel } from "../db_schema/project";
+import { AllLLMConfig } from "../db_schema/llm-config";
+import { LLMMessage } from "../db_schema/llm-context";
 export type OpenAIModelName = "gpt-4o-mini" | "gpt-4o" ;
 
-const domains = {
-    beluga: belugaPrompts,
-    blocksworld: blocksworldPrompts,
-    transport: transportPrompts,
-    parentsafternoon: parentsafternoonPrompts
-}
+// const domains = {
+//     beluga: belugaPrompts,
+//     blocksworld: blocksworldPrompts,
+//     transport: transportPrompts,
+//     parentsafternoon: parentsafternoonPrompts
+// }
 
-const templates = {
-    blocksworld: blocksworldTemplates,
-    beluga: belugaTemplates,
-    transport: transportTemplates,
-    parentsafternoon: parentsafternoonTemplates
-}
+// const templates = {
+//     blocksworld: blocksworldTemplates,
+//     beluga: belugaTemplates,
+//     transport: transportTemplates,
+//     parentsafternoon: parentsafternoonTemplates
+// }
 
 
 
@@ -37,134 +40,82 @@ const templates = {
 //         return `Example ${index + 1}:\n${formattedExample}\n`;
 //     }).join('\n');
 // }
-function formatExamples(examples: any[], domain:keyof typeof domains, translatorType: keyof typeof templates[typeof domain]): string {
-    const template = templates[domain][translatorType];
+
+
+// function formatExamples(examples: any[], domain:keyof typeof domains, translatorType: keyof typeof templates[typeof domain]): string {
+//     const template = templates[domain][translatorType];
     
-    return examples.map((example, index) => {
-        // Handle direct questions that have different format
-        if (example.Input) {
-            return `\n${example.Input}\n${example.Return}\n`;
-        }
+//     return examples.map((example, index) => {
+//         // Handle direct questions that have different format
+//         if (example.Input) {
+//             return `\n${example.Input}\n${example.Return}\n`;
+//         }
         
-        let formattedExample = template;
+//         let formattedExample = template;
         
-        // Replace each placeholder in the template with its corresponding value
-        for (const [key, value] of Object.entries(example)) {
-            const placeholder = `{${key}}`;
-            // Remove quotes from stringified value if it's a string
-            const stringifiedValue = typeof value === 'string' 
-                ? value 
-                : JSON.stringify(value);
-            formattedExample = formattedExample.replace(placeholder, stringifiedValue);
-        }
+//         // Replace each placeholder in the template with its corresponding value
+//         for (const [key, value] of Object.entries(example)) {
+//             const placeholder = `{${key}}`;
+//             // Remove quotes from stringified value if it's a string
+//             const stringifiedValue = typeof value === 'string' 
+//                 ? value 
+//                 : JSON.stringify(value);
+//             formattedExample = formattedExample.replace(placeholder, stringifiedValue);
+//         }
         
-        return `\n${formattedExample}\n`;
-    }).join('\n');
-}
+//         return `\n${formattedExample}\n`;
+//     }).join('\n');
+// }
 
 
-async function createAssistant(name: string, instructions: string, examples: any[], domain: keyof typeof domains, openai: OpenAI, model: OpenAIModelName, translatorType: keyof typeof templates[typeof domain]) {
-    const assistant = await openai.beta.assistants.create({
-        instructions: `${domains[domain].system}${instructions} \n\nExamples : \n\n${formatExamples(examples, domain, translatorType)}\n\nEnd of the examples.`,
-        name,
-        model: model,
-        response_format: {
-            type: outputSchemas[translatorType]["type"] as "text" | "json_schema" | "json_object",
-            json_schema: outputSchemas[translatorType]["json_schema"]
-        }
-    });
-    return assistant.id;
-}
+// async function createAssistant(name: string, instructions: string, examples: any[], domain: keyof typeof domains, openai: OpenAI, model: OpenAIModelName, translatorType: keyof typeof templates[typeof domain]) {
+//     const assistant = await openai.beta.assistants.create({
+//         instructions: `${domains[domain].system}${instructions} \n\nExamples : \n\n${formatExamples(examples, domain, translatorType)}\n\nEnd of the examples.`,
+//         name,
+//         model: model,
+//         response_format: {
+//             type: outputSchemas[translatorType]["type"] as "text" | "json_schema" | "json_object",
+//             json_schema: outputSchemas[translatorType]["json_schema"]
+//         }
+//     });
+//     return assistant.id;
+// }
 
-export async function initializeAssistants(model: OpenAIModelName, domain: keyof typeof domains, saveToEnv: boolean = true) {
-    // This function initializes three OpenAI assistants:
-    // 1. Goal Translator: Translates user goals into LTLf formulas
-    // 2. Question Translator: Interprets user questions and maps them to predefined question types
-    // 3. Explanation Translator: Provides explanations based on conflicts and achieved/unachieved goals
-    //
-    // Each assistant is created with specific instructions from the belugaPrompts object,
-    // which contains system prompts, translator-specific prompts, and examples.
-    //
-    // The function then sets environment variables with the created assistant IDs
-    // and returns an object containing these IDs.
-
-    // The assistants don't store any data so they can be reused instead of recreating them if we don't change prompts.
-
+export async function initializeAssistants(user: string, projectId: string, iterationStepId: string, prompts:any) {
+   
     if (!process.env.OPENAI_API_KEY) {
         throw new Error('OPENAI_API_KEY is not set in the environment variables');
     }
     const openai = openai_client;
 
-
-    const assistants = {
-        goalTranslator: await createAssistant(
-            `Goal Translator (${domain})`, 
-            domains[domain].goal_translator, 
-            domains[domain].gt_examples, 
-            domain, 
-            openai, 
-            model, 
-            "goal_translator"
-        ),
-        questionTranslator: await createAssistant(
-            `Question Translator (${domain})`, 
-            domains[domain].question_translator, 
-            domains[domain].qt_examples, 
-            domain, 
-            openai, 
-            model, 
-            "question_translator"
-        ),
-        explanationTranslator: await createAssistant(
-            `Explanation Translator (${domain})`, 
-            domains[domain].explanation_translator, 
-            domains[domain].et_examples, 
-            domain, 
-            openai, 
-            model, 
-            "explanation_translator"
-        ),
+    const projectSettings = await getProjectSettings(projectId);
+    const domainSpecification = await getDomainSpecification(projectId);
+    const systemPrompt = prompts.systemPrompt;
+      
+    return {
+        seenByGTMessages:  [{role: "developer", content: `${systemPrompt}\n\n${prompts.gt.prompt}`}] ,
+        seenByETMessages:  [{role: "developer", content: `${systemPrompt}\n\n${prompts.et.prompt}`}] ,
+        seenByQTMessages:  [{role: "developer", content: `${systemPrompt}\n\n${prompts.qt.prompt}`}] ,
+        outputFormatQT: prompts.qt.outputFormat,
+        outputFormatET: prompts.et.outputFormat,
+        outputFormatGT: prompts.gt.outputFormat
     };
+}
 
-    if (saveToEnv) {
-        // Read existing .env file
-        const envPath = path.join(process.cwd(), '.env');
-        let envContent = await fs.readFile(envPath, 'utf-8');
-
-        // Replace or add new ASSISTANT_ID_* variables
-        for (const [key, value] of Object.entries(assistants)) {
-            const envKey = `ASSISTANT_ID_${key.toUpperCase()}`;
-            const regex = new RegExp(`^${envKey}=.*$`, 'm');
-            if (envContent.match(regex)) {
-                // Replace existing variable
-                envContent = envContent.replace(regex, `${envKey}=${value}`);
-            } else {
-                // Add new variable
-                envContent += `\n${envKey}=${value}`;
-            }
-        }
-
-        // Write updated content back to .env file
-        await fs.writeFile(envPath, envContent);
+async function getProjectSettings(projectId: string) {
+    const project = await BaseProjectModel.findById(projectId);
+    if (!project) {
+        throw new Error('Project not found');
     }
+    return project.settings;
+}
 
-    return assistants;
+async function getDomainSpecification(projectId: string) {
+    const project = await BaseProjectModel.findById(projectId);
+    if (!project) {
+        throw new Error('Project not found');
+    }
+    return project.domainSpecification;
 }
 
 
-// TESTING 
-
-// initializeAssistants().then(console.log).catch(console.error);
-
-// // initializeAssistants();
-// // load .env file
-// require('dotenv').config();
-// // Print the environment variables with names starting with ASSISTANT_ID_ to check if they are set correctly
-// for (const [key, value] of Object.entries(process.env)) {
-//     if (key.startsWith("ASSISTANT_ID_")) {
-//         console.log(`${key}: ${value}`);
-//     }
-//     else {
-//         console.log(`${key}: ${value}`);
-//     }
-// }
