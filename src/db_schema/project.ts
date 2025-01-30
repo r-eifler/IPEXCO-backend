@@ -1,4 +1,5 @@
 import { PlanningTask, PlanningTaskSchema } from './planning_task';
+import { GeneralSettings, GeneralSettingsSchema } from './settings';
 import { User } from './user';
 import mongoose, { Document, Schema } from 'mongoose';
 
@@ -25,7 +26,7 @@ export interface Project extends Document{
     domainSpecification: string;
     description: string;
     baseTask: PlanningTask; 
-    settings: any;
+    settings: GeneralSettings;
 }
 
 const BaseProjectSchema = new Schema({
@@ -35,10 +36,11 @@ const BaseProjectSchema = new Schema({
     domainSpecification: { type: String, required: true},
     description: { type: String, required: true},
     baseTask: { type: PlanningTaskSchema, required: true},
-    settings: { type: Object, required: false},
+    settings: { type: GeneralSettingsSchema, required: true},
 }, baseOptions);
 
 export const BaseProjectModel = mongoose.model<Project>('base-project', BaseProjectSchema);
 
 export const ProjectModel = BaseProjectModel.discriminator<Project>('general-project', new mongoose.Schema());
+
 

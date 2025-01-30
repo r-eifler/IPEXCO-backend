@@ -102,7 +102,7 @@ app.use('/api/pddl', pddlRouter);
 app.use('/api/users', userRouter);
 
 app.use('/api/domain-spec', domainSpecificationRouter);
-app.use('/api/prompts', promptRouter);
+app.use('/api/llm-spec', promptRouter);
 app.use('/api/services', serviceRouter);
 
 app.use('/api/user-study-participant-distribution', participantDistributerRouter);
