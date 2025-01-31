@@ -4,6 +4,7 @@ import express from 'express';
 
 import { ProjectModel } from '../db_schema/project';
 import { DemoModel } from '../db_schema/demo';
+import { defaultGeneralSetting } from '../db_schema/settings';
 
 export const projectRouter = express.Router();
 
@@ -23,7 +24,6 @@ projectRouter.post('/', auth, async (req: AuthenticatedRequest, res) => {
         }
 
         projectData.user = req.user._id;
-        projectData.domainSpecification = JSON.stringify(projectData.domainSpecification)
         projectData.baseTask.model = JSON.stringify(projectData.baseTask.model)
         delete projectData._id;
 
@@ -73,7 +73,6 @@ projectRouter.put('/:id', auth, async (req, res) => {
         project.description = projectData.description;
         project.settings = projectData.settings;
         project.public = projectData.public;
-        project.domainSpecification = JSON.stringify(projectData.domainSpecification)
 
         await project.save();
 
@@ -93,10 +92,18 @@ projectRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
     if (!req.user) {
         return res.status(401);
     }
-    const projects = await ProjectModel.find({ user: req.user._id});
+    const projects: Project[] = await ProjectModel.find({ user: req.user._id});
     if (!projects) { 
         return res.status(404).send({ message: 'No project found.' });
     }
+
+    //backward compatibility
+    for(let project of projects){
+        if(!(project.settings.interfaces)){
+            project.settings = {...defaultGeneralSetting}
+        }
+    }
+
     res.send({
         data: projects
     });
@@ -143,6 +150,12 @@ projectRouter.get('/:id', authAny, async (req: AuthenticatedRequest, res) => {
 
         const project = await ProjectModel.findOne({ _id: id });
         if (project) { 
+
+            //backward compatibility
+            if(project.settings.interfaces){
+                project.settings = defaultGeneralSetting
+            }
+
             if(req.user.role != 'user-study'){
                 return res.send({
                     data: project
@@ -156,6 +169,12 @@ projectRouter.get('/:id', authAny, async (req: AuthenticatedRequest, res) => {
 
         const demo = await DemoModel.findOne({ _id: id });
         if (demo) { 
+
+            //backward compatibility
+            if(!('main' in demo.settings)){
+                demo.settings = {...defaultGeneralSetting}
+            }
+
             return res.send({
                 data: demo
             });

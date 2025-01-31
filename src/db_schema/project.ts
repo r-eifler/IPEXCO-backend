@@ -1,4 +1,5 @@
 import { PlanningTask, PlanningTaskSchema } from './planning_task';
+import { GeneralSettings, GeneralSettingsSchema } from './settings';
 import { User } from './user';
 import mongoose, { Document, Schema } from 'mongoose';
 
@@ -22,23 +23,24 @@ export interface Project extends Document{
     name: string;
     public: boolean;
     user: User;
-    domainSpecification: any;
+    domain?: string; 
     description: string;
     baseTask: PlanningTask; 
-    settings: any;
+    settings: GeneralSettings;
 }
 
 const BaseProjectSchema = new Schema({
     name: { type: String, required: true},
     public: { type: Boolean, required: true},
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    domainSpecification: { type: Object, required: true},
+    domain: { type: mongoose.Schema.Types.ObjectId, ref: 'domain-specification', required: false},
     description: { type: String, required: true},
     baseTask: { type: PlanningTaskSchema, required: true},
-    settings: { type: Object, required: false},
+    settings: { type: GeneralSettingsSchema, required: true},
 }, baseOptions);
 
 export const BaseProjectModel = mongoose.model<Project>('base-project', BaseProjectSchema);
 
 export const ProjectModel = BaseProjectModel.discriminator<Project>('general-project', new mongoose.Schema());
+
 

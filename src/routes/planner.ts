@@ -1,9 +1,9 @@
 import { auth, authAny, authPlanner } from '../middleware/auth';
 import express from 'express';
 
-import { ExplainerModel, Planner, PlannerModel } from '../db_schema/runner';
+import { ExplainerModel, Planner, PlannerModel } from '../db_schema/services';
 import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
-import { PlanningTask } from '../db_schema/planning_task';
+import { PlanningTask, toPDDL } from '../db_schema/planning_task';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { PropertyCheck } from '../planner/property_check';
 import { environment } from '../app';
@@ -60,8 +60,7 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
         iterationStep.save();
         
         let task = iterationStep.task
-        let planning_task = new PlanningTask(task)
-        let [domain, problem] = planning_task.toPDDL()
+        let [domain, problem] = toPDDL(task.model)
 
 
         const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
@@ -259,28 +258,5 @@ plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res)
 });
 
 
-// plannerRouter.get('/registered', auth, async (req: any, res) => {
-//     const planner = await PlannerModel.find();
-//     if (!planner) { 
-//         return res.status(404).send({ message: 'No planner found.' });
-//     }
-//     res.send({
-//         data: planner
-//     });
 
-// });
-
-// plannerRouter.delete('/planner/:id', auth, async (req, res) => {
-//     const id = req.params.id;
-
-//     const deleteResult = await PlannerModel.deleteOne({ _id: id});
-//     if (!deleteResult) { 
-//         return res.status(404).send({ message: 'Problem during planner deletion occurred' }); 
-//     }
-
-//     res.send({
-//         data: deleteResult
-//     });
-
-// });
 

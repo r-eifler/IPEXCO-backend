@@ -6,8 +6,9 @@ import * as child from 'child_process';
 import { writeFileSync } from 'fs';
 import { pythonShellCallSimple } from './python-call';
 import { environment } from '../app';
-import { PlanningTask } from '../db_schema/planning_task';
+import { PlanningTask, toPDDL } from '../db_schema/planning_task';
 import { IterationStep } from '../db_schema/iteration_step';
+import { Encoding } from '../db_schema/services';
 
 export class PropertyCheck {
 
@@ -18,12 +19,16 @@ export class PropertyCheck {
         private step: IterationStep,
         private planProperties: PlanProperty[])
     {
+
+        if(this.step.task.encoding != Encoding.PDDL_CLASSIC){
+            throw Error(this.step.task.encoding + ' not supported!')
+        }
+
         this.runFolder = path.join(root, String(step._id));
 
         child.execSync(`mkdir -p ${this.runFolder}`);
 
-        const task = new PlanningTask(this.step.task)
-        const [domain, problem] = task.toPDDL(false);
+        const [domain, problem] = toPDDL(this.step.task.model, false);
 
         writeFileSync(path.join(this.runFolder, 'domain.pddl'),
             domain,
@@ -34,7 +39,7 @@ export class PropertyCheck {
             'utf8')
 
         writeFileSync(path.join(this.runFolder, 'model.json'),
-            task.model,
+            this.step.task.model,
             'utf8')
 
         writeFileSync(path.join(this.runFolder, 'exp_setting.json'),
@@ -82,3 +87,5 @@ export class PropertyCheck {
         child.execSync(`rm -r ${this.runFolder}`);
     }
 }
+
+

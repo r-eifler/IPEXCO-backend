@@ -1,5 +1,6 @@
 import { constants } from 'buffer';
 import mongoose, { Schema } from 'mongoose';
+import { Encoding } from './services';
 
 export interface PDDLType {
     name: string;
@@ -60,102 +61,94 @@ export interface PlanningModel extends PlanningDomain, PlanningProblem {}
 
 export const PlanningTaskSchema = new Schema({
     name: String,
-    domain_name: String,
     encoding: String,
     model: String
 });
 
 
-export class PlanningTask{
+export interface PlanningTask{
     _id? : string;
     name: string;
-    domain_name: string;
-    encoding: string;
+    encoding: Encoding;
     model: string;
+}
 
-    constructor(obj: PlanningTask){
-        this.name = obj.name;
-        this.domain_name = obj.domain_name;
-        this.encoding = obj.encoding;
-        this.model = obj.model;
+
+export function toPDDL(model_string: string, with_goals=true): string[] {
+
+    let model = JSON.parse(model_string) as PlanningModel
+
+    // domain
+    let d = "(define (domain domainname)\n";
+    d += "(:requirements :typing :action-costs)\n";
+
+    d += "(:types\n" + 
+        model.types
+            .filter(t => t.name != 'object')
+            .map(t => "\t\t" + t.name + " - " + (t.parent && t.parent != 'TODO' ? t.parent : 'object'))
+            .join("\n") 
+        + "\n)\n";
+
+    if(!!model.constants && model.constants.length > 0){
+        d += "(:constants \n" + model.constants.map(o => '\t' + o.name + " - " + o.type).join("\n") + "\n)\n";
     }
 
-    // TODO add functions
-    toPDDL(with_goals=true): string[] {
+    d += "(:predicates \n" + model.predicates.map(
+            pred => "\t(" + pred.name + ' ' + 
+            pred.parameters.map(param => param.name + ' - ' + param.type).join(" ") + ")"
+        ).join("\n") 
+        + "\n)\n";
 
-        let model = JSON.parse(this.model) as PlanningModel
+    d += model.actions
+        .map(
+            a => "(:action " + a.name + "\n\t:parameters (" + 
+                a.parameters.map(p => p.name + ' - ' + p.type).join(" ") + ")\n" +
+                "\t:precondition (and \n" +
+                    a.precondition.map(p => 
+                        p.negated ? 
+                        "\t\t" + "(not (" + p.name + ' ' + p.arguments.join(" ") + "))" :
+                        "\t\t" + "(" + p.name + ' ' + p.arguments.join(" ") + ")"
+                    ).join('\n') +
+                "\t)\n" +
+                "\t:effect (and \n" +
+                    a.effect.map(p => 
+                        p.negated ? "\t\t" + "(not (" + p.name + ' ' + p.arguments.join(" ") + "))" :
+                        "\t\t" + "(" + p.name + ' ' + p.arguments.join(" ") + ")"
+                    ).join('\n') +
+                "\t)\n)")
+        .join("\n");
 
-        // domain
-        let d = "(define (domain domainname)\n";
-        d += "(:requirements :typing :action-costs)\n";
-
-        d += "(:types\n" + 
-            model.types
-                .filter(t => t.name != 'object')
-                .map(t => "\t\t" + t.name + " - " + (t.parent && t.parent != 'TODO' ? t.parent : 'object'))
-                .join("\n") 
-            + "\n)\n";
-
-        if(!!model.constants && model.constants.length > 0){
-            d += "(:constants \n" + model.constants.map(o => '\t' + o.name + " - " + o.type).join("\n") + "\n)\n";
-        }
-
-        d += "(:predicates \n" + model.predicates.map(
-                pred => "\t(" + pred.name + ' ' + 
-                pred.parameters.map(param => param.name + ' - ' + param.type).join(" ") + ")"
-            ).join("\n") 
-            + "\n)\n";
-
-        d += model.actions
-            .map(
-                a => "(:action " + a.name + "\n\t:parameters (" + 
-                    a.parameters.map(p => p.name + ' - ' + p.type).join(" ") + ")\n" +
-                    "\t:precondition (and \n" +
-                        a.precondition.map(p => 
-                            p.negated ? 
-                            "\t\t" + "(not (" + p.name + ' ' + p.arguments.join(" ") + "))" :
-                            "\t\t" + "(" + p.name + ' ' + p.arguments.join(" ") + ")"
-                        ).join('\n') +
-                    "\t)\n" +
-                    "\t:effect (and \n" +
-                        a.effect.map(p => 
-                            p.negated ? "\t\t" + "(not (" + p.name + ' ' + p.arguments.join(" ") + "))" :
-                            "\t\t" + "(" + p.name + ' ' + p.arguments.join(" ") + ")"
-                        ).join('\n') +
-                    "\t)\n)")
-            .join("\n");
-
-        d += "\n)";
+    d += "\n)";
 
 
 
-        // problem
-        let p = "(define (problem problemname)\n";
-        p += "(:domain domainname)\n";
+    // problem
+    let p = "(define (problem problemname)\n";
+    p += "(:domain domainname)\n";
 
-        p += "(:objects \n" + model.objects.map(o => '\t' + o.name + " - " + o.type).join("\n") + "\n)\n";
+    p += "(:objects \n" + model.objects.map(o => '\t' + o.name + " - " + o.type).join("\n") + "\n)\n";
 
-        p += "(:init\n " + model.initial.map(
-            f => "\t(" + f.name + ' ' + f.arguments.join(" ") + ")").join("\n") 
-            + "\n)\n";
+    p += "(:init\n " + model.initial.map(
+        f => "\t(" + f.name + ' ' + f.arguments.join(" ") + ")").join("\n") 
+        + "\n)\n";
 
-        if(with_goals){
-            p += "(:goal (and \n" + 
-                model.goal.map(p => "\t(" + p.name + ' ' + p.arguments.join(" ") + ")").join("\n") 
-                + "))\n";
-        }
-        else {
-            p += "(:goal (and ))\n";
-        }
-        p += ")";
+    if(with_goals){
+        p += "(:goal (and \n" + 
+            model.goal.map(p => "\t(" + p.name + ' ' + p.arguments.join(" ") + ")").join("\n") 
+            + "))\n";
+    }
+    else {
+        p += "(:goal (and ))\n";
+    }
+    p += ")";
 
         return [d,p];
-    }   
+}   
 
-    taskSchema(): string {
-        return JSON.stringify(this);
-    }
+export function taskSchema(planingTask: PlanningTask): string {
+    return JSON.stringify(planingTask);
 }
+
 
 export const PlanningTaskModel = mongoose.model<PlanningTask>('planning-task', PlanningTaskSchema);
 
