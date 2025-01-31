@@ -218,7 +218,7 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
         llmContext.seenByQTMessages.push({ role: 'sender', content: qtResponse });
         await llmContext.save();
         // Parse QT response and prepare GT input
-        const { questionType, questionArgument: untranslatedGoal, used, reverseTranslation: reverseTranslationQT, directResponse } = parseQuestionTranslation(qtResponse);
+        let { questionType, questionArgument: untranslatedGoal, used, reverseTranslation: reverseTranslationQT, directResponse } = parseQuestionTranslation(qtResponse);
 
         if (directResponse != null) {
             console.log("directResponse is not null, therefore returning directResponse")
@@ -240,12 +240,10 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
                 res.status(404).send({ error: 'No plan property found' });
                 return;
             }
-
             console.log("Because used is ALREADY-USED, planProperty is", planProperty)
-        } else if (used == 'NEVER-USED') {
-
+        } else if (used == 'NEVER-USED' && !['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
             console.log("used is NEVER-USED, therefore returning directResponse")
-            let directResponse = "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
+            directResponse = directResponse || "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
             res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER" } });
             return;
         } else if (used == 'NO-ARGUMENT-REQUIRED' && !['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
@@ -255,6 +253,10 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
             return;
         } else if (used == 'NO-ARGUMENT-REQUIRED' && ['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
             console.log("used is NO-ARGUMENT-REQUIRED and its expected because of questionType", questionType, "therefore continuing")
+        } else if (used == 'NEVER-USED' && ['US-WHY', 'US-HOW'].includes(questionType)) {
+            console.log("used is NEVER-USED but questionType is ", questionType, ", this is unexpected, but continuing as if it was NO-ARGUMENT-REQUIRED")
+        } else if (used == 'NEVER-USED' && ['DIRECT-USER', 'DIRECT-ET'].includes(questionType)) {
+            console.log("used is NEVER-USED but questionType is ", questionType, ", this is unexpected, but continuing as if it was NO-ARGUMENT-REQUIRED")
         } else {
             res.status(404).send({ error: 'No valid used found' });
             return;
@@ -600,7 +602,7 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
             qt: {
                 prompt: "You are a question translator",
                 outputFormat: {
-                    structured:true, schema: '{"type":"json_schema","json_schema":{"name":"QT_feedback","strict":true,"schema":{"type":"object","properties":{"questionType":{"type":"string","description":"The type of question that was asked. S- means solvable planning task and US- means unsolvable planning task. DIRECT-USER means the question cannot be translated to a structured question and that you should answer directly. DIRECT-ET means the question is a follow-up question about the explanation and should be answered directly by the explanation translator. US- question type can only be used if the Solvable field of the input is False. and S- question type can only be used if the Solvable field of the input is True and the question is about a single property. In other cases, use DIRECT-USER or DIRECT-ET (you can decide what questions are follow-up questions to the explanation translator).","enum":["S-WHY-NOT","S-HOW","S-CAN","S-WHAT-IF","US-WHY","US-HOW","DIRECT-USER","DIRECT-ET"]},"questionArgument":{"type":"string","description":"The argument of the question that was asked, i.e. the goal or plan property that was asked about. Only use this entry if the questionType is S- or US-. You should only use this entry if the question is about a single property, not multiple properties. This field can only be filled by an element of one of the goals fields."},"used":{"type":"string","description":"Describes if the questionArgument is in one of the provided list of goals (ALREADY-USED) or not (NEVER-USED). If the questionType is US- or DIRECT- , use NO-ARGUMENT-REQUIRED. If the questionType is S- and the questionArgument is in one of the provided list of goals, use ALREADY-USED.","enum":["ALREADY-USED","NEVER-USED","NO-ARGUMENT-REQUIRED"]},"reverseTranslation":{"type":"string","description":"The translation of the question back into natural language to check if the translation is correct. Use this entry to signify \"I understood you question as {reverseTranslation} \" based on the questionType and questionArgument only. Only use this entry for S- and US- question types."},"directResponse":{"type":["string","null"],"description":"Response provided to the user if the translation to a structured question is not possible. Only use this entry for DIRECT question types. When the questionType is DIRECT-USER, reply to the user direcltly using this field. When the questionType is DIRECT-ET, just copy the question in this field."}},"required":["questionType","questionArgument","used","reverseTranslation","directResponse"],"additionalProperties":false}}}'
+                    structured:true, schema: '{"type":"json_schema","json_schema":{"name":"QT_feedback","strict":true,"schema":{"type":"object","properties":{"questionType":{"type":"string","description":"The type of question that was asked. S- means solvable planning task and US- means unsolvable planning task. DIRECT-USER means the question cannot be translated to a structured question and that you should answer directly. DIRECT-ET means the question is a follow-up question about the explanation and should be answered directly by the explanation translator. US- question type can only be used if the Solvable field of the input is False. and S- question type can only be used if the Solvable field of the input is True and the question is about a single property. In other cases, use DIRECT-USER or DIRECT-ET (you can decide what questions are follow-up questions to the explanation translator).","enum":["S-WHY-NOT","S-HOW","S-CAN","S-WHAT-IF","US-WHY","US-HOW","DIRECT-USER","DIRECT-ET"]},"questionArgument":{"type":"string","description":"The argument of the question that was asked, i.e. the goal or plan property that was asked about. Only use this entry if the questionType is S- or US-. You should only use this entry if the question is about a single property, not multiple properties. This field can only be filled by an element of one of the goals fields."},"used":{"type":"string","description":"Describes if the questionArgument is in one of the provided list of goals (ALREADY-USED) or not (NEVER-USED). If the questionType is US- or DIRECT- , use NO-ARGUMENT-REQUIRED. If the questionType is S- and the questionArgument is in one of the provided list of goals, use ALREADY-USED.","enum":["ALREADY-USED","NEVER-USED","NO-ARGUMENT-REQUIRED"]},"reverseTranslation":{"type":"string","description":"The translation of the question back into natural language to check if the translation is correct. Use this entry to signify  I understood you question as {reverseTranslation}  based on the questionType and questionArgument only. Only use this entry for S- and US- question types."},"directResponse":{"type":["string","null"],"description":"Response provided to the user if the translation to a structured question is not possible. Only use this entry for DIRECT question types. When the questionType is DIRECT-USER, reply to the user direcltly using this field. When the questionType is DIRECT-ET, just copy the question in this field."}},"required":["questionType","questionArgument","used","reverseTranslation","directResponse"],"additionalProperties":false}}}'
                 },
             },
             et: {
