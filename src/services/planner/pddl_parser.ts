@@ -1,13 +1,13 @@
-import { Project } from './../db_schema/project';
+import { Project } from '../../db_schema/project';
 import path from 'path';
-import { PlanProperty } from '../db_schema/plan-properties/plan_property';
+import { PlanProperty } from '../../db_schema/plan-properties/plan_property';
 import { ExperimentSetting } from './experiment_setting';
 import * as child from 'child_process';
 import { writeFileSync } from 'fs';
 import { pythonShellCallSimple } from './python-call';
-import { environment } from '../app';
-import { PlanningTask } from '../db_schema/planning_task';
-import { IterationStep } from '../db_schema/iteration_step';
+import { environment } from '../../app';
+import { PlanningTask } from '../../db_schema/planning_task';
+import { IterationStep } from '../../db_schema/iteration_step';
 
 export class PDDLParser {
 

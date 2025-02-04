@@ -8,6 +8,7 @@ import { auth } from '../middleware/auth';
 import multer from 'multer';
 import path from 'path';
 import { ExplanationRunStatus } from '../db_schema/explanations';
+import { defaultGeneralSetting } from '../db_schema/settings';
 
 
 
@@ -278,7 +279,6 @@ demoRouter.post('/:id/image', auth, upload.single('summaryImage'), async (req, r
             return res.status(403).send('Demo not found');
         }
 
-        const demoData = req.body.data as Demo;
 
         let imageFilePath = null;
         if (req.file) {
@@ -337,31 +337,13 @@ demoRouter.put('/:id', auth, async (req, res) => {
     }
 });
 
-// demoRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
-//     try {
-//         const allDemos: Demo[] = await DemoModel.find();
-//         const demos = allDemos.filter(
-//             d => d.public || (req.user && d.user.toString() == req.user._id.toString())
-//         );
-
-//         if (!demos) { 
-//             return res.status(404).send({ message: 'No demos found' });
-//         }
-
-//         res.send({
-//             data: demos
-//         });
-
-//     } catch (ex) {
-//         res.status(500);
-//     }
-// });
 
 demoRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
     try {
         if (!req.user) {
             return res.status(401);
         }
+
         let demos = null;
         if (req.query.projectId === undefined) {
             demos = await DemoModel.find({ user: req.user._id});

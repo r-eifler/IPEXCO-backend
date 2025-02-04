@@ -1,44 +1,50 @@
 import { auth, authAny, authPlanner } from '../middleware/auth';
 import express from 'express';
 
-import { ExplainerModel, Planner, PlannerModel } from '../db_schema/services';
+import { ExplainerModel, Planner, PlannerModel, Service } from '../db_schema/services';
 import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
 import { PlanningTask, toPDDL } from '../db_schema/planning_task';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
-import { PropertyCheck } from '../planner/property_check';
+import { PropertyCheck } from '../services/planner/property_check';
 import { environment } from '../app';
+import { callServices } from '../services/utils';
+import { Project, ProjectModel } from '../db_schema/project';
+import { PlannerRequest, PlannerResponse } from '../db_schema/service_communication';
+import { RunStepsPage } from 'openai/resources/beta/threads/runs/steps';
+import { DemoModel } from '../db_schema/demo';
 
 export const plannerRouter = express.Router();
 
-plannerRouter.post('/plan-model', authAny, async (req: any, res) => {
+// plannerRouter.post('/plan-model', authAny, async (req: any, res) => {
 
-    try {
+//     try {
 
-        const plannerData: Planner = req.body.data as Planner;
+//         const plannerData: Planner = req.body.data as Planner;
 
-        const plannerModel = new PlannerModel(plannerData);
+//         const plannerModel = new PlannerModel(plannerData);
 
-        if (!plannerModel) {
-            return res.status(404).send('Create planner failed.');
-        }
+//         if (!plannerModel) {
+//             return res.status(404).send('Create planner failed.');
+//         }
 
-        let newPlanner: Planner | null = await plannerModel.save();
+//         let newPlanner: Planner | null = await plannerModel.save();
 
-        if (!newPlanner) {
-            return res.status(404).send('Create project failed.');
-        }
+//         if (!newPlanner) {
+//             return res.status(404).send('Create project failed.');
+//         }
         
-        res.send({
-            status: true,
-            message: 'Planner registered',
-            data: newPlanner
-        });
+//         res.send({
+//             status: true,
+//             message: 'Planner registered',
+//             data: newPlanner
+//         });
 
-    } catch (ex : any) {
-        console.log(ex.message);
-        res.status(404).send(ex.message);
-    }
-});
+//     } catch (ex : any) {
+//         console.log(ex.message);
+//         res.status(404).send(ex.message);
+//     }
+// });
+
 
 
 plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
@@ -50,63 +56,8 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
         const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
 
         if (!iterationStep) {
-            return res.status(404).send('update step failed');
-        }
-
-        iterationStep.plan = {
-            createdAt: new Date(Date.now()),
-            status: PlanRunStatus.running
-        }
-        iterationStep.save();
-        
-        let task = iterationStep.task
-        let [domain, problem] = toPDDL(task.model)
-
-
-        const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
-        let payload = JSON.stringify({
-            callback:baseURL + '/api/runner/planner/finished/' + refId,
-            domain,
-            problem  
-        })
-
-        const plannerServiceURL = process.env.PLANNER_SERVICE
-        const plannerRequest = new Request(plannerServiceURL + '/plan', 
-            {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: payload,
-            }
-        )
-
-        fetch(plannerRequest).then
-            (resp => console.log("Plan computation request submitted."),
-            error => console.log(error)
-        )
-        
-        res.send({
-            status: true,
-            message: 'Plan computation registered',
-            data: true
-        });
-
-    } catch (ex : any) {
-        console.log(ex);
-        res.status(404).send(ex.message);
-    }
-});
-
-
-plannerRouter.post('/plan-step/temp-goals/:id', authAny, async (req: any, res) => {
-
-    try {
-
-        const refId = req.params.id;
-        console.log('Compute plan of: ' + refId)
-        const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
-
-        if (!iterationStep) {
-            return res.status(404).send('update step failed');
+            console.log('[Plan Computation] Iteration Step does not exist.')
+            return res.status(404).send('compute plan failed');
         }
 
         iterationStep.plan = {
@@ -120,46 +71,48 @@ plannerRouter.post('/plan-step/temp-goals/:id', authAny, async (req: any, res) =
 
         const enforced_goals = plan_properties.filter(pp => !pp._id ? false : iterationStep.hardGoals.includes(pp._id?.toString()));
 
-        const exp_settings = {
-            plan_properties: enforced_goals,
-            hard_goals: enforced_goals.map(enfG => enfG.name),
-            soft_goals: []
+        const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
+        let payload: PlannerRequest = {
+            callback:baseURL + '/api/planner/plan-step/finished/' + refId,
+            model: JSON.parse(model),
+            goals: enforced_goals,
+            hardGoals: enforced_goals.map(pp => pp._id).filter(pp => pp !== undefined),
+            softGoals: [],
+            id: iterationStep._id
         }
 
-        const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
-        let payload = JSON.stringify({
-            callback:baseURL + '/api/planner/plan-step/finished/' + refId,
-            model,
-            temp_goals: JSON.stringify(exp_settings),
-            id: iterationStep._id
-        })
+        let project = await ProjectModel.findById(iterationStep.project) as Project;
+        if(!project){
+            project = await DemoModel.findById(iterationStep.project) as Project;
+        }
 
-        // console.log(payload)
+        if (!project) {
+            console.log('[Plan Computation] Project does not exist.')
+            return res.status(404).send('compute plan failed');
+        }
 
-        const plannerServiceURL = process.env.PLANNER_SERVICE
-        const plannerRequest = new Request(plannerServiceURL + '/plan/temp-goals', 
-            {
-                method: "POST",
-                headers: {
-                    "content-type": "application/json",
-                    authorization: "Bearer " + process.env.PLANNER_KEY
-                },
-                body: payload,
+        const services: Service[] = [];
+        for(const plannerId of project.settings.services.planners) {
+            const planner = await PlannerModel.findById(plannerId);
+            if(planner){
+                services.push(planner);
             }
-        )
+        }
 
-        // console.log(plannerRequest.headers);
+        if (services.length === 0) {
+            console.log('[Plan Computation] No selected planner service selected.')
+            return res.status(404).send('No existing planner service selected.');
+        }
 
-        fetch(plannerRequest).then
-            (resp => console.log("Plan computation request submitted."),
-            error => console.log(error)
-        )
-        
-        res.send({
-            status: true,
-            message: 'Plan computation registered',
-            data: true
-        });
+        const success = await callServices(services, JSON.stringify(payload), '/plan');
+        if(!success){
+            iterationStep.plan.status = PlanRunStatus.failed;
+            iterationStep.save();
+            console.log('[Plan Computation] No selected planner service reachable.')
+            // res.status(500).send('No selected planner service reachable.');
+        }
+
+        res.status(201).send({success});
 
     } catch (ex : any) {
         console.log(ex);
@@ -190,19 +143,21 @@ plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res)
 
         if (iterationStep.plan.status == PlanRunStatus.not_solvable || 
             iterationStep.plan.status == PlanRunStatus.plan_found || 
-            iterationStep.plan.status == PlanRunStatus.failed
+            iterationStep.plan.status == PlanRunStatus.failed 
+            // TODO we could update failed runs if multiple planner run in parallel
         ) {
-            console.log('Got repeated response fall pla call: ' + iterationStep._id);
+            console.log('Got repeated response for plan call: ' + iterationStep._id);
             return res.status(200).send('Plan run already set.');
         }
 
-        let actions = req.body.actions as string
-        let status = req.body.status
+        const response = req.body as PlannerResponse;
+        const actions = response.actions;
+        const status = response.status;
 
         console.log(status)
-        console.log(actions)
+        // console.log(actions)
 
-        if(status === 'SOLVED'){
+        if(status === PlanRunStatus.plan_found){
             iterationStep.plan.status = PlanRunStatus.plan_found;
             iterationStep.status = StepStatus.solvable;
             iterationStep.plan.actions = JSON.stringify(actions);
@@ -210,14 +165,13 @@ plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res)
             // Check which properties are satisfied
             const plan_properties = (await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[]).filter(pp => pp._id && (iterationStep.hardGoals.includes(pp._id) || iterationStep.softGoals.includes(pp._id)));
 
+            // TODO Numeric Plan Property check
             let check = new PropertyCheck(environment.experimentsRootPath, iterationStep, plan_properties);
-            let sat_properties = await check.executeRun();
+            let sat_properties_ids = await check.executeRun();
 
             console.log('Enforced Properties')
             console.log(iterationStep.hardGoals);
-            console.log('Satisfied Properties')
-            console.log(sat_properties);
-            const sat_properties_ids = plan_properties.filter(pp => sat_properties.includes(pp.name)).map(pp => pp._id?.toString());
+            console.log('Satisfied Properties');
             console.log(sat_properties_ids);
 
             // Check all enforced goals also satisfied
@@ -232,12 +186,12 @@ plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res)
 
         }
 
-        if(status === 'UNSOLVABLE'){
+        if(status === PlanRunStatus.not_solvable){
             iterationStep.status = StepStatus.unsolvable
             iterationStep.plan.status = PlanRunStatus.not_solvable;
         }
 
-        if(status === 'FAILED'){
+        if(status === PlanRunStatus.failed){
             iterationStep.status = StepStatus.unknown;
             iterationStep.plan.status = PlanRunStatus.failed;
         }

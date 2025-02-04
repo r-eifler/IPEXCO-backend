@@ -1,14 +1,14 @@
-import { Project } from './../db_schema/project';
+import { Project } from '../../db_schema/project';
 import path from 'path';
-import { PlanProperty } from '../db_schema/plan-properties/plan_property';
+import { PlanProperty } from '../../db_schema/plan-properties/plan_property';
 import { ExperimentSetting } from './experiment_setting';
 import * as child from 'child_process';
 import { writeFileSync } from 'fs';
 import { pythonShellCallSimple } from './python-call';
-import { environment } from '../app';
-import { PlanningTask, toPDDL } from '../db_schema/planning_task';
-import { IterationStep } from '../db_schema/iteration_step';
-import { Encoding } from '../db_schema/services';
+import { environment } from '../../app';
+import { PlanningTask, toPDDL } from '../../db_schema/planning_task';
+import { IterationStep } from '../../db_schema/iteration_step';
+import { Encoding } from '../../db_schema/services';
 
 export class PropertyCheck {
 
@@ -19,10 +19,6 @@ export class PropertyCheck {
         private step: IterationStep,
         private planProperties: PlanProperty[])
     {
-
-        if(this.step.task.encoding != Encoding.PDDL_CLASSIC){
-            throw Error(this.step.task.encoding + ' not supported!')
-        }
 
         this.runFolder = path.join(root, String(step._id));
 

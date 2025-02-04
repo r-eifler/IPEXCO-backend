@@ -2,7 +2,7 @@ import { readFile } from 'fs';
 import 'assert';
 import path from 'path';
 import * as child from 'child_process';
-import { environment } from '../app';
+import { environment } from '../../app';
 
 
 // export async function getGoalFacts(pddFile: File): Promise<string[]> {

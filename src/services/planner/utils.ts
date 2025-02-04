@@ -1,4 +1,4 @@
-import { GoalType, PlanProperty } from '../db_schema/plan-properties/plan_property';
+import { GoalType, PlanProperty } from '../../db_schema/plan-properties/plan_property';
 
 
 export function updateMUGSPropsNames(json: string[][], planProperties: PlanProperty[]): string[][] {

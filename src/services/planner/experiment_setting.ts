@@ -1,4 +1,4 @@
-import { PlanProperty } from '../db_schema/plan-properties/plan_property';
+import { PlanProperty } from '../../db_schema/plan-properties/plan_property';
 
 export interface ExperimentSetting {
     plan_properties: PlanProperty[];

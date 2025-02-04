@@ -1,5 +1,5 @@
-import { Demo } from './../db_schema/demo';
-import { PlanProperty } from '../db_schema/plan-properties/plan_property';
+import { Demo } from '../../db_schema/demo';
+import { PlanProperty } from '../../db_schema/plan-properties/plan_property';
 
 
 export class DemoComputation {

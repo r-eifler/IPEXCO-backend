@@ -61,7 +61,6 @@ export interface PlanningModel extends PlanningDomain, PlanningProblem {}
 
 export const PlanningTaskSchema = new Schema({
     name: String,
-    encoding: String,
     model: String
 });
 
@@ -69,8 +68,7 @@ export const PlanningTaskSchema = new Schema({
 export interface PlanningTask{
     _id? : string;
     name: string;
-    encoding: Encoding;
-    model: string;
+    model: string; // TODO make this a any and Object in Schema
 }
 
 

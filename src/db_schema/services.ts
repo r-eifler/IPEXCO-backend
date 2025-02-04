@@ -12,6 +12,7 @@ export interface Service extends Document{
     name: string;
     domainId?: string;
     url: string;
+    apiKey: string;
     encoding: Encoding;
 }
 
@@ -19,6 +20,7 @@ const ServiceSchema = new Schema({
     name: { type: String, required: true},
     domainId: { type: mongoose.Schema.Types.ObjectId, ref: 'domain-specification', required: false},
     url: { type: String, required: true},
+    apiKey: { type: String, required: true},
     encoding: { type: String, required: true},
 });
 
