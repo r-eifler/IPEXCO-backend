@@ -31,14 +31,19 @@ export interface ExplainerRequest  {
 
 
 export interface Result {
-    complete: boolean,
-    subsets: string[][] // plan property ids
+    MUGS:{
+        complete: boolean,
+        subsets: string[][] // plan property ids
+    },
+    MGCS:{
+        complete: boolean,
+        subsets: string[][] // plan property ids
+    },
 }
 
 export interface ExplainerResponse  {
     id: string,
     status: ExplanationRunStatus,
-    MUGS: Result,
-    MSGS: Result,
+    result: Result,
     runtime?: number // in sec
 }

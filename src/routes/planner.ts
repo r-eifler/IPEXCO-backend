@@ -57,7 +57,7 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
 
         if (!iterationStep) {
             console.log('[Plan Computation] Iteration Step does not exist.')
-            return res.status(404).send('compute plan failed');
+            return res.status(404).send({status: false, message:'Iteration step does not exist.'});
         }
 
         iterationStep.plan = {
@@ -90,7 +90,7 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
             console.log('[Plan Computation] Project does not exist.')
             iterationStep.plan.status = PlanRunStatus.failed;
             iterationStep.save();
-            return res.status(200).send('compute plan failed');
+            return res.status(200).send({status: false, message:'Project does not exists.'});
         }
 
         const services: Service[] = [];
@@ -105,7 +105,7 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
             console.log('[Plan Computation] No selected planner service selected.')
             iterationStep.plan.status = PlanRunStatus.failed;
             iterationStep.save();
-            return res.status(200).send('No existing planner service selected.');
+            return res.status(200).send({status: false, message: 'No existing planner service selected.'});
         }
 
         const success = await callServices(services, JSON.stringify(payload), '/plan');
@@ -113,10 +113,10 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
             iterationStep.plan.status = PlanRunStatus.failed;
             iterationStep.save();
             console.log('[Plan Computation] No selected planner service reachable.')
-            // res.status(500).send('No selected planner service reachable.');
+            res.status(201).send({status: false, message:'No selected planner service reachable.'});
         }
 
-        res.status(201).send({success});
+        res.status(201).send({status: true, message:'Plan computation registered'});
 
     } catch (ex : any) {
         console.log(ex);
@@ -158,7 +158,7 @@ plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res)
         const actions = response.actions;
         const status = response.status;
 
-        console.log(status)
+        // console.log(status)
         // console.log(actions)
 
         if(status === PlanRunStatus.plan_found){

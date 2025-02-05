@@ -55,14 +55,6 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             iterationStep.softGoals.includes(pp._id?.toString())
         );
 
-        console.log("used_plan_properties", used_plan_properties)
-        const exp_settings = {
-            plan_properties: used_plan_properties,
-            hard_goals: [],
-            soft_goals: used_plan_properties.map(pp => pp.name)
-        }
-        console.log("exp_settings", exp_settings)
-
 
         const baseURL = process.env.BASE_URL || 'host.docker.internal:3000'
         let payload: ExplainerRequest = {
@@ -76,33 +68,36 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
 
         const project = await ProjectModel.findById(iterationStep.project) as Project;
         if (!project) {
-            return res.status(404).send('compute explanation failed');
+            iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
+            iterationStep.save();
+            return res.status(200).send({status: false, message:'compute explanation failed, project not found'});
         }
 
         const services: Service[] = [];
         for(const explainerId of project.settings.services.explainer) {
-            const explainer = await PlannerModel.findById(explainerId);
+            const explainer = await ExplainerModel.findById(explainerId);
             if(explainer){
                 services.push(explainer);
             }
         }
 
         if (services.length === 0) {
-            return res.status(404).send('No existing explainer service selected.');
+            iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
+            iterationStep.save();
+            console.log('No existing explainer service selected.');
+            return res.status(200).send({status: false, message:'No existing explainer service selected.'});
         }
 
         const success = await callServices(services, JSON.stringify(payload), '/explanation');
 
         if(!success){
             iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
-            iterationStep.save()
+            iterationStep.save();
+            console.log('No explainer service available.');
+            return res.status(200).send({status: false, message:'No explainer service available.'});
         }
-        
-        res.send({
-            status: true,
-            message: 'Explanation computation registered',
-            data: true
-        });
+
+        res.status(200).send({status: true, message: 'Explanation computation registered.'})
 
     } catch (ex : any) {
         console.log(ex);
@@ -115,7 +110,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
 
       try {
     
-            console.log(req.body)
+            // console.log(req.body)
             const refId = req.params.id;
             const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
     
@@ -133,13 +128,12 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
     
             const response = req.body as ExplainerResponse;
     
-            let MUGS = response.MUGS;
-            let MGCS = response.MSGS;
+            let MUGS = response.result.MUGS;
+            let MGCS = response.result.MGCS;
             let status = response.status
     
             console.log(MUGS)
             console.log(MGCS)
-            console.log(status)
     
             if(status === ExplanationRunStatus.finished){
                 iterationStep.globalExplanation.status = ExplanationRunStatus.finished;
