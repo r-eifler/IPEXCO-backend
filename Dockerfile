@@ -21,7 +21,7 @@ RUN apt-get install -y nodejs
 RUN mkdir -p /usr/src/app
 COPY . /usr/src/app
 WORKDIR /usr/src/app
-RUN rm -r node_modules
+RUN rm -rf node_modules
 RUN npm install
 RUN npm install -g typescript
 
