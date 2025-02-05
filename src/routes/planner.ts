@@ -88,7 +88,9 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
 
         if (!project) {
             console.log('[Plan Computation] Project does not exist.')
-            return res.status(404).send('compute plan failed');
+            iterationStep.plan.status = PlanRunStatus.failed;
+            iterationStep.save();
+            return res.status(200).send('compute plan failed');
         }
 
         const services: Service[] = [];
@@ -101,7 +103,9 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
 
         if (services.length === 0) {
             console.log('[Plan Computation] No selected planner service selected.')
-            return res.status(404).send('No existing planner service selected.');
+            iterationStep.plan.status = PlanRunStatus.failed;
+            iterationStep.save();
+            return res.status(200).send('No existing planner service selected.');
         }
 
         const success = await callServices(services, JSON.stringify(payload), '/plan');
