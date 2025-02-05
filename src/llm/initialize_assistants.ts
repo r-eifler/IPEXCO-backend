@@ -95,6 +95,9 @@ export async function initializeAssistants(model: OpenAIModelName, domain: keyof
     }
     const openai = openai_client;
 
+    if(!domains[domain]){
+        return null;
+    }
 
     const assistants = {
         goalTranslator: await createAssistant(

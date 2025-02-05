@@ -610,6 +610,11 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
     const projectId = req.body.projectId;
     const assistants = await initializeAssistants("gpt-4o-mini", domain, false);
 
+    if(assistants == null){
+        res.status(500).send('Domain not supported');
+        return
+    }
+
     const dummyVisibleMessage = {
         role: "receiver",
         content: "Dummy visible message"
