@@ -1,13 +1,13 @@
-import { auth, authExplainer } from '../middleware/auth';
 import express from 'express';
+import { auth, authExplainer } from '../middleware/auth';
 
-import { ExplainerModel, Planner, PlannerModel, Service } from '../db_schema/services';
+import { Demo, DemoModel } from '../db_schema/demo';
+import { ExplanationRunStatus } from '../db_schema/explanations';
 import { IterationStep, IterationStepModel } from '../db_schema/iteration_step';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
-import { AnswerType, ExplanationRunStatus, Question } from '../db_schema/explanations';
-import { Demo, DemoModel } from '../db_schema/demo';
-import { ExplainerRequest, ExplainerResponse, Result } from '../db_schema/service_communication';
 import { Project, ProjectModel } from '../db_schema/project';
+import { ExplainerRequest, ExplainerResponse } from '../db_schema/service_communication';
+import { Service, ServiceModel } from '../db_schema/services';
 import { callServices } from '../services/utils';
 
 export const explainerRouter = express.Router();
@@ -59,7 +59,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
         const baseURL = process.env.BASE_URL || 'host.docker.internal:3000'
         let payload: ExplainerRequest = {
             callback: baseURL + '/api/explainer/explain-step/' + refId + '/finished',
-            model: JSON.parse(model),
+            model: model,
             goals: used_plan_properties,
             hardGoals: used_plan_properties.filter(pp => pp.globalHardGoal).map(pp => pp._id).filter(pp => pp !== undefined),
             softGoals: used_plan_properties.filter(pp => !pp.globalHardGoal).map(pp => pp._id).filter(pp => pp !== undefined),
@@ -75,7 +75,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
 
         const services: Service[] = [];
         for(const explainerId of project.settings.services.explainer) {
-            const explainer = await ExplainerModel.findById(explainerId);
+            const explainer = await ServiceModel.findById(explainerId);
             if(explainer){
                 services.push(explainer);
             }

@@ -8,7 +8,7 @@ import { PDDLPlanningModel } from '../db_schema/PDDL_model';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Project, ProjectModel } from '../db_schema/project';
 import { PlannerRequest, PlannerResponse } from '../db_schema/service_communication';
-import { PlannerModel, Service } from '../db_schema/services';
+import { Service, ServiceModel } from '../db_schema/services';
 import { PropertyCheck } from '../services/property_check';
 import { callServices } from '../services/utils';
 
@@ -62,7 +62,7 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
 
         const services: Service[] = [];
         for(const plannerId of project.settings.services.planners) {
-            const planner = await PlannerModel.findById(plannerId);
+            const planner = await ServiceModel.findById(plannerId);
             if(planner){
                 services.push(planner);
             }
