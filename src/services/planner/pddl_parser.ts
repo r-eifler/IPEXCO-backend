@@ -1,23 +1,19 @@
-import { Project } from '../../db_schema/project';
-import path from 'path';
-import { PlanProperty } from '../../db_schema/plan-properties/plan_property';
-import { ExperimentSetting } from './experiment_setting';
 import * as child from 'child_process';
 import { writeFileSync } from 'fs';
-import { pythonShellCallSimple } from './python-call';
+import path from 'path';
 import { environment } from '../../app';
-import { PlanningTask } from '../../db_schema/planning_task';
-import { IterationStep } from '../../db_schema/iteration_step';
+import { pythonShellCallSimple } from './python-call';
 
 export class PDDLParser {
+    
 
     runFolder: string;
 
     constructor(
         protected root: string,
-        private id: string,
-        private domainText: string,
-        private problemText: string)
+        id: string,
+        domainText: string,
+        problemText: string)
     {
         this.runFolder = path.join(root, String(id));
 

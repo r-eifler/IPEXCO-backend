@@ -1,14 +1,18 @@
-import { Project } from '../../db_schema/project';
-import path from 'path';
-import { PlanProperty } from '../../db_schema/plan-properties/plan_property';
-import { ExperimentSetting } from './experiment_setting';
 import * as child from 'child_process';
 import { writeFileSync } from 'fs';
-import { pythonShellCallSimple } from './python-call';
+import path from 'path';
 import { environment } from '../../app';
-import { PlanningTask, toPDDL } from '../../db_schema/planning_task';
 import { IterationStep } from '../../db_schema/iteration_step';
-import { Encoding } from '../../db_schema/services';
+import { PlanProperty } from '../../db_schema/plan-properties/plan_property';
+import { toPDDL } from '../../db_schema/planning_task';
+import { pythonShellCallSimple } from './python-call';
+
+interface ExperimentSetting {
+    plan_properties: PlanProperty[];
+    hard_goals: string[];
+    soft_goals: string[];
+}
+
 
 export class PropertyCheck {
 
