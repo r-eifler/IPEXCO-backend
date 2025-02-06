@@ -4,7 +4,7 @@ import { Encoding } from "./services";
 export interface DomainSpecification {
     name: string,
     encoding: Encoding,
-    planPropertyTemplates: any[]  ;
+    planPropertyTemplates: unknown[]  ;
     description: string;
 }
 

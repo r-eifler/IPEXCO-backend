@@ -1,51 +1,18 @@
-import { auth, authAny, authPlanner } from '../middleware/auth';
 import express from 'express';
+import { authAny, authPlanner } from '../middleware/auth';
 
-import { ExplainerModel, Planner, PlannerModel, Service } from '../db_schema/services';
-import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
-import { PlanningTask, toPDDL } from '../db_schema/planning_task';
-import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
-import { PropertyCheck } from '../services/planner/property_check';
 import { environment } from '../app';
-import { callServices } from '../services/utils';
+import { DemoModel } from '../db_schema/demo';
+import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
+import { PDDLPlanningModel } from '../db_schema/PDDL_model';
+import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Project, ProjectModel } from '../db_schema/project';
 import { PlannerRequest, PlannerResponse } from '../db_schema/service_communication';
-import { RunStepsPage } from 'openai/resources/beta/threads/runs/steps';
-import { DemoModel } from '../db_schema/demo';
+import { PlannerModel, Service } from '../db_schema/services';
+import { PropertyCheck } from '../services/property_check';
+import { callServices } from '../services/utils';
 
 export const plannerRouter = express.Router();
-
-// plannerRouter.post('/plan-model', authAny, async (req: any, res) => {
-
-//     try {
-
-//         const plannerData: Planner = req.body.data as Planner;
-
-//         const plannerModel = new PlannerModel(plannerData);
-
-//         if (!plannerModel) {
-//             return res.status(404).send('Create planner failed.');
-//         }
-
-//         let newPlanner: Planner | null = await plannerModel.save();
-
-//         if (!newPlanner) {
-//             return res.status(404).send('Create project failed.');
-//         }
-        
-//         res.send({
-//             status: true,
-//             message: 'Planner registered',
-//             data: newPlanner
-//         });
-
-//     } catch (ex : any) {
-//         console.log(ex.message);
-//         res.status(404).send(ex.message);
-//     }
-// });
-
-
 
 plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
 
@@ -74,7 +41,7 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
         const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
         let payload: PlannerRequest = {
             callback:baseURL + '/api/planner/plan-step/finished/' + refId,
-            model: JSON.parse(model),
+            model: model,
             goals: enforced_goals,
             hardGoals: enforced_goals.map(pp => pp._id).filter(pp => pp !== undefined),
             softGoals: [],
@@ -164,13 +131,18 @@ plannerRouter.post('/plan-step/finished/:id', authPlanner, async (req: any, res)
         if(status === PlanRunStatus.plan_found){
             iterationStep.plan.status = PlanRunStatus.plan_found;
             iterationStep.status = StepStatus.solvable;
-            iterationStep.plan.actions = JSON.stringify(actions);
 
             // Check which properties are satisfied
-            const plan_properties = (await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[]).filter(pp => pp._id && (iterationStep.hardGoals.includes(pp._id) || iterationStep.softGoals.includes(pp._id)));
+            const plan_properties = (await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[]).
+            filter(pp => pp._id && (iterationStep.hardGoals.includes(pp._id) || iterationStep.softGoals.includes(pp._id)));
 
             // TODO Numeric Plan Property check
-            let check = new PropertyCheck(environment.experimentsRootPath, iterationStep, plan_properties);
+            let check = new PropertyCheck(
+                environment.experimentsRootPath,
+                iterationStep._id,
+                iterationStep.task.model as PDDLPlanningModel,
+                actions,
+                plan_properties);
             let sat_properties_ids = await check.executeRun();
 
             console.log('Enforced Properties')

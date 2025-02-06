@@ -2,9 +2,9 @@
 import express from 'express';
 import { auth } from '../middleware/auth';
 import { InstantAction, parser } from 'pddl-workspace';
-import { PDDLAction, PDDLFact, PDDLObject, PlanningDomain, PlanningProblem } from '../db_schema/planning_task';
+import { PDDLAction, PDDLFact, PDDLObject, PlanningDomain, PlanningProblem } from '../db_schema/planning_model';
 import { PddlSyntaxNode, PddlTokenType } from 'pddl-workspace/dist/parser';
-import { PDDLParser } from '../services/planner/pddl_parser';
+import { PDDLParser } from '../services/pddl_parser';
 import { environment } from '../app';
 
 export const pddlRouter = express.Router();

@@ -2,7 +2,7 @@ import * as child from 'child_process';
 import { writeFileSync } from 'fs';
 import path from 'path';
 import { environment } from '../../app';
-import { pythonShellCallSimple } from './python-call';
+import { pythonShellCallSimple } from '../python-call';
 
 export class PDDLParser {
     
