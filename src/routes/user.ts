@@ -69,7 +69,7 @@ userRouter.post('/user-study', async (req, res) => {
             payment: 0,
         }
         const userStudyExecution = new UserStudyExecutionModel(userStudyExecutionData);
-        userStudyExecution.save();
+        await userStudyExecution.save();
 
         res.status(201).send({data: { 
             user: userData, 

@@ -18,6 +18,7 @@ export enum PlanRunStatus {
     plan_found,
     not_solvable,
     canceled,
+    plan_found_not_checked
 }
 
 export interface Plan{

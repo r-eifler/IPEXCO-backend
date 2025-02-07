@@ -128,7 +128,7 @@ export const authForward = async(req: any, res: Response, next: NextFunction) =>
 };
 
 
-export const authPlanner = async(req: Request, res: Response, next: NextFunction) => {
+export const authService = async(req: Request, res: Response, next: NextFunction) => {
 
     try {
         if (! req.header('Authorization')) {
@@ -143,7 +143,7 @@ export const authPlanner = async(req: Request, res: Response, next: NextFunction
             return;
         }
         
-        if(token != environment.plannerKey){
+        if(token != environment.serviceKey){
             return res.status(401).send({ error: errorMessage });
         }
 
@@ -155,30 +155,3 @@ export const authPlanner = async(req: Request, res: Response, next: NextFunction
 
 };
 
-
-export const authExplainer = async(req: Request, res: Response, next: NextFunction) => {
-
-    try {
-        if (! req.header('Authorization')) {
-            console.log(errorMessage)
-            res.status(401).send({ error: errorMessage });
-            return;
-        }
-
-        const token: string | undefined = req.header('Authorization')?.replace('Bearer ', '');
-        if (token === undefined) {
-            res.status(401).send({ error: errorMessage });
-            return;
-        }
-        
-        if(token != environment.explainerKey){
-            return res.status(401).send({ error: errorMessage });
-        }
-
-        next();
-
-    } catch (error) {
-        res.status(401).send({ error: errorMessage });
-    }
-
-};

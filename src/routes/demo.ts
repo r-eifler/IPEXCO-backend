@@ -252,7 +252,7 @@ demoRouter.post('/compute-explanations/:id/finished', async (req: any, res) => {
             demo.globalExplanation.status = ExplanationRunStatus.failed;
         }
 
-        demo.save()
+        await demo.save()
         
         res.send({
             status: true,

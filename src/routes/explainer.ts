@@ -1,5 +1,5 @@
 import express from 'express';
-import { auth, authExplainer } from '../middleware/auth';
+import { auth, authService } from '../middleware/auth';
 
 import { Demo, DemoModel } from '../db_schema/demo';
 import { ExplanationRunStatus } from '../db_schema/explanations';
@@ -31,7 +31,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
         if(demo){
             console.log('Extract explanations from demo.');
             iterationStep.globalExplanation = demo.globalExplanation;
-            iterationStep.save();
+            await iterationStep.save();
             res.send({
                 status: true,
                 message: 'Explanations copied from demo.',
@@ -45,7 +45,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             status: ExplanationRunStatus.running
         }
 
-        iterationStep.save();
+        await iterationStep.save();
         
         const model = iterationStep.task.model
         const plan_properties = await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[];
@@ -69,7 +69,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
         const project = await ProjectModel.findById(iterationStep.project) as Project;
         if (!project) {
             iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
-            iterationStep.save();
+            await iterationStep.save();
             return res.status(200).send({status: false, message:'compute explanation failed, project not found'});
         }
 
@@ -83,7 +83,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
 
         if (services.length === 0) {
             iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
-            iterationStep.save();
+            await iterationStep.save();
             console.log('No existing explainer service selected.');
             return res.status(200).send({status: false, message:'No existing explainer service selected.'});
         }
@@ -92,7 +92,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
 
         if(!success){
             iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
-            iterationStep.save();
+            await iterationStep.save();
             console.log('No explainer service available.');
             return res.status(200).send({status: false, message:'No explainer service available.'});
         }
@@ -106,7 +106,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
 });
 
 
-  explainerRouter.post('/explain-step/:id/finished', authExplainer, async (req: any, res) => {
+  explainerRouter.post('/explain-step/:id/finished', authService, async (req: any, res) => {
 
       try {
     

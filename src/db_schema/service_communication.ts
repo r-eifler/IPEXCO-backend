@@ -47,3 +47,26 @@ export interface ExplainerResponse  {
     result: Result,
     runtime?: number // in sec
 }
+
+
+export enum PropertyCheckRunStatus {
+	PENDING = "PENDING",
+	RUNNING = "RUNNING",
+	FAILED = "FAILED",
+	FINISHED = "FINISHED",
+	CANCELED = "CANCELED",
+}
+
+export interface PropertyCheckerRequest {
+	id: string;
+	callback: string;
+	model: unknown;
+	goals: PlanProperty[];
+	actions: Action[];
+}
+
+export interface PropertyCheckerResponse {
+	id: string;
+	status: PropertyCheckRunStatus;
+	satisfiedProperties: string[] | null;
+}

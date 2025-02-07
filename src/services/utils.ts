@@ -20,12 +20,18 @@ export async function callServices(services: Service[], payload: string, path: s
             }
         );
 
-        const resp = await fetch(request);
-        console.log("Request submitted: " + service.name);
-        // console.log(resp);
-        atLeastOneSuccessfulSubmission = resp.status >= 200 && resp.status < 300;
+        try{
+            const resp = await fetch(request);
+            console.log("Request submitted: " + service.name);
+            // console.log(resp);
+            atLeastOneSuccessfulSubmission = resp.status >= 200 && resp.status < 300;
+        }
+        catch(err){
+            console.log(`Request to ${service.name} failed`)
+            // console.log(err);
+        }
     }
 
-    console.log('Planner service reached: ' + atLeastOneSuccessfulSubmission);
+    console.log('Service reached: ' + atLeastOneSuccessfulSubmission);
     return atLeastOneSuccessfulSubmission;
 }
