@@ -7,7 +7,7 @@ import { IterationStep, IterationStepModel } from '../db_schema/iteration_step';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Project, ProjectModel } from '../db_schema/project';
 import { ExplainerRequest, ExplainerResponse } from '../db_schema/service_communication';
-import { Service, ServiceModel } from '../db_schema/services';
+import { Service, ServiceModel, ServiceType } from '../db_schema/services';
 import { callServices } from '../services/utils';
 
 export const explainerRouter = express.Router();
@@ -74,10 +74,10 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
         }
 
         const services: Service[] = [];
-        for(const explainerId of project.settings.services.explainer) {
-            const explainer = await ServiceModel.findById(explainerId);
-            if(explainer){
-                services.push(explainer);
+        for(const serviceId of project.settings.services.services) {
+            const service = await ServiceModel.findById(serviceId);
+            if(service && service.type == ServiceType.EXPLAINER){
+                services.push(service);
             }
         }
 

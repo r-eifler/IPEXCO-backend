@@ -26,8 +26,7 @@ export interface PaymentInfo {
     services: {
         computePlanAutomatically: boolean;
         computeExplanationsAutomatically: boolean;
-        planners: string[];
-        explainer: string[]
+        services: string[];
     }
     interfaces: {
         propertyCreationInterfaceType: PropertyCreationInterfaceType;
@@ -58,8 +57,7 @@ export interface PaymentInfo {
     services: {
         computePlanAutomatically: { type: Boolean, required: true},
         computeExplanationsAutomatically:{ type: Boolean, required: true},
-        planners: [{ type: mongoose.Schema.Types.ObjectId, ref: 'planner' }],
-        explainer: [{ type: mongoose.Schema.Types.ObjectId, ref: 'explainer' }],
+        services: [{ type: mongoose.Schema.Types.ObjectId, ref: 'services' }],
     },
     interfaces: {
         propertyCreationInterfaceType: { type: String, required: true},
@@ -94,8 +92,7 @@ export const defaultGeneralSetting: GeneralSettings = {
     services: {
         computePlanAutomatically: true,
         computeExplanationsAutomatically: true,
-        planners: [],
-        explainer: [],
+        services: [],
     },
     interfaces: {
         explanationInterfaceType: ExplanationInterfaceType.TEMPLATE_QUESTION_ANSWER,
