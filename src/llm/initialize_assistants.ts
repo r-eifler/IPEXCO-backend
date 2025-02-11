@@ -115,7 +115,7 @@ async function getDomainSpecification(projectId: string) {
     if (!project) {
         throw new Error('Project not found');
     }
-    return project.domainSpecification;
+    return project.domain;
 }
 
 

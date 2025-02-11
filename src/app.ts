@@ -27,8 +27,6 @@ import { pddlRouter } from './routes/pddl';
 import { LLMRouter } from './routes/llm-connector';
 
 import { explainerRouter } from './routes/explainer';
-import { initializeAssistants, OpenAIModelName } from './llm/initialize_assistants';
-import { reverseTranslatorsRouter } from './routes/reverse-translators';
 import { domainSpecificationRouter } from './routes/globalSpecification';
 import { promptRouter } from './routes/prompt';
 import { serviceRouter } from './routes/services';
