@@ -1,11 +1,8 @@
-import { UpdatedPlanningTaskSchema } from './updated_planning_task';
 import mongoose, { Document, Schema } from 'mongoose';
-import { UpdatedPlanningTask } from './updated_planning_task';
-import { PlanProperty } from './plan-properties/plan_property';
-import { Project } from './project';
 import { Explanation, ExplanationSchema, GlobalExplanation, GlobalExplanationSchema } from './explanations';
-import { PlanningTask, PlanningTaskSchema } from './planning_task';
+import { PlanningTask, PlanningTaskSchema } from './planning_model';
 import { User } from './user';
+import { Action } from './plan-properties/action_set';
 
 
 export enum StepStatus{
@@ -21,14 +18,13 @@ export enum PlanRunStatus {
     plan_found,
     not_solvable,
     canceled,
+    plan_found_not_checked
 }
-
-
 
 export interface Plan{
     createdAt?: Date;
     status: PlanRunStatus;
-    actions?: string;
+    actions?: Action[];
     satisfied_properties?: string[];
 }
 
@@ -36,7 +32,7 @@ const PlanSchema = new Schema({
     status: { type: Number, required: true},
     plan: { type: String, required: false},
     satisfied_properties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
-    actions: { type: String, required: false},
+    actions: { type: Object, required: false},
 }, { timestamps: true}); 
 
 

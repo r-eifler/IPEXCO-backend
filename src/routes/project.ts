@@ -97,13 +97,6 @@ projectRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
         return res.status(404).send({ message: 'No project found.' });
     }
 
-    //backward compatibility
-    for(let project of projects){
-        if(!(project.settings.interfaces)){
-            project.settings = {...defaultGeneralSetting}
-        }
-    }
-
     res.send({
         data: projects
     });
@@ -151,11 +144,6 @@ projectRouter.get('/:id', authAny, async (req: AuthenticatedRequest, res) => {
         const project = await ProjectModel.findOne({ _id: id });
         if (project) { 
 
-            //backward compatibility
-            if(project.settings.interfaces){
-                project.settings = defaultGeneralSetting
-            }
-
             if(req.user.role != 'user-study'){
                 return res.send({
                     data: project
@@ -169,11 +157,6 @@ projectRouter.get('/:id', authAny, async (req: AuthenticatedRequest, res) => {
 
         const demo = await DemoModel.findOne({ _id: id });
         if (demo) { 
-
-            //backward compatibility
-            if(!('main' in demo.settings)){
-                demo.settings = {...defaultGeneralSetting}
-            }
 
             return res.send({
                 data: demo

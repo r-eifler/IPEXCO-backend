@@ -1,13 +1,16 @@
 import mongoose, { Schema } from "mongoose";
+import { Encoding } from "./services";
 
 export interface DomainSpecification {
     name: string,
-    planPropertyTemplates: any[]  ;
+    encoding: Encoding,
+    planPropertyTemplates: unknown[]  ;
     description: string;
 }
 
 const DomainSpecificationSchema = new Schema({
     name: { type: String, required: false},
+    encoding: { type: String, required: false},
     planPropertyTemplates: [{ type: Object, required: false}],
     description: { type: String, required: false},
 }); 

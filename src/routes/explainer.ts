@@ -1,11 +1,14 @@
-import { auth, authExplainer } from '../middleware/auth';
 import express from 'express';
+import { auth, authService } from '../middleware/auth';
 
-import { ExplainerModel, Planner, PlannerModel } from '../db_schema/services';
+import { Demo, DemoModel } from '../db_schema/demo';
+import { ExplanationRunStatus } from '../db_schema/explanations';
 import { IterationStep, IterationStepModel } from '../db_schema/iteration_step';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
-import { AnswerType, ExplanationRunStatus, Question } from '../db_schema/explanations';
-import { Demo, DemoModel } from '../db_schema/demo';
+import { Project, ProjectModel } from '../db_schema/project';
+import { ExplainerRequest, ExplainerResponse } from '../db_schema/service_communication';
+import { Service, ServiceModel, ServiceType } from '../db_schema/services';
+import { callServices } from '../services/utils';
 
 export const explainerRouter = express.Router();
 
@@ -28,7 +31,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
         if(demo){
             console.log('Extract explanations from demo.');
             iterationStep.globalExplanation = demo.globalExplanation;
-            iterationStep.save();
+            await iterationStep.save();
             res.send({
                 status: true,
                 message: 'Explanations copied from demo.',
@@ -42,7 +45,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             status: ExplanationRunStatus.running
         }
 
-        iterationStep.save();
+        await iterationStep.save();
         
         const model = iterationStep.task.model
         const plan_properties = await PlanPropertyModel.find({ project: iterationStep.project}) as PlanProperty[];
@@ -52,47 +55,49 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             iterationStep.softGoals.includes(pp._id?.toString())
         );
 
-        console.log("used_plan_properties", used_plan_properties)
-        const exp_settings = {
-            plan_properties: used_plan_properties,
-            hard_goals: [],
-            soft_goals: used_plan_properties.map(pp => pp.name)
-        }
-        console.log("exp_settings", exp_settings)
-
 
         const baseURL = process.env.BASE_URL || 'host.docker.internal:3000'
-        let payload = JSON.stringify({
+        let payload: ExplainerRequest = {
             callback: baseURL + '/api/explainer/explain-step/' + refId + '/finished',
-            model,
-            exp_setting: JSON.stringify(exp_settings)
-        })
+            model: model,
+            goals: used_plan_properties,
+            hardGoals: used_plan_properties.filter(pp => pp.globalHardGoal).map(pp => pp._id).filter(pp => pp !== undefined),
+            softGoals: used_plan_properties.filter(pp => !pp.globalHardGoal).map(pp => pp._id).filter(pp => pp !== undefined),
+            id: iterationStep._id
+        };
 
-        // console.log(payload)
+        const project = await ProjectModel.findById(iterationStep.project) as Project;
+        if (!project) {
+            iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
+            await iterationStep.save();
+            return res.status(200).send({status: false, message:'compute explanation failed, project not found'});
+        }
 
-        const explainerServiceURL = process.env.EXPLAINER_SERVICE
-        const explainerRequest = new Request(explainerServiceURL + '/explain/all-mugs-msgs', 
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    authorization: "Bearer " + process.env.EXPLAINER_KEY
-                },
-                body: payload,
+        const services: Service[] = [];
+        for(const serviceId of project.settings.services.services) {
+            const service = await ServiceModel.findById(serviceId);
+            if(service && service.type == ServiceType.EXPLAINER){
+                services.push(service);
             }
-        )
+        }
 
+        if (services.length === 0) {
+            iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
+            await iterationStep.save();
+            console.log('No existing explainer service selected.');
+            return res.status(200).send({status: false, message:'No existing explainer service selected.'});
+        }
 
-        fetch(explainerRequest).then
-            (resp => console.log("Explain computation request submitted."),
-            error => console.log(error)
-        )
-        
-        res.send({
-            status: true,
-            message: 'Explanation computation registered',
-            data: true
-        });
+        const success = await callServices(services, JSON.stringify(payload), '/explanation');
+
+        if(!success){
+            iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
+            await iterationStep.save();
+            console.log('No explainer service available.');
+            return res.status(200).send({status: false, message:'No explainer service available.'});
+        }
+
+        res.status(200).send({status: true, message: 'Explanation computation registered.'})
 
     } catch (ex : any) {
         console.log(ex);
@@ -101,56 +106,58 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
 });
 
 
-
-interface Result {
-    complete: false,
-    subsets: string[][]
-  }
-
-  explainerRouter.post('/explain-step/:id/finished', authExplainer, async (req: any, res) => {
+  explainerRouter.post('/explain-step/:id/finished', authService, async (req: any, res) => {
 
       try {
+    
+            // console.log(req.body)
+            const refId = req.params.id;
+            const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+    
+            if (!iterationStep) {
+                return res.status(404).send('update step failed');
+            }
+
+            if(iterationStep.globalExplanation.status == ExplanationRunStatus.finished ||
+                iterationStep.globalExplanation.status == ExplanationRunStatus.failed
+               // we could update the result for failed runs if multiple explainer are used 
+            ){
+                console.log('Got repeated response for explainer call: ' + iterationStep._id);
+                return res.status(200).send('Explanation already computed.');
+            }
+    
+            const response = req.body as ExplainerResponse;
+    
+            let MUGS = response.result.MUGS;
+            let MGCS = response.result.MGCS;
+            let status = response.status
+    
+            console.log(MUGS)
+            console.log(MGCS)
+    
+            if(status === ExplanationRunStatus.finished){
+                iterationStep.globalExplanation.status = ExplanationRunStatus.finished;
+                iterationStep.globalExplanation.MUGS = JSON.stringify(MUGS.subsets)
+                iterationStep.globalExplanation.MGCS = JSON.stringify(MGCS.subsets)
+            }
+    
+    
+            if(status === ExplanationRunStatus.finished){
+                iterationStep.globalExplanation.status = ExplanationRunStatus.failed;
+            }
+    
+            iterationStep.save()
+            
+            res.send({
+                status: true,
+                message: 'Explanation computation finished',
+                data: true
+            });
   
-          console.log(req.body)
-          const refId = req.params.id;
-          const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
-  
-          if (!iterationStep) {
-              return res.status(404).send('update step failed');
-          }
-  
-  
-          let MUGS = req.body.MUGS as Result
-          let MGCS = req.body.MGCS as Result
-          let status = req.body.status
-  
-          console.log(MUGS)
-          console.log(MGCS)
-          console.log(status)
-  
-          if(status === 'FINISHED'){
-              iterationStep.globalExplanation.status = ExplanationRunStatus.finished;
-              iterationStep.globalExplanation.MUGS = JSON.stringify(MUGS.subsets)
-              iterationStep.globalExplanation.MGCS = JSON.stringify(MGCS.subsets)
-          }
-  
-  
-          if(status === 'FAILED'){
-              iterationStep.globalExplanation.status = ExplanationRunStatus.failed;
-          }
-  
-          iterationStep.save()
-          
-          res.send({
-              status: true,
-              message: 'Explanation computation finished',
-              data: true
-          });
-  
-      } catch (ex : any) {
-          console.log(ex);
-          res.status(404).send(ex.message);
-      }
+        } catch (ex : any) {
+            console.log(ex);
+            res.status(404).send(ex.message);
+        }
   });
 
 

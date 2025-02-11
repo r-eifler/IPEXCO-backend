@@ -1,6 +1,3 @@
-import { constants } from 'buffer';
-import mongoose, { Schema } from 'mongoose';
-import { Encoding } from './services';
 
 export interface PDDLType {
     name: string;
@@ -37,7 +34,7 @@ export interface PDDLAction {
     effect: PDDLFact[];
 }
 
-export interface PlanningDomain {
+export interface PDDLPlanningDomain {
     constants: {
         name: string; 
         type: string | undefined;
@@ -47,7 +44,7 @@ export interface PlanningDomain {
     actions: PDDLAction[];
 }
 
-export interface PlanningProblem {
+export interface PDDLPlanningProblem {
     objects: {
         name: string; 
         type: string | undefined;
@@ -56,27 +53,10 @@ export interface PlanningProblem {
     goal: PDDLFact[];
 }
 
-export interface PlanningModel extends PlanningDomain, PlanningProblem {}
+export interface PDDLPlanningModel extends PDDLPlanningDomain, PDDLPlanningProblem {}
 
 
-export const PlanningTaskSchema = new Schema({
-    name: String,
-    encoding: String,
-    model: String
-});
-
-
-export interface PlanningTask{
-    _id? : string;
-    name: string;
-    encoding: Encoding;
-    model: string;
-}
-
-
-export function toPDDL(model_string: string, with_goals=true): string[] {
-
-    let model = JSON.parse(model_string) as PlanningModel
+export function toPDDL(model: PDDLPlanningModel, with_goals=true): string[] {
 
     // domain
     let d = "(define (domain domainname)\n";
@@ -144,14 +124,6 @@ export function toPDDL(model_string: string, with_goals=true): string[] {
 
         return [d,p];
 }   
-
-export function taskSchema(planingTask: PlanningTask): string {
-    return JSON.stringify(planingTask);
-}
-
-
-export const PlanningTaskModel = mongoose.model<PlanningTask>('planning-task', PlanningTaskSchema);
-
 
 
 

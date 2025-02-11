@@ -3,6 +3,9 @@ import express from 'express';
 import { auth, authAny, AuthenticatedRequest } from '../middleware/auth';
 import { Demo, DemoModel } from '../db_schema/demo';
 import { ExplanationRunStatus } from '../db_schema/explanations';
+import { Project, ProjectModel } from '../db_schema/project';
+import { Service, ServiceModel, ServiceType } from '../db_schema/services';
+import { callServices } from '../services/utils';
 
 
 export const iterationStepRouter = express.Router();
@@ -59,24 +62,24 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
         iterStepData.user = req.user._id;
         iterStepData.task.model = JSON.stringify(iterStepData.task.model)
 
-        const iterationStep = new IterationStepModel(iterStepData);
-        if (!iterationStep) {
+        const step = new IterationStepModel(iterStepData);
+        if (!step) {
             return res.status(403).send('Iteration Step could not be created.');
         }
-        await iterationStep.save();
+        await step.save();
 
         const demo: Demo | null = await DemoModel.findOne({ _id: iterStepData?.project});
         if(demo){
             console.log('Extract explanations from demo.');
-            iterationStep.globalExplanation = demo.globalExplanation;
-            iterationStep.globalExplanation.status = ExplanationRunStatus.finished;
-            iterationStep.save();
+            step.globalExplanation = demo.globalExplanation;
+            step.globalExplanation.status = ExplanationRunStatus.finished;
+            await step.save();
         }
 
         res.send({
             status: true,
             message: 'Iteration Step is created.',
-            data: iterationStep
+            data: step
         });
     }
     catch (ex) {
@@ -104,26 +107,49 @@ iterationStepRouter.post('/cancel', authAny, async (req, res) => {
             return res.status(404).send({ message: 'No step found.' });
         }
 
+        const forwardCancelToPlanningService = step.plan.status == PlanRunStatus.running;
+
         step.status = StepStatus.unknown;
         step.plan.status = PlanRunStatus.canceled;
-        step.save();
+        await step.save();
 
-        const plannerServiceURL = process.env.PLANNER_SERVICE
-        const plannerRequest = new Request(plannerServiceURL + '/plan/cancel', 
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    authorization: "Bearer " + process.env.PLANNER_KEY
-                },
-                body: JSON.stringify({id}),
+        if(forwardCancelToPlanningService){
+            let project = await ProjectModel.findById(step.project) as Project;
+            if(!project){
+                project = await DemoModel.findById(step.project) as Project;
             }
-        )
+    
+            if (!project) {
+                console.log('[Cancel Plan Computation] Project does not exist.')
+                step.plan.status = PlanRunStatus.failed;
+                await step.save();
+                return res.status(200).send({status: false, message:'Project does not exists.'});
+            }
+    
+            const services: Service[] = [];
+            for(const serviceId of project.settings.services.services) {
+                const service = await ServiceModel.findById(serviceId);
+                if(service && service.type == ServiceType.PLANNER){
+                    services.push(service);
+                }
+            }
+    
+            if (services.length === 0) {
+                console.log('[Cancel Plan Computation] No selected planner service selected.')
+                step.plan.status = PlanRunStatus.failed;
+                await step.save();
+                return res.status(200).send({status: false, message: 'No existing planner service selected.'});
+            }
+    
+            const success = await callServices(services, JSON.stringify({id}), '/cancel');
+            if(!success){
+                step.plan.status = PlanRunStatus.failed;
+                await step.save();
+                console.log('[Cancel Plan Computation] No selected planner service reachable.')
+                return res.status(201).send({status: false, message:'No selected planner service reachable.'});
+            }
+        }
 
-        fetch(plannerRequest).then
-            (resp => console.log("Cancel computation request submitted."),
-            error => console.log(error)
-        )
     
         res.send({
             data: {canceled: true}
