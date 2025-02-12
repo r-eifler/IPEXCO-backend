@@ -9,6 +9,7 @@ import multer from 'multer';
 import path from 'path';
 import { ExplanationRunStatus } from '../db_schema/explanations';
 import { defaultGeneralSetting } from '../db_schema/settings';
+import { DomainSpecification, DomainSpecificationModel } from '../db_schema/domain_specification';
 
 
 
@@ -242,8 +243,6 @@ demoRouter.post('/compute-explanations/:id/finished', async (req: any, res) => {
         if(status === 'FINISHED'){
             demo.status = DemoRunStatus.finished;
             demo.globalExplanation.status = ExplanationRunStatus.finished;
-            demo.globalExplanation.MUGS = JSON.stringify(MUGS.subsets)
-            demo.globalExplanation.MGCS = JSON.stringify(MGCS.subsets)
         }
 
 
@@ -458,13 +457,23 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
 
     try {
 
+        //domain spec
+        const domainSpecData: DomainSpecification = req.body.domainSpecification as DomainSpecification;
+        domainSpecData.name = 'UPLOADED: ' + domainSpecData.name;
+        delete domainSpecData._id
+
+        const domainSpecModel =  new DomainSpecificationModel(domainSpecData);
+        await domainSpecModel.save();
+
+
+        // demo
         const demoData: Demo = req.body.demo as Demo;
         demoData.name = 'UPLOADED: ' + demoData.name;
         delete demoData.projectId;
-        demoData.baseTask.model = JSON.stringify(demoData.baseTask.model)
         demoData.globalExplanation.status = ExplanationRunStatus.finished;
-        demoData.globalExplanation.MUGS = JSON.stringify(demoData.globalExplanation.MUGS)
-        demoData.globalExplanation.MGCS = JSON.stringify(demoData.globalExplanation.MGCS)
+        demoData.settings.services.services = [];
+        demoData.settings.llmConfig.prompts = [];
+        demoData.settings.llmConfig.outputSchema = []
 
         delete demoData._id;
         const demoModel = new DemoModel(demoData);
@@ -472,6 +481,7 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
         demoModel.user = req.user._id;
         demoModel.public = false;
         demoModel.status = DemoRunStatus.finished;
+        demoModel.domain = domainSpecModel._id;
 
         if (!demoModel) {
             console.log("create demo failed");
@@ -480,6 +490,7 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
 
         await demoModel.save();
         
+        // plan properties
         const planPropertiesData: PlanProperty[] = req.body.planProperties;
         
         let planPropertyIdMapping: Record<string, string> = {};
@@ -506,13 +517,13 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
             return res.status(403);
         }
 
-        const MUGS: string[][] = JSON.parse(demoModel.globalExplanation.MUGS);
+        const MUGS: string[][] = demoModel.globalExplanation.MUGS;
         const newMappedMUGS = MUGS.map((mugs) => mugs.map(id => planPropertyIdMapping[id].toString()))
-        demoModel.globalExplanation.MUGS = JSON.stringify(newMappedMUGS);
+        demoModel.globalExplanation.MUGS = newMappedMUGS;
         
-        const MGCS: string[][] = JSON.parse(demoModel.globalExplanation.MGCS);
+        const MGCS: string[][] = demoModel.globalExplanation.MGCS;
         const newMappedMGCS= MGCS.map((mgcs) => mgcs.map(id => planPropertyIdMapping[id].toString()))
-        demoModel.globalExplanation.MGCS = JSON.stringify(newMappedMGCS);
+        demoModel.globalExplanation.MGCS = newMappedMGCS;
 
         await demoModel.save();
         

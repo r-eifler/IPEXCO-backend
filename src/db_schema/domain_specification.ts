@@ -1,7 +1,8 @@
 import mongoose, { Schema } from "mongoose";
 import { Encoding } from "./services";
 
-export interface DomainSpecification {
+export interface DomainSpecification extends Document{
+    _id?: string;
     name: string,
     encoding: Encoding,
     planPropertyTemplates: unknown[]  ;
@@ -15,4 +16,4 @@ const DomainSpecificationSchema = new Schema({
     description: { type: String, required: false},
 }); 
 
-export const DomainSpecificationModel = mongoose.model<DomainSpecification>('global-specification', DomainSpecificationSchema);
+export const DomainSpecificationModel = mongoose.model<DomainSpecification>('domain-specification', DomainSpecificationSchema);

@@ -137,8 +137,8 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
     
             if(status === ExplanationRunStatus.finished){
                 iterationStep.globalExplanation.status = ExplanationRunStatus.finished;
-                iterationStep.globalExplanation.MUGS = JSON.stringify(MUGS.subsets)
-                iterationStep.globalExplanation.MGCS = JSON.stringify(MGCS.subsets)
+                iterationStep.globalExplanation.MUGS = MUGS.subsets
+                iterationStep.globalExplanation.MGCS = MGCS.subsets
             }
     
     

@@ -34,7 +34,7 @@ export interface PlanProperty extends Document {
 const PlanPropertySchema = new Schema({
     name: { type: String, required: true},
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
-    definition: { type: Object, required: true},
+    definition: { type: Object, required: false},
     type: { type: String, required: true},
     formula: { type: String, required: false},
     actionSets: [ActionSetSchema],
