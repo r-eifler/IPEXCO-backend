@@ -4,7 +4,7 @@ import { authAny, authService } from '../middleware/auth';
 import { environment } from '../app';
 import { DemoModel } from '../db_schema/demo';
 import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
-import { PDDLPlanningModel } from '../db_schema/PDDL_model';
+import { PDDLPlanningModel } from '../db_schema/PDDL_task';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Project, ProjectModel } from '../db_schema/project';
 import { PlannerRequest, PlannerResponse, PropertyCheckerResponse, PropertyCheckRunStatus } from '../db_schema/service_communication';

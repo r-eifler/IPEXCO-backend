@@ -83,13 +83,13 @@ export const ExplanationSchema = new Schema({
 
 export interface GlobalExplanation{
     createdAt?: Date;
-    MUGS?: string;
-    MGCS?: string;
+    MUGS?: string[][];
+    MGCS?: string[][];
     status: ExplanationRunStatus;
 }
 
 export const GlobalExplanationSchema = new Schema({
-    MUGS: { type: String },
-    MGCS: { type: String },
+    MUGS: { type: Object },
+    MGCS: { type: Object },
     status: { type: Number, required: true}
 }, { timestamps: true});

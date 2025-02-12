@@ -4,12 +4,19 @@ import { ActionSet, ActionSetSchema } from './action_set';
 export enum GoalType {
     goalFact= 'G',
     LTL = 'LTL',
-    AS = 'AS'
-  }
+    AS = 'AS',
+    DOMAIN_DEPENDENT = "DOMAIN_DEPENDENT",
+}
+
+export interface PlanPropertyDefinition {
+    name: string;
+    parameters: string[]
+}
 
 export interface PlanProperty extends Document {
     _id?: string;
     name: string;
+    definition: PlanPropertyDefinition | null; 
     project: string;
     type: string;
     formula: string;
@@ -27,8 +34,9 @@ export interface PlanProperty extends Document {
 const PlanPropertySchema = new Schema({
     name: { type: String, required: true},
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
+    definition: { type: Object, required: true},
     type: { type: String, required: true},
-    formula: { type: String, required: true},
+    formula: { type: String, required: false},
     actionSets: [ActionSetSchema],
     naturalLanguageDescription: { type: String, required: true},
     isUsed: { type: Boolean, required: true},

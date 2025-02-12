@@ -1,4 +1,4 @@
-import { PlanningTask, PlanningTaskSchema } from './planning_model';
+import { PlanningTask, PlanningTaskSchema } from './planning_task';
 import { GeneralSettings, GeneralSettingsSchema } from './settings';
 import { User } from './user';
 import mongoose, { Document, Schema } from 'mongoose';

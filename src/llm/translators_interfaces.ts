@@ -1,6 +1,6 @@
 
 import { IterationStep } from "../db_schema/iteration_step";
-import { PDDLObject, PDDLPredicate } from "../db_schema/PDDL_model";
+import { PDDLObject, PDDLPredicate } from "../db_schema/PDDL_task";
 import { PlanProperty } from "../db_schema/plan-properties/plan_property";
 // goal-translator
 

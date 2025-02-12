@@ -1,12 +1,10 @@
 import mongoose, { Schema } from 'mongoose';
-import { PDDLPlanningModel } from './PDDL_model';
-import { DomainDependentPlanningModel } from './domain_dependent_model';
 
 
 export interface PlanningTask{
     _id? : string;
     name: string;
-    model: PDDLPlanningModel | DomainDependentPlanningModel; 
+    model: unknown; 
 }  
 
 export const PlanningTaskSchema = new Schema({

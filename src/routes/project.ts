@@ -15,19 +15,12 @@ projectRouter.post('/', auth, async (req: AuthenticatedRequest, res) => {
     try {
         const projectData: Project = req.body.data as Project;
 
-        console.log('-------------------------------------------------')
-        console.log(projectData.baseTask)
-        console.log('-------------------------------------------------')
-
         if (!req.user) {
             return res.status(401).send('Create project failed.');
         }
 
         projectData.user = req.user._id;
-        projectData.baseTask.model = JSON.stringify(projectData.baseTask.model)
         delete projectData._id;
-
-        console.log(projectData)
 
         const projectModel = new ProjectModel(projectData);
 

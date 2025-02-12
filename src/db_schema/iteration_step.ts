@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { Explanation, ExplanationSchema, GlobalExplanation, GlobalExplanationSchema } from './explanations';
-import { PlanningTask, PlanningTaskSchema } from './planning_model';
+import { PlanningTask, PlanningTaskSchema } from './planning_task';
 import { User } from './user';
 import { Action } from './plan-properties/action_set';
 
