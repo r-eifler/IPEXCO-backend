@@ -1,6 +1,6 @@
 import express from 'express';
 
-import { Service, ServiceModel } from '../db_schema/services';
+import { Service, ServiceBaseZ, ServiceModel } from '../db_schema/services';
 import { authAdmin, authAny } from '../middleware/auth';
 
 export const serviceRouter = express.Router();
@@ -8,19 +8,15 @@ export const serviceRouter = express.Router();
 
 serviceRouter.post('', authAdmin, async (req, res) => {
     try {
-        const serviceData = req.body.data as Service;
+        const serviceData = ServiceBaseZ.parse(req.body);
 
         const service = new ServiceModel(serviceData);
         if (!service) {
             return res.status(500).send('service not created');
         }
-        const data = await service.save();
+        const newService = await service.save();
 
-        res.send({
-            status: true,
-            message: 'service saved',
-            data
-        });
+        res.send(newService);
     }
     catch (ex : any) {
         console.log(ex.message);
@@ -33,7 +29,7 @@ serviceRouter.put('/:id', authAdmin, async (req, res) => {
     try {
         const refId = req.params.id;
 
-        const serviceData = req.body.data as Service;
+        const serviceData = ServiceBaseZ.parse(req.body);
 
         await ServiceModel.replaceOne({ _id: refId}, serviceData);
 
@@ -43,11 +39,7 @@ serviceRouter.put('/:id', authAdmin, async (req, res) => {
             return res.status(403).send('update service failed');
         }
 
-        res.send({
-            status: true,
-            message: 'service updated',
-            data: service
-        });
+        res.send(service);
 
     } catch (ex : any) {
         console.log(ex.message);
@@ -59,15 +51,14 @@ serviceRouter.put('/:id', authAdmin, async (req, res) => {
 serviceRouter.get('', authAny, async (req, res) => {
     try {
 
-        const service = await ServiceModel.find();
+        const services = await ServiceModel.find();
 
-        if (!service) { 
+        if (!services) { 
             return res.status(404).send({ message: 'No service found.' });
         }
 
-        res.send({
-            data: service
-        });
+        res.send(services);
+
     } catch (ex : any) {
         console.log(ex.message);
         res.status(500).send();
@@ -81,13 +72,12 @@ serviceRouter.delete('/:id', authAdmin, async (req, res) => {
     try{
         const result = await ServiceModel.deleteOne({ _id: req.params.id});
 
-        if (!result) { 
+        if (result.deletedCount !== 1) { 
             return res.status(404).send({ message: 'No service found.' });
         }
 
-        res.send({
-            data: result
-        });
+        res.send(true);
+
     } catch (ex : any) {
         console.log(ex.message);
         res.status(500).send();

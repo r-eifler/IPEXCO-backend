@@ -471,6 +471,7 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
         demoData.name = 'UPLOADED: ' + demoData.name;
         delete demoData.projectId;
         demoData.globalExplanation.status = ExplanationRunStatus.finished;
+        demoData.summaryImage = null;
         demoData.settings.services.services = [];
         demoData.settings.llmConfig.prompts = [];
         demoData.settings.llmConfig.outputSchema = []

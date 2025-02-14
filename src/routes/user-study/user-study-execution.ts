@@ -113,7 +113,7 @@ userStudyExecutionRouter.put('/save-llm-context', authAny, async (req: Authentic
                 data: llmContext
             };
 
-            executionData.timeLog?.push(JSON.stringify(action));
+            executionData.timeLog?.push(action);
             await executionData.save();
         }
 
