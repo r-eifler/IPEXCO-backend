@@ -1,5 +1,5 @@
 import mongoose, { Schema } from 'mongoose';
-import { z } from "zod";
+import { nativeEnum, nullable, object, string, infer as zinfer } from "zod";
 
 export enum ServiceType {
     PLANNER = 'PLANNER',
@@ -17,28 +17,27 @@ export enum Encoding{
     NONE = 'NONE'
 }
 
-const ServiceTypeZ = z.nativeEnum(ServiceType);
-const EncodingZ = z.nativeEnum(Encoding);
+export const ServiceTypeZ = nativeEnum(ServiceType);
+export const EncodingZ = nativeEnum(Encoding);
 
-export const ServiceBaseZ = z.object({
-    name: z.string(),
+export const ServiceBaseZ = object({
+    name: string(),
     type : ServiceTypeZ,
-    domainId: z.nullable(z.string()),
-    url: z.string(),
-    apiKey: z.string(),
+    domainId: nullable(string()),
+    url: string(),
+    apiKey: string(),
     encoding: EncodingZ,
 });
 
-export type ServiceBase = z.infer<typeof ServiceBaseZ>;
+export type ServiceBase = zinfer<typeof ServiceBaseZ>;
 
 export const ServiceZ = ServiceBaseZ.merge(
-    z.object({
-        _id: z.string(),
+    object({
+        _id: string(),
     })
 )
 
-export type Service = z.infer<typeof ServiceZ>;
-
+export type Service = zinfer<typeof ServiceZ>;
 
 const ServiceSchema = new Schema({
     name: { type: String, required: true},

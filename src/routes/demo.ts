@@ -9,7 +9,7 @@ import multer from 'multer';
 import path from 'path';
 import { ExplanationRunStatus } from '../db_schema/explanations';
 import { defaultGeneralSetting } from '../db_schema/settings';
-import { DomainSpecification, DomainSpecificationModel } from '../db_schema/domain_specification';
+import { DomainSpecification, DomainSpecificationBase, DomainSpecificationBaseZ, DomainSpecificationModel } from '../db_schema/domain_specification';
 
 
 
@@ -458,9 +458,8 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
     try {
 
         //domain spec
-        const domainSpecData: DomainSpecification = req.body.domainSpecification as DomainSpecification;
+        const domainSpecData: DomainSpecificationBase = DomainSpecificationBaseZ.parse(req.body.domainSpecification);
         domainSpecData.name = 'UPLOADED: ' + domainSpecData.name;
-        delete domainSpecData._id
 
         const domainSpecModel =  new DomainSpecificationModel(domainSpecData);
         await domainSpecModel.save();

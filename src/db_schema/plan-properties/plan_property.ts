@@ -1,5 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { array, nativeEnum, object, string, infer as zinfer } from "zod";
 import { ActionSet, ActionSetSchema } from './action_set';
+
 
 export enum GoalType {
     goalFact= 'G',
@@ -8,10 +10,14 @@ export enum GoalType {
     DOMAIN_DEPENDENT = "DOMAIN_DEPENDENT",
 }
 
-export interface PlanPropertyDefinition {
-    name: string;
-    parameters: string[]
-}
+export const GoalTypeZ = nativeEnum(GoalType);
+
+export const PlanPropertyDefinitionZ  = object({
+  name: string(),
+  parameters: array(string()),
+});
+
+export type PlanPropertyDefinition = zinfer<typeof PlanPropertyDefinitionZ>;
 
 export interface PlanProperty extends Document {
     _id?: string;

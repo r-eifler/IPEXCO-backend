@@ -1,14 +1,16 @@
 import express from 'express';
 
 import { auth, authAny } from '../middleware/auth';
-import { OutputSchema, OutputSchemaModel, Prompt, PromptModel } from '../db_schema/prompt';
+import { OutputSchema, OutputSchemaBaseZ, OutputSchemaModel, Prompt, PromptBaseZ, PromptModel } from '../db_schema/prompt';
 
 export const promptRouter = express.Router();
 
 
+// LLM Prompts
+
 promptRouter.post('/prompt', auth, async (req, res) => {
     try {
-        const promptData = req.body.data as Prompt;
+        const promptData = PromptBaseZ.parse(req.body.data);
 
         const prompt = new PromptModel(promptData);
         if (!prompt) {
@@ -16,11 +18,7 @@ promptRouter.post('/prompt', auth, async (req, res) => {
         }
         const data = await prompt.save();
 
-        res.send({
-            status: true,
-            message: 'prompt saved',
-            data
-        });
+        res.send(data);
     }
     catch (ex : any) {
         console.log(ex.message);
@@ -33,7 +31,7 @@ promptRouter.put('/prompt/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
 
-        const promptData = req.body.data as Prompt;
+        const promptData = PromptBaseZ.parse(req.body.data);
         console.log(promptData);
 
         await PromptModel.replaceOne({ _id: refId}, promptData);
@@ -44,11 +42,7 @@ promptRouter.put('/prompt/:id', auth, async (req, res) => {
             return res.status(403).send('update prompt failed');
         }
 
-        res.send({
-            status: true,
-            message: 'prompt updated',
-            data: prompt
-        });
+        res.send(prompt);
 
     } catch (ex : any) {
         console.log(ex.message);
@@ -60,15 +54,14 @@ promptRouter.put('/prompt/:id', auth, async (req, res) => {
 promptRouter.get('/prompt', authAny, async (req, res) => {
     try {
 
-        const prompt = await PromptModel.find();
+        const prompts = await PromptModel.find();
 
-        if (!prompt) { 
+        if (!prompts) { 
             return res.status(404).send({ message: 'No prompt found.' });
         }
 
-        res.send({
-            data: prompt
-        });
+        res.send(prompts);
+
     } catch (ex : any) {
         console.log(ex.message);
         res.status(500).send();
@@ -86,9 +79,8 @@ promptRouter.get('/prompt/:id', authAny, async (req, res) => {
             return res.status(404).send({ message: 'No prompt found.' });
         }
 
-        res.send({
-            data: prompt
-        });
+        res.send(prompt);
+
     } catch (ex : any) {
         console.log(ex.message);
         res.status(500).send();
@@ -101,23 +93,23 @@ promptRouter.delete('/prompt/:id', auth, async (req, res) => {
     try{
         const result = await PromptModel.deleteOne({ _id: req.params.id});
 
-        if (!result) { 
+        if (result.deletedCount == 1) { 
             return res.status(404).send({ message: 'No prompt found.' });
         }
 
-        res.send({
-            data: result
-        });
+        res.send(true);
+
     } catch (ex : any) {
         console.log(ex.message);
         res.status(500).send();
     }
 });
 
+// Output Schemas
 
 promptRouter.post('/output-schema', auth, async (req, res) => {
     try {
-        const outputSchemaData = req.body.data as OutputSchema;
+        const outputSchemaData = OutputSchemaBaseZ.parse(req.body.data);
 
         const outputSchema = new OutputSchemaModel(outputSchemaData);
         if (!outputSchema) {
@@ -125,11 +117,7 @@ promptRouter.post('/output-schema', auth, async (req, res) => {
         }
         const data = await outputSchema.save();
 
-        res.send({
-            status: true,
-            message: 'output schema saved',
-            data
-        });
+        res.send(data);
     }
     catch (ex : any) {
         console.log(ex.message);
@@ -142,7 +130,7 @@ promptRouter.put('/output-schema/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
 
-        const outputSchemaData = req.body.data as Prompt;
+        const outputSchemaData = OutputSchemaBaseZ.parse(req.body.data);
 
         await OutputSchemaModel.replaceOne({ _id: refId}, outputSchemaData);
 
@@ -152,11 +140,7 @@ promptRouter.put('/output-schema/:id', auth, async (req, res) => {
             return res.status(403).send('update output schema failed');
         }
 
-        res.send({
-            status: true,
-            message: 'prompt updated',
-            data: outputSchema
-        });
+        res.send(outputSchema);
 
     } catch (ex : any) {
         console.log(ex.message);
@@ -168,15 +152,14 @@ promptRouter.put('/output-schema/:id', auth, async (req, res) => {
 promptRouter.get('/output-schema', authAny, async (req, res) => {
     try {
 
-        const outputSchema = await OutputSchemaModel.find();
+        const outputSchemas = await OutputSchemaModel.find();
 
-        if (!outputSchema) { 
+        if (!outputSchemas) { 
             return res.status(404).send({ message: 'No output schema found.' });
         }
 
-        res.send({
-            data: outputSchema
-        });
+        res.send(outputSchemas);
+
     } catch (ex : any) {
         console.log(ex.message);
         res.status(500).send();
@@ -193,9 +176,8 @@ promptRouter.get('/output-schema/:id', authAny, async (req, res) => {
             return res.status(404).send({ message: 'No output schema found.' });
         }
 
-        res.send({
-            data: outputSchema
-        });
+        res.send(outputSchema);
+
     } catch (ex : any) {
         console.log(ex.message);
         res.status(500).send();
@@ -208,13 +190,12 @@ promptRouter.delete('/output-schema/:id', auth, async (req, res) => {
     try{
         const result = await OutputSchemaModel.deleteOne({ _id: req.params.id});
 
-        if (!result) { 
+        if (result.deletedCount == 1) { 
             return res.status(404).send({ message: 'No prompt found.' });
         }
 
-        res.send({
-            data: result
-        });
+        res.send(true);
+        
     } catch (ex : any) {
         console.log(ex.message);
         res.status(500).send();

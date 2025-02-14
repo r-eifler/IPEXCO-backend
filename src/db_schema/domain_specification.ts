@@ -1,13 +1,24 @@
 import mongoose, { Schema } from "mongoose";
-import { Encoding } from "./services";
+import { array, object, string, infer as zinfer } from "zod";
+import { PlanPropertyTemplateZ } from "./plan-properties/plan_property_template";
+import { EncodingZ } from "./services";
 
-export interface DomainSpecification extends Document{
-    _id?: string;
-    name: string,
-    encoding: Encoding,
-    planPropertyTemplates: unknown[]  ;
-    description: string;
-}
+export const DomainSpecificationBaseZ = object({
+    name: string(),
+    encoding: EncodingZ,
+    planPropertyTemplates: array(PlanPropertyTemplateZ),
+    description: string(),
+});
+
+export type DomainSpecificationBase = zinfer<typeof DomainSpecificationBaseZ>;
+
+export const DomainSpecificationZ = DomainSpecificationBaseZ.merge(
+    object({
+        _id: string(),
+    })
+);
+
+export type DomainSpecification = zinfer<typeof DomainSpecificationZ>;
 
 const DomainSpecificationSchema = new Schema({
     name: { type: String, required: false},
