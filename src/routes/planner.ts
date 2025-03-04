@@ -1,17 +1,14 @@
 import express from 'express';
 import { authAny, authService } from '../middleware/auth';
 
-import { environment } from '../app';
 import { DemoModel } from '../db_schema/demo';
 import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
-import { PDDLPlanningModel } from '../db_schema/PDDL_task';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Project, ProjectModel } from '../db_schema/project';
 import { PlannerRequest, PlannerResponse, PropertyCheckerResponse, PropertyCheckRunStatus } from '../db_schema/service_communication';
 import { Service, ServiceModel, ServiceType } from '../db_schema/services';
-import { PropertyCheck } from '../services/old_property_check';
-import { callServices } from '../services/utils';
 import { checkProperties } from '../services/pddl/property_check';
+import { callServices } from '../services/utils';
 
 export const plannerRouter = express.Router();
 
@@ -42,7 +39,7 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
         const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
         let payload: PlannerRequest = {
             callback:baseURL + '/api/planner/plan-step/finished/' + refId,
-            model: JSON.parse(model as string), //TODO should  not necessary 
+            model: model,
             goals: enforced_goals,
             hardGoals: enforced_goals.map(pp => pp._id).filter(pp => pp !== undefined),
             softGoals: [],

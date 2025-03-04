@@ -13,7 +13,6 @@ export enum DemoRunStatus {
 export interface Demo  extends Project{
     projectId?: string,
     status: DemoRunStatus;
-    completion: number;
     summaryImage: string | null;
     domainInfo: string;
     instanceInfo: string;
@@ -24,7 +23,6 @@ export interface Demo  extends Project{
 const DemoSchema = new Schema({
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
     status: { type: Number, required: true},
-    completion: { type: Number, required: true},
     summaryImage: { type: String, required: false},
     introduction: { type: String, required: false},
     domainInfo: { type: String, required: false},

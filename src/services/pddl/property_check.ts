@@ -34,7 +34,7 @@ export async function checkProperties(iterationStep: IterationStep) {
     let payload: PropertyCheckerRequest = {
         callback: baseURL + '/api/planner/plan-step/checked/' + iterationStep._id,
         id: iterationStep._id,
-        model: JSON.parse(iterationStep.task.model as string), //TODO should  not necessary,
+        model: iterationStep.task.model,
         goals: plan_properties,
         actions: iterationStep.plan?.actions
     }

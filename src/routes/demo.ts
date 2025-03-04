@@ -10,6 +10,9 @@ import path from 'path';
 import { ExplanationRunStatus } from '../db_schema/explanations';
 import { defaultGeneralSetting } from '../db_schema/settings';
 import { DomainSpecification, DomainSpecificationBase, DomainSpecificationBaseZ, DomainSpecificationModel } from '../db_schema/domain_specification';
+import { ExplainerRequest, ExplainerResponse } from '../db_schema/service_communication';
+import { Service, ServiceModel, ServiceType } from '../db_schema/services';
+import { callServices } from '../services/utils';
 
 
 
@@ -80,7 +83,7 @@ demoRouter.post('/', auth, async (req: any, res) => {
         demoModel.status = DemoRunStatus.pending;
         demoModel.globalExplanation = {
             createdAt: new Date(Date.now()),
-            status: ExplanationRunStatus.running
+            status: ExplanationRunStatus.RUNNING
         }
 
 
@@ -107,40 +110,41 @@ demoRouter.post('/', auth, async (req: any, res) => {
         demoModel.status = DemoRunStatus.running;
         await demoModel.save();
 
-
-        const exp_settings = {
-            plan_properties: planProperties,
-            hard_goals: planProperties.filter(pp => pp.globalHardGoal).map(pp => pp.name),
-            soft_goals: planProperties.filter(pp => !pp.globalHardGoal).map(pp => pp.name)
-        }
-
         const model = demoData.baseTask.model
         const baseURL = process.env.BASE_URL
-        let payload = JSON.stringify({
+        let payload: ExplainerRequest = {
             callback:baseURL + '/api/demo/compute-explanations/' + demoModel._id + '/finished',
             id: demoModel._id,
             model,
-            exp_setting: JSON.stringify(exp_settings)
-        })
+            goals: planProperties,
+            hardGoals: planProperties.filter(pp => pp.globalHardGoal).map(pp => pp.id),
+            softGoals: planProperties.filter(pp => !pp.globalHardGoal).map(pp => pp.id)
+        };
 
-        const explainerServiceURL = process.env.EXPLAINER_SERVICE
-        const explainerRequest = new Request(explainerServiceURL + '/explain/all-mugs-msgs', 
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    authorization: "Bearer " + process.env.EXPLAINER_KEY
-                },
-                body: payload,
+        const services: Service[] = [];
+        for(const serviceId of demoModel.settings.services.services) {
+            const service = await ServiceModel.findById(serviceId);
+            if(service && service.type == ServiceType.EXPLAINER){
+                services.push(service);
             }
-        )
+        }
 
+        if (services.length === 0) {
+            demoModel.globalExplanation.status == ExplanationRunStatus.FAILED;
+            await demoModel.save();
+            console.log('No existing explainer service selected.');
+            return res.status(200).send({status: false, message:'No existing explainer service selected.'});
+        }
 
-        fetch(explainerRequest).then
-            (resp => console.log("Explain computation request submitted."),
-            error => console.log(error)
-        )
-        
+        const success = await callServices(services, JSON.stringify(payload), '/explanation');
+
+        if(!success){
+            demoModel.globalExplanation.status == ExplanationRunStatus.FAILED;
+            await demoModel.save();
+            console.log('No explainer service available.');
+            return res.status(200).send({status: false, message:'No explainer service available.'});
+        }
+    
         res.send({
             status: true,
             message: 'Explain computation registered',
@@ -231,24 +235,26 @@ demoRouter.post('/compute-explanations/:id/finished', async (req: any, res) => {
             return res.status(404).send('update demo failed');
         }
 
+        const response = req.body as ExplainerResponse;
 
-        let MUGS = req.body.MUGS as Result
-        let MGCS = req.body.MGCS as Result
-        let status = req.body.status
-
+        let MUGS = response.result.MUGS;
+        let MGCS = response.result.MGCS;
+        let status = response.status
         // console.log(MUGS)
         // console.log(MGCS)
         // console.log(status)
 
         if(status === 'FINISHED'){
             demo.status = DemoRunStatus.finished;
-            demo.globalExplanation.status = ExplanationRunStatus.finished;
+            demo.globalExplanation.status = ExplanationRunStatus.FINISHED;
+            demo.globalExplanation.MUGS = MUGS.subsets;
+            demo.globalExplanation.MGCS = MGCS.subsets;
         }
 
 
         if(status === 'FAILED'){
             demo.status = DemoRunStatus.failed;
-            demo.globalExplanation.status = ExplanationRunStatus.failed;
+            demo.globalExplanation.status = ExplanationRunStatus.FAILED;
         }
 
         await demo.save()
@@ -469,7 +475,7 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
         const demoData: Demo = req.body.demo as Demo;
         demoData.name = 'UPLOADED: ' + demoData.name;
         delete demoData.projectId;
-        demoData.globalExplanation.status = ExplanationRunStatus.finished;
+        demoData.globalExplanation.status = ExplanationRunStatus.FINISHED;
         demoData.summaryImage = null;
         demoData.settings.services.services = [];
         demoData.settings.llmConfig.prompts = [];

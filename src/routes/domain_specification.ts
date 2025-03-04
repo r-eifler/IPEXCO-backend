@@ -8,7 +8,7 @@ export const domainSpecificationRouter = express.Router();
 
 domainSpecificationRouter.post('', auth, async (req, res) => {
     try {
-        const domainSpecificationData = DomainSpecificationZ.parse(req.body.data);
+        const domainSpecificationData = DomainSpecificationZ.parse(req.body);
 
         const domainSpecification = new DomainSpecificationModel(domainSpecificationData);
         if (!domainSpecification) {
@@ -29,7 +29,7 @@ domainSpecificationRouter.put('/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
 
-        const domainSpecificationData = DomainSpecificationZ.parse(req.body.data);
+        const domainSpecificationData = DomainSpecificationZ.parse(req.body);
 
         await DomainSpecificationModel.replaceOne({ _id: refId}, domainSpecificationData);
 

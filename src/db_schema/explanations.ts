@@ -61,10 +61,10 @@ export const AnswerSchema = new Schema({
 
 
 export enum ExplanationRunStatus {
-    pending,
-    running,
-    failed,
-    finished
+    PENDING = "PENDING",
+    RUNNING = "RUNNING",
+    FAILED = "FAILED",
+    FINISHED = "FINISHED"
 }
 
 export interface Explanation{
@@ -77,7 +77,7 @@ export interface Explanation{
 export const ExplanationSchema = new Schema({
     question: QuestionSchema,
     answer: AnswerSchema,
-    status: { type: Number, required: true}
+    status: { type: String, required: true}
 }, { timestamps: true});
 
 
@@ -91,5 +91,5 @@ export interface GlobalExplanation{
 export const GlobalExplanationSchema = new Schema({
     MUGS: { type: Object },
     MGCS: { type: Object },
-    status: { type: Number, required: true}
+    status: { type: String, required: true}
 }, { timestamps: true});

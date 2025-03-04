@@ -60,7 +60,7 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
         console.log("create iter step");
         let iterStepData = req.body.data as IterationStep;
         iterStepData.user = req.user._id;
-        iterStepData.task.model = JSON.stringify(iterStepData.task.model)
+        iterStepData.task.model = iterStepData.task.model;
 
         const step = new IterationStepModel(iterStepData);
         if (!step) {
@@ -72,7 +72,7 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
         if(demo){
             console.log('Extract explanations from demo.');
             step.globalExplanation = demo.globalExplanation;
-            step.globalExplanation.status = ExplanationRunStatus.finished;
+            step.globalExplanation.status = ExplanationRunStatus.FINISHED;
             await step.save();
         }
 
