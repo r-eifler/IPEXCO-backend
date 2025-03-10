@@ -5,7 +5,7 @@ import { DemoModel } from '../db_schema/demo';
 import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Project, ProjectModel } from '../db_schema/project';
-import { PlannerRequest, PlannerResponse, PropertyCheckerResponse, PropertyCheckRunStatus } from '../db_schema/service_communication';
+import { PlannerRequest, PlannerResponse, PropertyCheckerResponse, PropertyCheckerResponseZ, PropertyCheckRunStatus } from '../db_schema/service_communication';
 import { Service, ServiceModel, ServiceType } from '../db_schema/services';
 import { checkProperties } from '../services/pddl/property_check';
 import { callServices } from '../services/utils';
@@ -20,14 +20,14 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
         console.log('Compute plan of: ' + refId)
         const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
 
-        if (!iterationStep) {
+        if (iterationStep == null) {
             console.log('[Plan Computation] Iteration Step does not exist.')
             return res.status(404).send({status: false, message:'Iteration step does not exist.'});
         }
 
         iterationStep.plan = {
             createdAt: new Date(Date.now()),
-            status: PlanRunStatus.running
+            status: PlanRunStatus.RUNNING
         }
         await iterationStep.save();
         
@@ -53,7 +53,7 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
 
         if (!project) {
             console.log('[Plan Computation] Project does not exist.')
-            iterationStep.plan.status = PlanRunStatus.failed;
+            iterationStep.plan.status = PlanRunStatus.FAILED;
             await iterationStep.save();
             return res.status(200).send({status: false, message:'Project does not exists.'});
         }
@@ -68,14 +68,14 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
 
         if (services.length === 0) {
             console.log('[Plan Computation] No selected planner service selected.')
-            iterationStep.plan.status = PlanRunStatus.failed;
+            iterationStep.plan.status = PlanRunStatus.FAILED;
             await iterationStep.save();
             return res.status(200).send({status: false, message: 'No existing planner service selected.'});
         }
 
         const success = await callServices(services, JSON.stringify(payload), '/plan');
         if(!success){
-            iterationStep.plan.status = PlanRunStatus.failed;
+            iterationStep.plan.status = PlanRunStatus.FAILED;
             await iterationStep.save();
             console.log('[Plan Computation] No selected planner service reachable.')
             return res.status(201).send({status: false, message:'No selected planner service reachable.'});
@@ -106,13 +106,12 @@ plannerRouter.post('/plan-step/finished/:id', authService, async (req: any, res)
             return res.status(404).send('update plan failed');
         }
 
-        if (iterationStep.plan.status == PlanRunStatus.canceled) {
+        if (iterationStep.plan.status == PlanRunStatus.CANCELED) {
             return res.status(200).send('Plan run was canceled.');
         }
 
-        if (iterationStep.plan.status == PlanRunStatus.not_solvable || 
-            iterationStep.plan.status == PlanRunStatus.plan_found_not_checked || 
-            iterationStep.plan.status == PlanRunStatus.failed 
+        if (iterationStep.plan.status == PlanRunStatus.UNSOLVABLE || 
+            iterationStep.plan.status == PlanRunStatus.FAILED 
             // TODO we could update failed runs if multiple planner run in parallel
         ) {
             console.log('Got repeated response for plan call: ' + iterationStep._id);
@@ -123,22 +122,28 @@ plannerRouter.post('/plan-step/finished/:id', authService, async (req: any, res)
         const actions = response.actions;
         const status = response.status;
 
-        if(status === PlanRunStatus.not_solvable){
-            iterationStep.status = StepStatus.unsolvable
-            iterationStep.plan.status = PlanRunStatus.not_solvable;
+        if(status === PlanRunStatus.NO_PLAN_FOUND){
+            iterationStep.status = StepStatus.UNKNOWN
+            iterationStep.plan.status = PlanRunStatus.NO_PLAN_FOUND;
             await iterationStep.save();
         }
 
-        if(status === PlanRunStatus.failed){
-            iterationStep.status = StepStatus.unknown;
-            iterationStep.plan.status = PlanRunStatus.failed;
+        if(status === PlanRunStatus.UNSOLVABLE){
+            iterationStep.status = StepStatus.UNSOLVABLE
+            iterationStep.plan.status = PlanRunStatus.UNSOLVABLE;
             await iterationStep.save();
         }
 
-        if(status === PlanRunStatus.plan_found){
-            iterationStep.status = StepStatus.solvable;
+        if(status === PlanRunStatus.FAILED){
+            iterationStep.status = StepStatus.UNKNOWN;
+            iterationStep.plan.status = PlanRunStatus.FAILED;
+            await iterationStep.save();
+        }
+
+        if(status === PlanRunStatus.SOLVED){
+            iterationStep.status = StepStatus.SOLVABLE;
             iterationStep.plan.actions = actions;
-            iterationStep.plan.status = PlanRunStatus.plan_found_not_checked;
+            iterationStep.plan.satisfied_properties = undefined
             await iterationStep.save()
             checkProperties(iterationStep);
         }
@@ -170,19 +175,19 @@ plannerRouter.post('/plan-step/checked/:id', authService, async (req: any, res) 
             return res.status(404).send('update plan failed');
         }
 
-        if (iterationStep.plan.status == PlanRunStatus.canceled) {
+        if (iterationStep.plan.status == PlanRunStatus.CANCELED) {
             return res.status(200).send('Plan run was canceled.');
         }
 
-        if (iterationStep.plan.status == PlanRunStatus.not_solvable || 
-            iterationStep.plan.status == PlanRunStatus.plan_found || 
-            iterationStep.plan.status == PlanRunStatus.failed 
+        if (iterationStep.plan.status == PlanRunStatus.UNSOLVABLE || 
+            iterationStep.plan.status == PlanRunStatus.SOLVED || 
+            iterationStep.plan.status == PlanRunStatus.FAILED 
         ) {
             console.log('Got repeated response for check call: ' + iterationStep._id);
             return res.status(200).send('Plan run already checked.');
         }
 
-        const response = req.body as PropertyCheckerResponse;
+        const response = PropertyCheckerResponseZ.parse(req.body);
         const status = response.status;
         const satisfiedProperties = response.satisfiedProperties;
 
@@ -190,16 +195,16 @@ plannerRouter.post('/plan-step/checked/:id', authService, async (req: any, res) 
             status == PropertyCheckRunStatus.FAILED ||
             satisfiedProperties === null
         ){
-            iterationStep.status = StepStatus.unknown;
-            iterationStep.plan.status = PlanRunStatus.failed;
+            iterationStep.status = StepStatus.UNKNOWN;
+            iterationStep.plan.status = PlanRunStatus.FAILED;
             iterationStep.plan.actions = undefined;
             await iterationStep.save();
             return res.status(200).send();
         }
 
         if(status === PropertyCheckRunStatus.FINISHED){
-            iterationStep.status = StepStatus.solvable;
-            iterationStep.plan.status = PlanRunStatus.plan_found;
+            iterationStep.status = StepStatus.SOLVABLE;
+            iterationStep.plan.status = PlanRunStatus.SOLVED;
             
             console.log('Enforced Properties')
             console.log(iterationStep.hardGoals);
@@ -208,8 +213,8 @@ plannerRouter.post('/plan-step/checked/:id', authService, async (req: any, res) 
     
             // Check all enforced goals also satisfied
             if(! iterationStep.hardGoals.map(id => id.toString()).every(id => satisfiedProperties.includes(id))){
-                iterationStep.plan.status = PlanRunStatus.failed
-                iterationStep.status = StepStatus.unknown;
+                iterationStep.plan.status = PlanRunStatus.FAILED
+                iterationStep.status = StepStatus.UNKNOWN;
                 await iterationStep.save();
                 throw Error('Not all enforced goals are identified as satisfied by the property checker!');
             }

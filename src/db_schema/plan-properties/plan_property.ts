@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { array, nativeEnum, object, string, infer as zinfer } from "zod";
-import { ActionSet, ActionSetSchema } from './action_set';
+import { array, boolean, nativeEnum, nullable, number, object, string, infer as zinfer } from "zod";
+import { ActionSetSchema, ActionSetZ } from './action_set';
 
 
 export enum GoalType {
@@ -19,23 +19,24 @@ export const PlanPropertyDefinitionZ  = object({
 
 export type PlanPropertyDefinition = zinfer<typeof PlanPropertyDefinitionZ>;
 
-export interface PlanProperty extends Document {
-    _id?: string;
-    name: string;
-    definition: PlanPropertyDefinition | null; 
-    project: string;
-    type: string;
-    formula: string;
-    actionSets: [ActionSet];
-    naturalLanguageDescription: string;
-    isUsed: boolean;
-    globalHardGoal: boolean;
-    utility: number;
-    ranking: number;
-    color: string;
-    icon: string;
-    class: string;
-}
+export const PlanPropertyZ = object({
+    name: string(),
+    definition: nullable(PlanPropertyDefinitionZ),
+    project: string(),
+    type: GoalTypeZ,
+    formula: string(),
+    actionSets: array(ActionSetZ),
+    naturalLanguageDescription: string(),
+    isUsed: boolean(),
+    globalHardGoal: boolean(),
+    utility: number(),
+    ranking: number(),
+    color: string(),
+    icon: string(),
+    class: string()
+});
+
+export type PlanProperty = zinfer<typeof PlanPropertyZ> & Document;
 
 const PlanPropertySchema = new Schema({
     name: { type: String, required: true},

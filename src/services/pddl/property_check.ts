@@ -11,15 +11,15 @@ export async function checkProperties(iterationStep: IterationStep) {
 
     console.log('Check which properties are satisfied...')
 
-    if(iterationStep.plan?.status != PlanRunStatus.plan_found_not_checked || 
+    if(iterationStep.plan?.satisfied_properties === undefined || 
         !iterationStep.plan ||
         !iterationStep.plan.actions
     ){
         console.log('[Property Check] Step has no valid plan.')
         console.log(iterationStep.plan);
-        iterationStep.status = StepStatus.unknown;
+        iterationStep.status = StepStatus.UNKNOWN;
         if(iterationStep.plan){
-            iterationStep.plan.status = PlanRunStatus.failed;
+            iterationStep.plan.status = PlanRunStatus.FAILED;
             iterationStep.plan.actions = undefined;
         }
         await iterationStep.save();
@@ -46,8 +46,8 @@ export async function checkProperties(iterationStep: IterationStep) {
 
     if (!project) {
         console.log('[Property Check] Project does not exist.')
-        iterationStep.status = StepStatus.unknown;
-        iterationStep.plan.status = PlanRunStatus.failed;
+        iterationStep.status = StepStatus.UNKNOWN;
+        iterationStep.plan.status = PlanRunStatus.FAILED;
         iterationStep.plan.actions = undefined;
         await iterationStep.save();
         return;
@@ -63,8 +63,8 @@ export async function checkProperties(iterationStep: IterationStep) {
 
     if (services.length === 0) {
         console.log('[Property Check] No property checker service selected.')
-        iterationStep.status = StepStatus.unknown;
-        iterationStep.plan.status = PlanRunStatus.failed;
+        iterationStep.status = StepStatus.UNKNOWN;
+        iterationStep.plan.status = PlanRunStatus.FAILED;
         iterationStep.plan.actions = undefined;
         await iterationStep.save();
         return;
@@ -72,8 +72,8 @@ export async function checkProperties(iterationStep: IterationStep) {
 
     const success = await callServices(services, JSON.stringify(payload), '/check');
     if(!success){
-        iterationStep.status = StepStatus.unknown;
-        iterationStep.plan.status = PlanRunStatus.failed;
+        iterationStep.status = StepStatus.UNKNOWN;
+        iterationStep.plan.status = PlanRunStatus.FAILED;
         iterationStep.plan.actions = undefined;
         await iterationStep.save();
         console.log('[Property Check] No selected planner service reachable.')

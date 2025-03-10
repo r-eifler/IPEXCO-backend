@@ -28,7 +28,9 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
         // if iteration step belongs to a demo just extract the pre-computed 
         // explanations and store it in the iteration step
         const demo: Demo | null = await DemoModel.findOne({ _id: refId});
-        if(demo){
+        if(demo !== null && demo.globalExplanation !== undefined && 
+            demo.globalExplanation.status === ExplanationRunStatus.FINISHED
+        ){
             console.log('Extract explanations from demo.');
             iterationStep.globalExplanation = demo.globalExplanation;
             await iterationStep.save();

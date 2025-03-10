@@ -1,51 +1,58 @@
 import mongoose, { Schema } from "mongoose";
+import { array, boolean, nativeEnum, nullable, number, object, string, infer as zinfer} from "zod";
 
-export interface PaymentInfo {
-    min: number;
-    max: number;
-    steps: number[];
-  }
+export const PaymentInfoZ = object({
+    min: number(),
+    max: number(),
+    steps: array(number())
+  });
   
   export enum PropertyCreationInterfaceType {
     TEMPLATE_BASED = "TEMPLATE_BASED",
     LLM_CHAT = "LLM_CHAT",
-  }
+  };
+  
+  export const PropertyCreationInterfaceTypeZ = nativeEnum(PropertyCreationInterfaceType);
   
   export enum ExplanationInterfaceType {
     TEMPLATE_QUESTION_ANSWER = "TEMPLATE_QUESTION_ANSWER",
     MUGS_VISUALIZATION = "MUGS_VISUALIZATION",
     LLM_CHAT = "LLM_CHAT",
-  }
+  };
   
-  export interface GeneralSettings {
-    main: {
-        public: boolean;
-        maxRuns: number;
-        usePlanPropertyUtility: boolean;
-    }
-    services: {
-        computePlanAutomatically: boolean;
-        computeExplanationsAutomatically: boolean;
-        services: string[];
-    }
-    interfaces: {
-        propertyCreationInterfaceType: PropertyCreationInterfaceType;
-        explanationInterfaceType: ExplanationInterfaceType;
-    }
-    llmConfig: {
-        model: string,
-        temperature: number,
-        maxCompletionTokens: number| null,
-        prompts: string[],
-        outputSchema: string[],
-    }
-    userStudy: {
-        introTask: boolean;
-        checkMaxUtility: boolean;
-        showPaymentInfo: boolean;
-        paymentInfo?: PaymentInfo;
-    }
-  }
+  export const ExplanationInterfaceTypeZ = nativeEnum(ExplanationInterfaceType);
+  
+  export const GeneralSettingsZ = object({
+    main: object({
+        public: boolean(),
+        maxRuns: nullable(number()),
+        usePlanPropertyUtility: boolean(),
+    }),
+    services: object({
+        computePlanAutomatically: boolean(),
+        computeExplanationsAutomatically: boolean(),
+        services: array(string()),
+    }),
+    interfaces: object({
+        propertyCreationInterfaceType: PropertyCreationInterfaceTypeZ,
+        explanationInterfaceType: ExplanationInterfaceTypeZ,
+    }),
+    llmConfig: object({
+      model: string(),
+      temperature: number(),
+      maxCompletionTokens: nullable(number()),
+      prompts: array(string()),
+      outputSchema: array(string()),
+    }),
+    userStudy: object({
+        introTask: boolean(),
+        checkMaxUtility: boolean(),
+        showPaymentInfo: boolean(),
+        paymentInfo: PaymentInfoZ,
+    })
+  })
+  
+  export type GeneralSettings = zinfer<typeof GeneralSettingsZ>;
 
 
   export const GeneralSettingsSchema = new Schema({

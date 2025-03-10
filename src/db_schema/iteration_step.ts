@@ -1,32 +1,39 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { array, date, nativeEnum, object, string, infer as zinfer } from "zod";
 import { Explanation, ExplanationSchema, GlobalExplanation, GlobalExplanationSchema } from './explanations';
 import { PlanningTask, PlanningTaskSchema } from './planning_task';
 import { User } from './user';
-import { Action } from './plan-properties/action_set';
+import { ActionZ } from './plan-properties/action_set';
 
 
 export enum StepStatus{
-    unknown,
-    solvable,
-    unsolvable,
-  }
+    UNKNOWN = "UNKNOWN",
+    SOLVABLE = "SOLVABLE",
+    UNSOLVABLE = "UNSOLVABLE",
+}
+
+export const StepStatusZ = nativeEnum(StepStatus);
 
 export enum PlanRunStatus {
-    pending,
-    running,
-    failed,
-    plan_found,
-    not_solvable,
-    canceled,
-    plan_found_not_checked
+    PENDING = "PENDING",
+    RUNNING = "RUNNING",
+    SOLVED = "SOLVED",
+    UNSOLVABLE = "UNSOLVABLE",
+    NO_PLAN_FOUND = "NO_PLAN_FOUND",
+    CANCELED = "CANCELED",
+    FAILED = "FAILED",
 }
 
-export interface Plan{
-    createdAt?: Date;
-    status: PlanRunStatus;
-    actions?: Action[];
-    satisfied_properties?: string[];
-}
+export const PlanRunStatusZ = nativeEnum(PlanRunStatus);
+
+export const PlanZ = object({
+    createdAt: date(), 
+    status: PlanRunStatusZ,
+    actions: array(ActionZ).nullish(),
+    satisfied_properties: array(string()).optional(),
+});
+
+export type Plan = zinfer<typeof PlanZ>;
 
 const PlanSchema = new Schema({
     status: { type: Number, required: true},
