@@ -60,7 +60,10 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
         console.log("create iter step");
         let iterStepData = req.body.data as IterationStep;
         iterStepData.user = req.user._id;
-        iterStepData.task.model = iterStepData.task.model;
+        iterStepData.status = StepStatus.UNKNOWN;
+
+        console.log(iterStepData.task);
+
 
         const step = new IterationStepModel(iterStepData);
         if (!step) {

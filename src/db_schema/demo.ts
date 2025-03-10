@@ -27,10 +27,8 @@ export enum DemoRunStatus {
 const DemoSchema = new Schema({
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
     status: { type: String, required: true},
-    summaryImage: { type: String, required: false},
     introduction: { type: String, required: false},
     domainInfo: { type: String, required: false},
-    instanceInfo: { type: String, required: false},
     globalExplanation: {type: GlobalExplanationSchema, required: false},
     maxUtility: { type: String, required: false},
 });

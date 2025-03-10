@@ -1,6 +1,6 @@
 import express from 'express';
 import { auth, authAny, AuthenticatedRequest } from '../middleware/auth';
-import { BaseProjectModel, Project, ProjectMetaData } from './../db_schema/project';
+import { BaseProjectModel, Project, ProjectBase, ProjectBaseZ, ProjectMetaData, ProjectZ } from './../db_schema/project';
 
 import { DemoModel } from '../db_schema/demo';
 import { IterationStepModel } from '../db_schema/iteration_step';
@@ -14,14 +14,16 @@ export const projectRouter = express.Router();
 projectRouter.post('/', auth, async (req: AuthenticatedRequest, res) => {
     let projectId = null;;
     try {
-        const projectData: Project = req.body.data as Project;
+        const projectBaseData: ProjectBase = ProjectBaseZ.parse(req.body);
 
         if (!req.user) {
             return res.status(401).send('Create project failed.');
         }
 
-        projectData.user = req.user._id;
-        // delete projectData._id;
+        const projectData : ProjectBase & {user: string} = {
+            ...projectBaseData,
+            user: req.user._id
+        }
 
         const projectModel = new ProjectModel(projectData);
 
@@ -57,7 +59,7 @@ projectRouter.put('/:id', auth, async (req, res) => {
             return res.status(404).send('update project failed');
         }
 
-        const projectData: Project = req.body.data as Project;
+        const projectData = ProjectZ.parse(req.body);
 
         project.name = projectData.name;
         project.description = projectData.description;

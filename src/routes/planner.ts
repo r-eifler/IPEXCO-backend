@@ -67,7 +67,7 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
         }
 
         if (services.length === 0) {
-            console.log('[Plan Computation] No selected planner service selected.')
+            console.log('[Plan Computation] No planner service selected.')
             iterationStep.plan.status = PlanRunStatus.FAILED;
             await iterationStep.save();
             return res.status(200).send({status: false, message: 'No existing planner service selected.'});

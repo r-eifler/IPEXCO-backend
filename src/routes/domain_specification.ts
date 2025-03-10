@@ -1,14 +1,14 @@
 import express from 'express';
 
 import { auth, authAny } from '../middleware/auth';
-import { DomainSpecification, DomainSpecificationModel, DomainSpecificationZ } from '../db_schema/domain_specification';
+import { DomainSpecification, DomainSpecificationBaseZ, DomainSpecificationModel, DomainSpecificationZ } from '../db_schema/domain_specification';
 
 export const domainSpecificationRouter = express.Router();
 
 
 domainSpecificationRouter.post('', auth, async (req, res) => {
     try {
-        const domainSpecificationData = DomainSpecificationZ.parse(req.body);
+        const domainSpecificationData = DomainSpecificationBaseZ.parse(req.body);
 
         const domainSpecification = new DomainSpecificationModel(domainSpecificationData);
         if (!domainSpecification) {

@@ -11,9 +11,7 @@ export async function checkProperties(iterationStep: IterationStep) {
 
     console.log('Check which properties are satisfied...')
 
-    if(iterationStep.plan?.satisfied_properties === undefined || 
-        !iterationStep.plan ||
-        !iterationStep.plan.actions
+    if(!iterationStep.plan || !iterationStep.plan.actions
     ){
         console.log('[Property Check] Step has no valid plan.')
         console.log(iterationStep.plan);

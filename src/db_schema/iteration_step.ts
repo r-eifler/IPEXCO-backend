@@ -36,7 +36,7 @@ export const PlanZ = object({
 export type Plan = zinfer<typeof PlanZ>;
 
 const PlanSchema = new Schema({
-    status: { type: Number, required: true},
+    status: { type: String, required: true},
     plan: { type: String, required: false},
     satisfied_properties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     actions: { type: Object, required: false},
@@ -63,7 +63,7 @@ export interface IterationStep extends Document{
 const IterationStepSchema = new Schema({
     name: { type: String, required: true},
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    status: { type: Number, required: true},
+    status: { type: String, required: true},
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
     hardGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     softGoals: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],

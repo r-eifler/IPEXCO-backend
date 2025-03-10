@@ -49,8 +49,10 @@ const BaseProjectSchema = new Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     domain: { type: mongoose.Schema.Types.ObjectId, ref: 'domain-specification', required: false},
     description: { type: String, required: true},
+    instanceInfo: { type: String, required: false},
     baseTask: { type: PlanningTaskSchema, required: true},
     settings: { type: GeneralSettingsSchema, required: true},
+    summaryImage: { type: String, required: false},
 }, baseOptions);
 
 export const BaseProjectModel = mongoose.model<Project>('base-project', BaseProjectSchema);
