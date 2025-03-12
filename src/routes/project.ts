@@ -53,7 +53,7 @@ projectRouter.post('/', auth, async (req: AuthenticatedRequest, res) => {
 projectRouter.put('/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
-        const project: Project | null = await BaseProjectModel.findOne({ _id: refId});
+        const project = await BaseProjectModel.findOne({ _id: refId});
 
         if (!project) {
             return res.status(404).send('update project failed');

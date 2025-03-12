@@ -41,7 +41,7 @@ export const ProjectZ = ProjectBaseZ.merge(object({
   user: string()
 }));
 
-export type Project = zinfer<typeof ProjectZ> & Document;
+export type Project = zinfer<typeof ProjectZ>;
 
 const BaseProjectSchema = new Schema({
     name: { type: String, required: true},

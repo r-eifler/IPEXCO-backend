@@ -26,6 +26,25 @@ export const  PlannerResponseZ  = object({
 
 export type PlannerResponse = zinfer<typeof PlannerResponseZ>;
 
+
+export const SimplePlannerRequestZ = object({
+    id: string(),
+    callback: string(),
+    model: any(),
+});
+
+export type SimplePlannerRequest = zinfer<typeof SimplePlannerRequestZ>;
+
+export const  SimplePlannerResponseZ  = object({
+    id: string(),
+    status: PlanRunStatusZ,
+    actions: array(ActionZ),
+    runtime: number().optional() // in sec
+});
+
+export type SimplePlannerResponse = zinfer<typeof SimplePlannerResponseZ>;
+
+
 export const ExplainerRequestZ = object({
     id: string(),
     callback: string(),
