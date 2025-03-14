@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { array, date, nativeEnum, object, string, infer as zinfer } from "zod";
-import { Explanation, ExplanationSchema, GlobalExplanation, GlobalExplanationSchema } from './explanations';
-import { PlanningTask, PlanningTaskSchema } from './planning_task';
+import { array, coerce, date, nativeEnum, object, string, infer as zinfer } from "zod";
+import { Explanation, ExplanationSchema, GlobalExplanation, GlobalExplanationSchema, GlobalExplanationZ } from './explanations';
+import { PlanningTask, PlanningTaskSchema, PlanningTaskZ } from './planning_task';
 import { User } from './user';
 import { ActionZ } from './plan-properties/action_set';
 
@@ -44,21 +44,28 @@ const PlanSchema = new Schema({
 
 
 
-export interface IterationStep extends Document{
-    _id: string;
-    name: string;
-    user: User;
-    createdAt?: Date;
-    project: string;
-    status: StepStatus;
-    hardGoals: string[];
-    softGoals: string[];
-    task: PlanningTask;
-    plan?: Plan;
-    globalExplanation: GlobalExplanation;
-    explanations?: Explanation[];
-    predecessorStep: string | null;
-}
+
+export const IterationStepBaseZ = object({
+	name: string(),
+	project: string(),
+	status: StepStatusZ,
+	hardGoals: array(string()),
+	softGoals: array(string()),
+	task: PlanningTaskZ,
+	plan: PlanZ.optional(),
+	globalExplanation: GlobalExplanationZ.optional(),
+	predecessorStep: string().nullable(),
+});
+
+export type IterationStepBase = zinfer<typeof IterationStepBaseZ>;
+
+export const IterationStepZ = IterationStepBaseZ.merge(object({
+    _id: string(),
+    user: string(),
+    createdAt: coerce.date(),
+}));
+
+export type IterationStep = zinfer<typeof IterationStepZ>;
 
 const IterationStepSchema = new Schema({
     name: { type: String, required: true},

@@ -311,7 +311,7 @@ demoRouter.put('/:id', auth, async (req, res) => {
             return res.status(403).send('Demo not found');
         }
 
-        const demoData = DemoBaseZ.parse(req.body.demo);
+        const demoData = DemoBaseZ.parse(req.body);
 
         console.log(demoData);
 

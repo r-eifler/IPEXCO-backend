@@ -18,7 +18,7 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
 
         const refId = req.params.id;
         console.log('Compute plan of: ' + refId)
-        const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+        const iterationStep = await IterationStepModel.findOne({ _id: refId});
 
         if (iterationStep == null) {
             console.log('[Plan Computation] Iteration Step does not exist.')
@@ -96,7 +96,7 @@ plannerRouter.post('/plan-step/finished/:id', authService, async (req: any, res)
 
         // console.log(req.body)
         const refId = req.params.id;
-        const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+        const iterationStep = await IterationStepModel.findOne({ _id: refId});
 
         if (!iterationStep) {
             return res.status(404).send('update step failed');
@@ -165,7 +165,7 @@ plannerRouter.post('/plan-step/checked/:id', authService, async (req: any, res) 
 
         // console.log(req.body)
         const refId = req.params.id;
-        const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+        const iterationStep = await IterationStepModel.findOne({ _id: refId});
 
         if (!iterationStep) {
             return res.status(404).send('update step failed');

@@ -172,7 +172,7 @@ iterationStepRouter.post('/cancel', authAny, async (req, res) => {
 iterationStepRouter.put('/:id', authAny, async (req, res) => {
     try {
         const refId = req.params.id;
-        const step: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+        const step = await IterationStepModel.findOne({ _id: refId});
 
         if (!step) {
             return res.status(404).send('update step failed');

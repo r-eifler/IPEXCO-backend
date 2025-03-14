@@ -1,3 +1,4 @@
+import { Document } from 'mongoose';
 import { DemoModel } from "../../db_schema/demo";
 import { IterationStep, PlanRunStatus, StepStatus } from "../../db_schema/iteration_step";
 import { PlanProperty, PlanPropertyModel } from "../../db_schema/plan-properties/plan_property";
@@ -7,7 +8,7 @@ import { Service, ServiceModel, ServiceType } from "../../db_schema/services";
 import { callServices } from "../utils";
 
 
-export async function checkProperties(iterationStep: IterationStep) {
+export async function checkProperties(iterationStep: IterationStep & Document) {
 
     console.log('Check which properties are satisfied...')
 

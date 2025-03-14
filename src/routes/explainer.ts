@@ -19,7 +19,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
 
         const refId = req.params.id;
         console.log('Compute conflicts of: ' + refId)
-        const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+        const iterationStep = await IterationStepModel.findOne({ _id: refId});
 
         if (!iterationStep) {
             return res.status(404).send('update step failed');
@@ -114,9 +114,9 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
     
             // console.log(req.body)
             const refId = req.params.id;
-            const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+            const iterationStep = await IterationStepModel.findOne({ _id: refId});
     
-            if (!iterationStep) {
+            if (!iterationStep || iterationStep.globalExplanation === undefined) {
                 return res.status(404).send('update step failed');
             }
 

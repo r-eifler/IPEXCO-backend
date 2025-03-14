@@ -19,22 +19,27 @@ export const PlanPropertyDefinitionZ  = object({
 
 export type PlanPropertyDefinition = zinfer<typeof PlanPropertyDefinitionZ>;
 
-export const PlanPropertyZ = object({
+export const PlanPropertyBaseZ = object({
     name: string(),
     definition: nullable(PlanPropertyDefinitionZ),
-    project: string(),
     type: GoalTypeZ,
-    formula: string(),
-    actionSets: array(ActionSetZ),
+    formula: string().nullable(),
+    actionSets: array(ActionSetZ).optional(),
     naturalLanguageDescription: string(),
     isUsed: boolean(),
     globalHardGoal: boolean(),
     utility: number(),
-    ranking: number(),
     color: string(),
     icon: string(),
     class: string()
 });
+
+export type PlanPropertyBase = zinfer<typeof PlanPropertyBaseZ>;
+
+export const PlanPropertyZ = PlanPropertyBaseZ.merge(object({
+  _id: string(),
+  project: string(),
+}));
 
 export type PlanProperty = zinfer<typeof PlanPropertyZ> & Document;
 
