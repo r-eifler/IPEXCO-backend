@@ -3,7 +3,7 @@ import { auth, authService } from '../middleware/auth';
 
 import { Demo, DemoModel } from '../db_schema/demo';
 import { ExplanationRunStatus } from '../db_schema/explanations';
-import { IterationStep, IterationStepModel } from '../db_schema/iteration_step';
+import { IterationStepModel } from '../db_schema/iteration_step';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Project, ProjectModel } from '../db_schema/project';
 import { ExplainerRequest, ExplainerResponse } from '../db_schema/service_communication';
@@ -34,11 +34,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             console.log('Extract explanations from demo.');
             iterationStep.globalExplanation = demo.globalExplanation;
             await iterationStep.save();
-            res.send({
-                status: true,
-                message: 'Explanations copied from demo.',
-                data: true
-            });
+            return res.send(true);
         }
 
         // compute explanations
@@ -72,7 +68,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
         if (!project) {
             iterationStep.globalExplanation.status == ExplanationRunStatus.FAILED;
             await iterationStep.save();
-            return res.status(200).send({status: false, message:'compute explanation failed, project not found'});
+            return res.status(200).send(false);
         }
 
         const services: Service[] = [];
@@ -87,7 +83,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             iterationStep.globalExplanation.status == ExplanationRunStatus.FAILED;
             await iterationStep.save();
             console.log('No existing explainer service selected.');
-            return res.status(200).send({status: false, message:'No existing explainer service selected.'});
+            return res.status(200).send(false);
         }
 
         const success = await callServices(services, JSON.stringify(payload), '/explanation');
@@ -96,10 +92,10 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             iterationStep.globalExplanation.status == ExplanationRunStatus.FAILED;
             await iterationStep.save();
             console.log('No explainer service available.');
-            return res.status(200).send({status: false, message:'No explainer service available.'});
+            return res.status(200).send(false);
         }
 
-        res.status(200).send({status: true, message: 'Explanation computation registered.'})
+        return res.status(200).send(true)
 
     } catch (ex : any) {
         console.log(ex);

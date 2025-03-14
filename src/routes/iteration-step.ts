@@ -1,4 +1,4 @@
-import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
+import { IterationStep, IterationStepBaseZ, IterationStepModel, IterationStepZ, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
 import express from 'express';
 import { auth, authAny, AuthenticatedRequest } from '../middleware/auth';
 import { Demo, DemoModel, DemoRunStatus } from '../db_schema/demo';
@@ -6,6 +6,7 @@ import { ExplanationRunStatus } from '../db_schema/explanations';
 import { Project, ProjectModel } from '../db_schema/project';
 import { Service, ServiceModel, ServiceType } from '../db_schema/services';
 import { callServices } from '../services/utils';
+import { string} from 'zod';
 
 
 export const iterationStepRouter = express.Router();
@@ -13,7 +14,7 @@ export const iterationStepRouter = express.Router();
 iterationStepRouter.get('/', authAny, async (req: any, res) => {
 
     try{
-        const projectId: string = req.query.projectId as string;
+        const projectId: string = string().parse(req.query.projectId);
         const userId: string = req.user._id;
         const steps = await IterationStepModel.find({ project: projectId, user: userId})
 
@@ -21,9 +22,7 @@ iterationStepRouter.get('/', authAny, async (req: any, res) => {
             return res.status(404).send({ message: 'ERROR: No steps found.' });
         }
 
-        res.send({
-            data: steps
-        });
+        res.send(steps);
     }
     catch (ex : any) {
         console.log(ex.message);
@@ -35,15 +34,13 @@ iterationStepRouter.get('/', authAny, async (req: any, res) => {
 iterationStepRouter.get('/:id', authAny, async (req, res) => {
     try{
         const id =  req.params.id;
-        const run = await IterationStepModel.findOne({ _id: id});
+        const step = await IterationStepModel.findOne({ _id: id});
 
-        if (!run) { 
+        if (!step) { 
             return res.status(404).send({ message: 'No iteration step found.' });
         }
 
-        res.send({
-            data: run
-        });
+        res.send(step);
     }
     catch (ex : any) {
         console.log(ex.message);
@@ -58,9 +55,12 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
             return res.status(401).send('Create iteration step failed.');
         }
         console.log("create iter step");
-        let iterStepData = req.body.data as IterationStep;
-        iterStepData.user = req.user._id;
-        iterStepData.status = StepStatus.UNKNOWN;
+        const iterStepBaseData = IterationStepBaseZ.parse(req.body);
+        let iterStepData = {
+            ...iterStepBaseData,
+            user: req.user._id,
+            status: StepStatus.UNKNOWN,
+        }
 
         console.log(iterStepData.task);
 
@@ -83,11 +83,7 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
             await step.save();
         }
 
-        res.send({
-            status: true,
-            message: 'Iteration Step is created.',
-            data: step
-        });
+        res.send(step);
     }
     catch (ex) {
         console.log(ex);
@@ -101,7 +97,7 @@ iterationStepRouter.post('/cancel', authAny, async (req, res) => {
 
     try {
 
-        const id = req.body.iterationStepId;
+        const id = string().parse(req.body);
         console.log('Cancel: ' + id);
 
         const step = await IterationStepModel.findById(id);
@@ -178,17 +174,13 @@ iterationStepRouter.put('/:id', authAny, async (req, res) => {
             return res.status(404).send('update step failed');
         }
 
-        const stepData: IterationStep = req.body.data as IterationStep;
+        const stepData = IterationStepZ.parse(req.body);
 
         step.status = stepData.status;
 
         await step.save();
 
-        res.send({
-            status: true,
-            message: 'Step updated',
-            data: step
-        });
+        res.send(step);
 
     } catch (ex) {
         res.status(500);
@@ -206,9 +198,7 @@ iterationStepRouter.delete('/:id', auth, async (req, res) => {
             return res.status(404).send({ message: 'No step found.' });
         }
     
-        res.send({
-            data: {deleted: true}
-        });
+        res.send(result.deletedCount === 1);
     } catch (ex) {
         res.status(500);
     }

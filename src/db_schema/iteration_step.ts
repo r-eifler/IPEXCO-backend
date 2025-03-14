@@ -40,6 +40,7 @@ const PlanSchema = new Schema({
     plan: { type: String, required: false},
     satisfied_properties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property' }],
     actions: { type: Object, required: false},
+    createdAt: { type: Date, required: false},
 }, { timestamps: true}); 
 
 
