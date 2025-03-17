@@ -591,27 +591,35 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
     
         const projectId = req.body.projectId;
         const iterationStepId = req.body.iterationStepId;
-        const settings = getSettingsfromProjectId(projectId);
-        // const prompts = req.body.prompts;
-        const prompts : LLMPrompts = {
-            systemPrompt: "this is the system prompt",
-            gt: {
-                prompt: "You are a goal translator",
-                outputFormat: {structured: true, schema: '{"type":"json_schema","json_schema":{"name":"GT_feedback","strict":true,"schema":{"type":"object","properties":{"formula":{"type":"string","description":"The well-formed LTLf formula representing the input utterance using only provided predicates and objects."},"shortName":{"type":"string","description":"A very short description of the translated goal."},"reverseTranslation":{"type":"string","description":"The translation of the generated formula back into natural language to check if the translation is correct."},"feedback":{"type":["string","null"],"description":"Feedback provided to the user if the translation is not possible. Only use this entry in this case."}},"required":["formula","shortName","reverseTranslation","feedback"],"additionalProperties":false}}}'},
-            },
-            qt: {
-                prompt: "You are a question translator",
-                outputFormat: {
-                    structured:true, schema: '{"type":"json_schema","json_schema":{"name":"QT_feedback","strict":true,"schema":{"type":"object","properties":{"questionType":{"type":"string","description":"The type of question that was asked. S- means solvable planning task and US- means unsolvable planning task. DIRECT-USER means the question cannot be translated to a structured question and that you should answer directly. DIRECT-ET means the question is a follow-up question about the explanation and should be answered directly by the explanation translator. US- question type can only be used if the Solvable field of the input is False. and S- question type can only be used if the Solvable field of the input is True and the question is about a single property. In other cases, use DIRECT-USER or DIRECT-ET (you can decide what questions are follow-up questions to the explanation translator).","enum":["S-WHY-NOT","S-HOW","S-CAN","S-WHAT-IF","US-WHY","US-HOW","DIRECT-USER","DIRECT-ET"]},"questionArgument":{"type":"string","description":"The argument of the question that was asked, i.e. the goal or plan property that was asked about. Only use this entry if the questionType is S- or US-. You should only use this entry if the question is about a single property, not multiple properties. This field can only be filled by an element of one of the goals fields."},"used":{"type":"string","description":"Describes if the questionArgument is in one of the provided list of goals (ALREADY-USED) or not (NEVER-USED). If the questionType is US- or DIRECT- , use NO-ARGUMENT-REQUIRED. If the questionType is S- and the questionArgument is in one of the provided list of goals, use ALREADY-USED.","enum":["ALREADY-USED","NEVER-USED","NO-ARGUMENT-REQUIRED"]},"reverseTranslation":{"type":"string","description":"The translation of the question back into natural language to check if the translation is correct. Use this entry to signify  I understood you question as {reverseTranslation}  based on the questionType and questionArgument only. Only use this entry for S- and US- question types."},"directResponse":{"type":["string","null"],"description":"Response provided to the user if the translation to a structured question is not possible. Only use this entry for DIRECT question types. When the questionType is DIRECT-USER, reply to the user direcltly using this field. When the questionType is DIRECT-ET, just copy the question in this field."}},"required":["questionType","questionArgument","used","reverseTranslation","directResponse"],"additionalProperties":false}}}'
-                },
-            },
-            et: {
-                prompt: "You are an explanation translator",
-                outputFormat: {structured: true, schema: '{"type":"json_schema","json_schema":{"name":"ET_feedback","strict":true,"schema":{"type":"object","properties":{"output":{"type":"string","description":"The output of the explanation translator."}},"required":["output"],"additionalProperties":false}}}'}
-            }
-        }
+        const settings = await getSettingsfromProjectId(projectId);
 
-        const { seenByGTMessages, seenByETMessages, seenByQTMessages, outputFormatQT, outputFormatET, outputFormatGT } = await initializeAssistants(user._id, projectId, iterationStepId, prompts);
+        const llmConfig = settings?.llmConfig;
+
+        if(llmConfig == undefined){
+            return res.status(404).send({ message: 'no llmConfig found' });
+        }
+        
+        
+        // const prompts = req.body.prompts;
+        // const prompts : LLMPrompts = {
+        //     systemPrompt: "this is the system prompt",
+        //     gt: {
+        //         prompt: "You are a goal translator",
+        //         outputFormat: {structured: true, schema: '{"type":"json_schema","json_schema":{"name":"GT_feedback","strict":true,"schema":{"type":"object","properties":{"formula":{"type":"string","description":"The well-formed LTLf formula representing the input utterance using only provided predicates and objects."},"shortName":{"type":"string","description":"A very short description of the translated goal."},"reverseTranslation":{"type":"string","description":"The translation of the generated formula back into natural language to check if the translation is correct."},"feedback":{"type":["string","null"],"description":"Feedback provided to the user if the translation is not possible. Only use this entry in this case."}},"required":["formula","shortName","reverseTranslation","feedback"],"additionalProperties":false}}}'},
+        //     },
+        //     qt: {
+        //         prompt: "You are a question translator",
+        //         outputFormat: {
+        //             structured:true, schema: '{"type":"json_schema","json_schema":{"name":"QT_feedback","strict":true,"schema":{"type":"object","properties":{"questionType":{"type":"string","description":"The type of question that was asked. S- means solvable planning task and US- means unsolvable planning task. DIRECT-USER means the question cannot be translated to a structured question and that you should answer directly. DIRECT-ET means the question is a follow-up question about the explanation and should be answered directly by the explanation translator. US- question type can only be used if the Solvable field of the input is False. and S- question type can only be used if the Solvable field of the input is True and the question is about a single property. In other cases, use DIRECT-USER or DIRECT-ET (you can decide what questions are follow-up questions to the explanation translator).","enum":["S-WHY-NOT","S-HOW","S-CAN","S-WHAT-IF","US-WHY","US-HOW","DIRECT-USER","DIRECT-ET"]},"questionArgument":{"type":"string","description":"The argument of the question that was asked, i.e. the goal or plan property that was asked about. Only use this entry if the questionType is S- or US-. You should only use this entry if the question is about a single property, not multiple properties. This field can only be filled by an element of one of the goals fields."},"used":{"type":"string","description":"Describes if the questionArgument is in one of the provided list of goals (ALREADY-USED) or not (NEVER-USED). If the questionType is US- or DIRECT- , use NO-ARGUMENT-REQUIRED. If the questionType is S- and the questionArgument is in one of the provided list of goals, use ALREADY-USED.","enum":["ALREADY-USED","NEVER-USED","NO-ARGUMENT-REQUIRED"]},"reverseTranslation":{"type":"string","description":"The translation of the question back into natural language to check if the translation is correct. Use this entry to signify  I understood you question as {reverseTranslation}  based on the questionType and questionArgument only. Only use this entry for S- and US- question types."},"directResponse":{"type":["string","null"],"description":"Response provided to the user if the translation to a structured question is not possible. Only use this entry for DIRECT question types. When the questionType is DIRECT-USER, reply to the user direcltly using this field. When the questionType is DIRECT-ET, just copy the question in this field."}},"required":["questionType","questionArgument","used","reverseTranslation","directResponse"],"additionalProperties":false}}}'
+        //         },
+        //     },
+        //     et: {
+        //         prompt: "You are an explanation translator",
+        //         outputFormat: {structured: true, schema: '{"type":"json_schema","json_schema":{"name":"ET_feedback","strict":true,"schema":{"type":"object","properties":{"output":{"type":"string","description":"The output of the explanation translator."}},"required":["output"],"additionalProperties":false}}}'}
+        //     }
+        // }
+
+        const { seenByGTMessages, seenByETMessages, seenByQTMessages, outputFormatQT, outputFormatET, outputFormatGT } = await initializeAssistants(projectId);
 
         const llmContext = new LLMContextModel({
             user: user._id,
@@ -625,7 +633,7 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
             outputFormatQT: outputFormatQT,
             outputFormatET: outputFormatET,
             outputFormatGT: outputFormatGT,
-            settings: settings,
+            settings: llmConfig,
         });
         try {
             await llmContext.save();

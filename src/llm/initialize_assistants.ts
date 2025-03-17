@@ -14,6 +14,7 @@ import { openai_client } from "./openai_client";
 import { BaseProjectModel } from "../db_schema/project";
 import { AllLLMConfig } from "../db_schema/llm-config";
 import { LLMMessage } from "../db_schema/llm-context";
+import { OutputSchemaModel, PromptModel } from "../db_schema/prompt";
 export type OpenAIModelName = "gpt-4o-mini" | "gpt-4o" ;
 
 // const domains = {
@@ -81,24 +82,45 @@ export type OpenAIModelName = "gpt-4o-mini" | "gpt-4o" ;
 //     return assistant.id;
 // }
 
-export async function initializeAssistants(user: string, projectId: string, iterationStepId: string, prompts:any) {
+export async function initializeAssistants(projectId: string) {
    
     if (!process.env.OPENAI_API_KEY) {
         throw new Error('OPENAI_API_KEY is not set in the environment variables');
     }
-    const openai = openai_client;
 
     const projectSettings = await getProjectSettings(projectId);
-    const domainSpecification = await getDomainSpecification(projectId);
-    const systemPrompt = prompts.systemPrompt;
+
+    const promptsIds = projectSettings.llmConfig.prompts;
+    const outputSchemaIds = projectSettings.llmConfig.outputSchema;
+
+    // get the prompts and output schemas from the database 
+    const prompts = await PromptModel.find({_id: {$in: promptsIds}});
+    const outputSchemas = await OutputSchemaModel.find({ _id: { $in: outputSchemaIds } });
+    
+    const systemPrompt = prompts.find(prompt => prompt.type === "SYSTEM")?.text;
+    const gtPrompt = prompts.find(prompt => prompt.agent === "GOAL_TRANSLATOR")?.text;
+    const etPrompt = prompts.find(prompt => prompt.agent === "EXPLANATION_TRANSLATOR")?.text;
+    const qtPrompt = prompts.find(prompt => prompt.agent === "QUESTION_CLASSIFIER")?.text;
+
+    const outputFormatQT = outputSchemas.find(schema => schema.agent === "QUESTION_CLASSIFIER")?.text;
+    const outputFormatET = outputSchemas.find(schema => schema.agent === "EXPLANATION_TRANSLATOR")?.text;
+    const outputFormatGT = outputSchemas.find(schema => schema.agent === "GOAL_TRANSLATOR")?.text;
+
+    // check if the prompts are valid
+    if(!systemPrompt || !gtPrompt || !etPrompt || !qtPrompt){
+        throw new Error('One of the prompts is missing or invalid. printing all prompts: \n\n' + prompts);
+    }
+    if(!outputFormatQT || !outputFormatET || !outputFormatGT){
+        throw new Error('One of the output formats is missing or invalid. printing all output formats: \n\n' + outputSchemas);
+    }
       
     return {
-        seenByGTMessages:  [{role: "developer", content: `${systemPrompt}\n\n${prompts.gt.prompt}`}] ,
-        seenByETMessages:  [{role: "developer", content: `${systemPrompt}\n\n${prompts.et.prompt}`}] ,
-        seenByQTMessages:  [{role: "developer", content: `${systemPrompt}\n\n${prompts.qt.prompt}`}] ,
-        outputFormatQT: prompts.qt.outputFormat,
-        outputFormatET: prompts.et.outputFormat,
-        outputFormatGT: prompts.gt.outputFormat
+        seenByGTMessages:  [{role: "developer", content: `${systemPrompt}\n\n${gtPrompt}`}] ,
+        seenByETMessages:  [{role: "developer", content: `${systemPrompt}\n\n${etPrompt}`}] ,
+        seenByQTMessages:  [{role: "developer", content: `${systemPrompt}\n\n${qtPrompt}`}] ,
+        outputFormatQT: outputFormatQT,
+        outputFormatET: outputFormatET,
+        outputFormatGT: outputFormatGT
     };
 }
 
@@ -108,14 +130,6 @@ async function getProjectSettings(projectId: string) {
         throw new Error('Project not found');
     }
     return project.settings;
-}
-
-async function getDomainSpecification(projectId: string) {
-    const project = await BaseProjectModel.findById(projectId);
-    if (!project) {
-        throw new Error('Project not found');
-    }
-    return project.domain;
 }
 
 
