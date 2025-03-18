@@ -27,11 +27,11 @@ export async function callServices(services: Service[], payload: string, path: s
             atLeastOneSuccessfulSubmission = resp.status >= 200 && resp.status < 300;
         }
         catch(err){
-            console.log(`Request to ${service.name} failed`)
+            console.log(`Request to ${service.name}  with url ${service.url} and path ${path} failed`)
             // console.log(err);
         }
     }
 
-    console.log('Service reached: ' + atLeastOneSuccessfulSubmission);
+    console.log('Service reached: ' + atLeastOneSuccessfulSubmission );
     return atLeastOneSuccessfulSubmission;
 }
