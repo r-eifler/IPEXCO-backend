@@ -31,16 +31,8 @@ RUN npm install -g typescript
 RUN mkdir -p  /usr/src/app/dist/out-tsc/data
 VOLUME /usr/src/app/dist/out-tsc/data
 
-
 # environment
-ENV EXPERIMENTROOTPATH=/usr/run
-ENV PROPERTYCHECKER=/usr/src/utils/property_plan_checker/
-ENV PDDLPARSER=/usr/src/utils/pddl_parser/
-ENV VAL=/usr/src/utils/property_plan_checker/
-
 ENV UPLOADPATH=/usr/src/app/dist/out-tsc/data/uploads
-ENV RESULTPATH=/usr/src/app/dist/out-tsc/data/results
-ENV SERVERRESULTPATH=/results
 
 # run
 EXPOSE 3000

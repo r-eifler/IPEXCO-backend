@@ -2,36 +2,68 @@
 
 ## Setup
 
-### Docker Images
+**Note** Make sure that the submodule **utils** is initialized and updated!
 
-1. Install [Docker](https://docs.docker.com/engine/install/)
-1. Get Docker image ``docker pull` of 
-    1. back end: `eifler/ipexco:latest`
-    1. planner service: `eifler/planner-service:latest`
-    1. explainer service: `eifler/explainer-service:latest`
-    1. database: `mongo`
+### Dependencies
+
+The dependencies are:
+
+- `npm` (https://www.npmjs.com/)
+- `node.js` version 22 (https://nodejs.org/en)
+
+
+Before first run install npm packages with:
+
+```
+npm install
+```
 
 ### Environment
 
-1. update environment file `docker/backend.env`
-    - Set server key `JWT_KEY`
+The back-end requires the following environment variables to run:
 
-### Docker Compose
+- `PORT` the port the web server should be listening on (default `3000`)
+- `BASE_URL` the URL the backend is reachable on. It is used to compose the 
+    callback URL for the services. `http://localhost:3000` should work for a
+    local setup. On MacOS there might be some changes necessary since the network
+    sharing between the host and docker containers is different from Linux.
+- `MONGO` the URL of the mongoDB database. In a local setup 
+    `mongodb://localhost:27017/ipexco` should work.
+- `JWT_KEY`: a random string that is used to generate the login tokens to authenticate 
+    users
+- `SERVICE_KEY`: a random string that is used to authenticate any registered 
+    services, e.g. planner 
+- `PDDLPARSER=utils/pddl_parser/` the past to the in the `utils` submodule contained 
+    PDDL parser
+- `UPLOADPATH` a path to a local folder in with the uploaded images can be stored
 
-1. Update Docker compose file: `docker/docker-compose.yml`
-    - Set paths for database and server data
+Optional environment variables:
+
+- `ALLOW_REGISTRATION` set to `true` allows new users to register (default `false`)
+- `ALLOW_USER_STUDY_USERS` set to `true` allows users to participate in a user study
+
+Open AI keys:
+
+**TODO**
 
 ### Run
 
-`docker compose up --build`
+```
+npm start
+```
 
-## Create Project
+### Docker Image
 
-There are two sample domains/instances in the folder `docker/sample_instances`.
+We provide a pre-build docker image on DockerHub: `eifler/ipexco-backend`
 
-The following steps are needed to setup a project:
+If you want to build your own docker image tun
 
-1. (If you are not registered, do so.)
-2. Go to project and create a new project by uploading the `domain.pddl` and `problem.pddl` files.
-3. Open the project and go to **setting**. In the bottom copy the content of the `templates_X.json` fields into the JSON tab of the templates and save it.
-4. Go to the project overview and start *iterative planning*.
+```
+docker build -t ipexco-backend .
+```
+
+## Platform Usage
+
+For instruction how to use the platform we refer to the 
+[README](https://github.com/r-eifler/IPEXCO-frontend/blob/dev/README.md) of the 
+front-end repository.
