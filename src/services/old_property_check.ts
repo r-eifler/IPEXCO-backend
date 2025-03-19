@@ -1,29 +1,36 @@
-import { Project } from './../db_schema/project';
-import path from 'path';
-import { PlanProperty } from '../db_schema/plan-properties/plan_property';
-import { ExperimentSetting } from './experiment_setting';
 import * as child from 'child_process';
 import { writeFileSync } from 'fs';
-import { pythonShellCallSimple } from './python-call';
+import path from 'path';
 import { environment } from '../app';
-import { PlanningTask } from '../db_schema/planning_task';
-import { IterationStep } from '../db_schema/iteration_step';
+import { PDDLPlanningModel, toPDDL } from '../db_schema/PDDL_task';
+import { Action } from '../db_schema/plan-properties/action_set';
+import { PlanProperty } from '../db_schema/plan-properties/plan_property';
+import { pythonShellCallSimple } from './python-call';
+
+interface ExperimentSetting {
+    plan_properties: PlanProperty[];
+    hard_goals: string[];
+    soft_goals: string[];
+}
+
 
 export class PropertyCheck {
 
     runFolder: string;
 
     constructor(
-        protected root: string,
-        private step: IterationStep,
+        protected root_run_folder: string,
+        run_id: string,
+        model: PDDLPlanningModel,
+        plan: Action[],
         private planProperties: PlanProperty[])
     {
-        this.runFolder = path.join(root, String(step._id));
+
+        this.runFolder = path.join(root_run_folder, run_id);
 
         child.execSync(`mkdir -p ${this.runFolder}`);
 
-        const task = new PlanningTask(this.step.task)
-        const [domain, problem] = task.toPDDL(false);
+        const [domain, problem] = toPDDL(model, false);
 
         writeFileSync(path.join(this.runFolder, 'domain.pddl'),
             domain,
@@ -34,24 +41,24 @@ export class PropertyCheck {
             'utf8')
 
         writeFileSync(path.join(this.runFolder, 'model.json'),
-            task.model,
+            JSON.stringify(model),
             'utf8')
 
         writeFileSync(path.join(this.runFolder, 'exp_setting.json'),
             JSON.stringify(this.generate_experiment_setting()),
             'utf8');
 
-        if(this.step.plan?.actions === undefined) {
-            throw(Error)
-        }
-
         writeFileSync(path.join(this.runFolder, 'plan.json'),
-            this.step.plan?.actions,
+            JSON.stringify(plan),
             'utf8');
     }
 
     generate_experiment_setting(): ExperimentSetting {
-        return { hard_goals: [], plan_properties: this.planProperties, soft_goals: []};
+        return { 
+            plan_properties: this.planProperties, 
+            hard_goals: [], 
+            soft_goals: []
+        };
     }
 
     async executeRun(): Promise<string[]> {
@@ -82,3 +89,5 @@ export class PropertyCheck {
         child.execSync(`rm -r ${this.runFolder}`);
     }
 }
+
+

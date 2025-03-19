@@ -13,17 +13,20 @@ export const userRouter = express.Router();
 userRouter.post('/user-study', async (req, res) => {
     try {
         if(!environment.allowUserStudyUsers){
+            console.log('No user study users possible.');
             return res.status(403).send('No user study users possible.');
         }
 
         const userStudyId = req.body.userStudyId;
         if(userStudyId === null || userStudyId === undefined){
+            console.log('No user study specified!')
             return res.status(400).send('No user study specified!');
         }
 
         const userStudy: UserStudy | null = await UserStudyModel.findById(userStudyId);
 
         if(userStudy === null || userStudy?.startDate === undefined || userStudy?.endDate === undefined){
+            console.log('User Study not available anymore!')
             return res.status(400).send('User Study not available anymore!');
         }
 
@@ -31,6 +34,7 @@ userRouter.post('/user-study', async (req, res) => {
         const start  = new Date(userStudy?.startDate);
         const end = new Date(userStudy.endDate); 
         if (now < start || now > end){
+            console.log('User Study not available anymore!')
             return res.status(400).send('User Study not available anymore!');
         }
 
@@ -65,7 +69,7 @@ userRouter.post('/user-study', async (req, res) => {
             payment: 0,
         }
         const userStudyExecution = new UserStudyExecutionModel(userStudyExecutionData);
-        userStudyExecution.save();
+        await userStudyExecution.save();
 
         res.status(201).send({data: { 
             user: userData, 
@@ -79,6 +83,7 @@ userRouter.post('/user-study', async (req, res) => {
 
 userRouter.post('/', async (req, res) => {
     try {
+        console.log("Allow registration: " + environment.allowRegistration);
         if(!environment.allowRegistration){
             return res.status(403).send('No registration possible.');
         }

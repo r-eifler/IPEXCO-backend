@@ -1,13 +1,17 @@
-import { ProjectModel } from './../db_schema/project';
-import { authAny, AuthenticatedRequest, authForward } from './../middleware/auth';
-import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
-import { Demo, DemoModel, DemoRunStatus } from './../db_schema/demo';
 import express from 'express';
+import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { auth } from '../middleware/auth';
+import { Demo, DemoBaseZ, DemoModel, DemoRunStatus } from './../db_schema/demo';
+import { authAny, AuthenticatedRequest } from './../middleware/auth';
 
 import multer from 'multer';
 import path from 'path';
+import { string } from 'zod';
+import { DomainSpecificationBase, DomainSpecificationBaseZ, DomainSpecificationModel } from '../db_schema/domain_specification';
 import { ExplanationRunStatus } from '../db_schema/explanations';
+import { ExplainerRequest, ExplainerResponse, ExplainerResponseZ } from '../db_schema/service_communication';
+import { Service, ServiceModel, ServiceType } from '../db_schema/services';
+import { callServices } from '../services/utils';
 
 
 
@@ -68,19 +72,17 @@ demoRouter.post('/', auth, async (req: any, res) => {
 
     try {
 
-        const demoData: Demo = req.body.demo as Demo;
-        demoData.domainSpecification = JSON.stringify(demoData.domainSpecification)
-        demoData.baseTask.model = JSON.stringify(demoData.baseTask.model)
+        const demoData = DemoBaseZ.parse(req.body.demo);
 
-        delete demoData._id;
+        // delete demoData._id;
         const demoModel = new DemoModel(demoData);
 
         demoModel.user = req.user._id;
         demoModel.public = false;
-        demoModel.status = DemoRunStatus.pending;
+        demoModel.status = DemoRunStatus.PENDING;
         demoModel.globalExplanation = {
             createdAt: new Date(Date.now()),
-            status: ExplanationRunStatus.running
+            status: ExplanationRunStatus.RUNNING
         }
 
 
@@ -104,48 +106,45 @@ demoRouter.post('/', auth, async (req: any, res) => {
 
         const planProperties = await PlanPropertyModel.find({ project: demoModel._id});
 
-        demoModel.status = DemoRunStatus.running;
+        demoModel.status = DemoRunStatus.RUNNING;
         await demoModel.save();
-
-
-        const exp_settings = {
-            plan_properties: planProperties,
-            hard_goals: planProperties.filter(pp => pp.globalHardGoal).map(pp => pp.name),
-            soft_goals: planProperties.filter(pp => !pp.globalHardGoal).map(pp => pp.name)
-        }
 
         const model = demoData.baseTask.model
         const baseURL = process.env.BASE_URL
-        let payload = JSON.stringify({
+        let payload: ExplainerRequest = {
             callback:baseURL + '/api/demo/compute-explanations/' + demoModel._id + '/finished',
             id: demoModel._id,
             model,
-            exp_setting: JSON.stringify(exp_settings)
-        })
+            goals: planProperties,
+            hardGoals: planProperties.filter(pp => pp.globalHardGoal).map(pp => pp.id),
+            softGoals: planProperties.filter(pp => !pp.globalHardGoal).map(pp => pp.id)
+        };
 
-        const explainerServiceURL = process.env.EXPLAINER_SERVICE
-        const explainerRequest = new Request(explainerServiceURL + '/explain/all-mugs-msgs', 
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    authorization: "Bearer " + process.env.EXPLAINER_KEY
-                },
-                body: payload,
+        const services: Service[] = [];
+        for(const serviceId of demoModel.settings.services.services) {
+            const service = await ServiceModel.findById(serviceId);
+            if(service && service.type == ServiceType.EXPLAINER){
+                services.push(service);
             }
-        )
+        }
 
+        if (services.length === 0) {
+            demoModel.globalExplanation.status == ExplanationRunStatus.FAILED;
+            await demoModel.save();
+            console.log('No existing explainer service selected.');
+            return res.status(200).send(demoModel._id);
+        }
 
-        fetch(explainerRequest).then
-            (resp => console.log("Explain computation request submitted."),
-            error => console.log(error)
-        )
-        
-        res.send({
-            status: true,
-            message: 'Explain computation registered',
-            data: demoModel._id
-        });
+        const success = await callServices(services, JSON.stringify(payload), '/explanation');
+
+        if(!success){
+            demoModel.globalExplanation.status == ExplanationRunStatus.FAILED;
+            await demoModel.save();
+            console.log('No explainer service available.');
+            return res.status(200).send(demoModel._id);
+        }
+    
+        res.send(demoModel._id);
 
 
     } catch (ex) {
@@ -163,7 +162,7 @@ demoRouter.post('/cancel', auth, async (req: AuthenticatedRequest, res) => {
             return res.status(401).send();
         }
 
-        const id = req.body.demoId;
+        const id = string().parse(req.body.demoId);
         console.log('Cancel: ' + id);
 
         const demo: Demo | null = await DemoModel.findOne({_id: id, user: req.user._id});
@@ -172,7 +171,7 @@ demoRouter.post('/cancel', auth, async (req: AuthenticatedRequest, res) => {
             return res.status(404).send({ message: 'Demo not found.' });
         }
 
-        if (demo.status !== DemoRunStatus.pending && demo.status !== DemoRunStatus.running) { 
+        if (demo.status !== DemoRunStatus.PENDING && demo.status !== DemoRunStatus.RUNNING) { 
             return res.status(400).send({ message: 'Demo computation already finished.' });
         }
 
@@ -204,9 +203,7 @@ demoRouter.post('/cancel', auth, async (req: AuthenticatedRequest, res) => {
             return res.status(404).send({ message: 'Demo deletion failed.' });
         }
 
-        res.send({
-            // data: result
-        });
+        res.send(true);
     } catch (ex) {
         console.log(ex)
         res.status(500);
@@ -227,33 +224,33 @@ demoRouter.post('/compute-explanations/:id/finished', async (req: any, res) => {
         const refId = req.params.id;
         const demo: Demo | null = await DemoModel.findOne({ _id: refId});
 
-        if (!demo) {
+        if (demo === null || demo.globalExplanation === undefined) {
             return res.status(404).send('update demo failed');
         }
 
+        const response = ExplainerResponseZ.parse(req.body);
 
-        let MUGS = req.body.MUGS as Result
-        let MGCS = req.body.MGCS as Result
-        let status = req.body.status
-
+        let MUGS = response.result.MUGS;
+        let MGCS = response.result.MGCS;
+        let status = response.status
         // console.log(MUGS)
         // console.log(MGCS)
         // console.log(status)
 
         if(status === 'FINISHED'){
-            demo.status = DemoRunStatus.finished;
-            demo.globalExplanation.status = ExplanationRunStatus.finished;
-            demo.globalExplanation.MUGS = JSON.stringify(MUGS.subsets)
-            demo.globalExplanation.MGCS = JSON.stringify(MGCS.subsets)
+            demo.status = DemoRunStatus.FINISHED;
+            demo.globalExplanation.status = ExplanationRunStatus.FINISHED;
+            demo.globalExplanation.MUGS = MUGS.subsets;
+            demo.globalExplanation.MGCS = MGCS.subsets;
         }
 
 
         if(status === 'FAILED'){
-            demo.status = DemoRunStatus.failed;
-            demo.globalExplanation.status = ExplanationRunStatus.failed;
+            demo.status = DemoRunStatus.FAILED;
+            demo.globalExplanation.status = ExplanationRunStatus.FAILED;
         }
 
-        demo.save()
+        await demo.save()
         
         res.send({
             status: true,
@@ -280,7 +277,6 @@ demoRouter.post('/:id/image', auth, upload.single('summaryImage'), async (req, r
             return res.status(403).send('Demo not found');
         }
 
-        const demoData = req.body.data as Demo;
 
         let imageFilePath = null;
         if (req.file) {
@@ -315,55 +311,32 @@ demoRouter.put('/:id', auth, async (req, res) => {
             return res.status(403).send('Demo not found');
         }
 
-        const demoData = req.body.demo as Demo;
+        const demoData = DemoBaseZ.parse(req.body);
 
         console.log(demoData);
 
         demo.name = demoData.name;
         demo.description = demoData.description;
         demo.summaryImage = demoData.summaryImage;
-        demo.domainInfo = demoData.domainInfo;
         demo.instanceInfo = demoData.instanceInfo;
         demo.settings = demoData.settings;
 
         await demo.save();
 
-        res.send({
-            status: true,
-            message: 'Demo updated',
-            data: demo
-        });
+        res.send(demo);
     } catch (ex) {
         console.log(ex);
         return res.status(500);
     }
 });
 
-// demoRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
-//     try {
-//         const allDemos: Demo[] = await DemoModel.find();
-//         const demos = allDemos.filter(
-//             d => d.public || (req.user && d.user.toString() == req.user._id.toString())
-//         );
-
-//         if (!demos) { 
-//             return res.status(404).send({ message: 'No demos found' });
-//         }
-
-//         res.send({
-//             data: demos
-//         });
-
-//     } catch (ex) {
-//         res.status(500);
-//     }
-// });
 
 demoRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
     try {
         if (!req.user) {
             return res.status(401);
         }
+
         let demos = null;
         if (req.query.projectId === undefined) {
             demos = await DemoModel.find({ user: req.user._id});
@@ -377,9 +350,7 @@ demoRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
             { return res.status(404).send({ message: 'Demos not found.' }); 
         }
 
-        res.send({
-            data: demos
-        });
+        res.send(demos);
     } catch (ex) {
         console.log(ex)
         res.status(500);
@@ -402,9 +373,7 @@ demoRouter.get('/user-study', auth, async (req: AuthenticatedRequest, res) => {
             return res.status(404).send({ message: 'No demos found' });
         }
 
-        res.send({
-            data: demos
-        });
+        res.send(demos);
     } catch (ex) {
         console.log(ex)
         res.status(500);
@@ -423,9 +392,7 @@ demoRouter.get('/:id', authAny, async (req, res) => {
             { return res.status(404).send({ message: 'Demo not found.' }); 
         }
 
-        res.send({
-            data: demo
-        });
+        res.send(demo);
     } catch (ex) {
         console.log(ex)
         res.status(500);
@@ -463,9 +430,7 @@ demoRouter.delete('/:id', auth, async (req: AuthenticatedRequest, res) => {
             return res.status(404).send({ message: 'Demo deletion failed.' });
         }
 
-        res.send({
-            data: result
-        });
+        res.send(true);
     } catch (ex) {
         console.log(ex)
         res.status(500);
@@ -478,29 +443,50 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
 
     try {
 
-        const demoData: Demo = req.body.demo as Demo;
-        demoData.name = 'UPLOADED: ' + demoData.name;
-        delete demoData.projectId;
-        demoData.domainSpecification = JSON.stringify(demoData.domainSpecification)
-        demoData.baseTask.model = JSON.stringify(demoData.baseTask.model)
-        demoData.globalExplanation.status = ExplanationRunStatus.finished;
-        demoData.globalExplanation.MUGS = JSON.stringify(demoData.globalExplanation.MUGS)
-        demoData.globalExplanation.MGCS = JSON.stringify(demoData.globalExplanation.MGCS)
 
-        delete demoData._id;
+        // demo
+        const demoData = DemoBaseZ.parse(req.body.demo);
+        if(demoData.globalExplanation === undefined ||
+            demoData.globalExplanation.MUGS == undefined ||
+            demoData.globalExplanation.MGCS == undefined
+        ){
+            console.log("upload demo failed");
+            return res.status(403).send('upload demo failed');
+        }
+
+        //domain spec
+        const domainSpecData: DomainSpecificationBase = DomainSpecificationBaseZ.parse(req.body.domainSpecification);
+        domainSpecData.name = 'UPLOADED: ' + domainSpecData.name;
+
+        const domainSpecModel =  new DomainSpecificationModel(domainSpecData);
+        await domainSpecModel.save();
+
+
+        // demo
+        demoData.name = 'UPLOADED: ' + demoData.name;
+        demoData.projectId = null;
+        demoData.globalExplanation.status = ExplanationRunStatus.FINISHED;
+        demoData.summaryImage = null;
+        demoData.settings.services.services = [];
+        demoData.settings.llmConfig.prompts = [];
+        demoData.settings.llmConfig.outputSchema = []
+
+        // demoData._id = null;
         const demoModel = new DemoModel(demoData);
 
         demoModel.user = req.user._id;
         demoModel.public = false;
-        demoModel.status = DemoRunStatus.finished;
+        demoModel.status = DemoRunStatus.FINISHED;
+        demoModel.domain = domainSpecModel._id;
 
         if (!demoModel) {
-            console.log("create demo failed");
-            return res.status(403).send('create demo failed');
+            console.log("upload demo failed");
+            return res.status(403).send('upload demo failed');
         }
 
         await demoModel.save();
         
+        // plan properties
         const planPropertiesData: PlanProperty[] = req.body.planProperties;
         
         let planPropertyIdMapping: Record<string, string> = {};
@@ -523,25 +509,23 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
 
         // const planProperties = await PlanPropertyModel.find({ project: demoModel._id});
 
-        if(demoModel.globalExplanation.MUGS == undefined || demoModel.globalExplanation.MGCS == undefined){
+        if(demoModel.globalExplanation === undefined ||
+            demoModel.globalExplanation.MUGS == undefined || 
+            demoModel.globalExplanation.MGCS == undefined){
             return res.status(403);
         }
 
-        const MUGS: string[][] = JSON.parse(demoModel.globalExplanation.MUGS);
+        const MUGS: string[][] = demoModel.globalExplanation.MUGS;
         const newMappedMUGS = MUGS.map((mugs) => mugs.map(id => planPropertyIdMapping[id].toString()))
-        demoModel.globalExplanation.MUGS = JSON.stringify(newMappedMUGS);
+        demoModel.globalExplanation.MUGS = newMappedMUGS;
         
-        const MGCS: string[][] = JSON.parse(demoModel.globalExplanation.MGCS);
+        const MGCS: string[][] = demoModel.globalExplanation.MGCS;
         const newMappedMGCS= MGCS.map((mgcs) => mgcs.map(id => planPropertyIdMapping[id].toString()))
-        demoModel.globalExplanation.MGCS = JSON.stringify(newMappedMGCS);
+        demoModel.globalExplanation.MGCS = newMappedMGCS;
 
         await demoModel.save();
         
-        res.send({
-            status: true,
-            message: 'Explain computation registered',
-            data: demoModel._id
-        });
+        res.send(demoModel._id);
 
 
     } catch (ex) {

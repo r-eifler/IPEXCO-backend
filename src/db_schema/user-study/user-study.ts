@@ -30,8 +30,8 @@ export interface UserStudy extends Document{
     relatedProject: string;
     expectation: string;
     confidentiality: string;
-    startDate: string;
-    endDate: string;
+    startDate: Date;
+    endDate: Date;
     steps: UserStudyStep[];
     available: boolean;
     redirectUrl?: string;
@@ -45,8 +45,8 @@ const UserStudySchema = new Schema({
     relatedProject: { type: String, required: true},
     expectation: { type: String, required: true},
     confidentiality: { type: String, required: true},
-    startDate: { type: String, required: true},
-    endDate: { type: String, required: true},
+    startDate: { type: Date, required: true},
+    endDate: { type: Date, required: true},
     steps: [{ type: UserStudyStepSchema, required: true}],
     available: { type: Boolean, required: false},
     redirectUrl: { type: String, required: false},
