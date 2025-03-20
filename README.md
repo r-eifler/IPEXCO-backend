@@ -41,10 +41,8 @@ Optional environment variables:
 
 - `ALLOW_REGISTRATION` set to `true` allows new users to register (default `false`)
 - `ALLOW_USER_STUDY_USERS` set to `true` allows users to participate in a user study
+- `OPENAI_API_KEY`: the API key for the OpenAI service
 
-Open AI keys:
-
-**TODO**
 
 ### Run
 
