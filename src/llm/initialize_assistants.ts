@@ -93,6 +93,7 @@ export async function initializeAssistants(projectId: string) {
     const promptsIds = projectSettings.llmConfig.prompts;
     const outputSchemaIds = projectSettings.llmConfig.outputSchema;
 
+
     // get the prompts and output schemas from the database 
     const prompts = await PromptModel.find({_id: {$in: promptsIds}});
     const outputSchemas = await OutputSchemaModel.find({ _id: { $in: outputSchemaIds } });
@@ -107,10 +108,10 @@ export async function initializeAssistants(projectId: string) {
     const outputFormatGT = outputSchemas.find(schema => schema.agent === "GOAL_TRANSLATOR")?.text;
 
     // check if the prompts are valid
-    if(!systemPrompt || !gtPrompt || !etPrompt || !qtPrompt){
+    if(!systemPrompt || !etPrompt || !qtPrompt){
         throw new Error('One of the prompts is missing or invalid. printing all prompts: \n\n' + prompts);
     }
-    if(!outputFormatQT || !outputFormatET || !outputFormatGT){
+    if(!outputFormatQT || !outputFormatET){
         throw new Error('One of the output formats is missing or invalid. printing all output formats: \n\n' + outputSchemas);
     }
       

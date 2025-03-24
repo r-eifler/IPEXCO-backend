@@ -21,7 +21,9 @@ promptRouter.post('/prompt', auth, async (req, res) => {
         res.send(data);
     }
     catch (ex : any) {
+        console.log(ex);
         console.log(ex.message);
+        console.log("--------------------------------");
         res.status(500).send();
     }
 });

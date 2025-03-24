@@ -621,6 +621,7 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
 
         const { seenByGTMessages, seenByETMessages, seenByQTMessages, outputFormatQT, outputFormatET, outputFormatGT } = await initializeAssistants(projectId);
 
+        console.log("Creating LLMContextModel...");
         const llmContext = new LLMContextModel({
             user: user._id,
             project: projectId,
@@ -630,9 +631,9 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
             seenByGTMessages: seenByGTMessages,
             seenByETMessages: seenByETMessages,
             seenByQTMessages: seenByQTMessages,
-            outputFormatQT: outputFormatQT,
-            outputFormatET: outputFormatET,
-            outputFormatGT: outputFormatGT,
+            outputFormatQT: {structured: true, schema: outputFormatQT},
+            outputFormatET: {structured: true, schema: outputFormatET},
+            outputFormatGT: {structured: true, schema: outputFormatGT},
             settings: llmConfig,
         });
         try {
