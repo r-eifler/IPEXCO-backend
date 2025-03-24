@@ -1,5 +1,17 @@
 # IPEXCO - Iterative Planning Tool with Explanations of Conflicts - BACK END
 
+## Docker Image
+
+Unless you want to change/update the backend service, we suggest running 
+the planner in a docker container. 
+We provide a pre-build docker image on DockerHub: `eifler/ipexco-backend`
+
+If you want to build your own docker image tun
+
+```
+docker build -t ipexco-backend .
+```
+
 ## Setup
 
 **Note** Make sure that the submodule **utils** is initialized and updated!
@@ -18,7 +30,7 @@ Before first run install npm packages with:
 npm install
 ```
 
-### Environment
+## Environment
 
 The back-end requires the following environment variables to run:
 
@@ -50,16 +62,6 @@ Open AI keys:
 
 ```
 npm start
-```
-
-### Docker Image
-
-We provide a pre-build docker image on DockerHub: `eifler/ipexco-backend`
-
-If you want to build your own docker image tun
-
-```
-docker build -t ipexco-backend .
 ```
 
 ## Platform Usage
