@@ -27,9 +27,10 @@ import { pddlRouter } from './routes/pddl';
 import { LLMRouter } from './routes/llm-connector';
 
 import { explainerRouter } from './routes/explainer';
-import { domainSpecificationRouter } from './routes/globalSpecification';
+import { domainSpecificationRouter } from './routes/domain_specification';
 import { promptRouter } from './routes/prompt';
 import { serviceRouter } from './routes/services';
+import { planRouter } from './routes/plan';
 
 
 
@@ -105,6 +106,7 @@ app.use('/api/user-study-execution', userStudyExecutionRouter);
 
 app.use('/api/demo', demoRouter);
 app.use('/api/iteration-step', iterationStepRouter);
+app.use('/api/plan', planRouter);
 
 app.use('/api/plan-property', planPropertyRouter);
 

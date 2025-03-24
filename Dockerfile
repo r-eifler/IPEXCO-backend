@@ -3,6 +3,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update
 RUN apt-get upgrade -y
+RUN apt-get update
+RUN apt-get upgrade -y
 RUN apt-get install python3 -y
 RUN apt-get install -y python3-pip
 RUN python3 -m pip install setuptools --break-system-packages
@@ -21,7 +23,7 @@ RUN apt-get install -y nodejs
 RUN mkdir -p /usr/src/app
 COPY . /usr/src/app
 WORKDIR /usr/src/app
-RUN rm -r node_modules
+RUN rm -rf node_modules
 RUN npm install
 RUN npm install -g typescript
 
@@ -29,16 +31,8 @@ RUN npm install -g typescript
 RUN mkdir -p  /usr/src/app/dist/out-tsc/data
 VOLUME /usr/src/app/dist/out-tsc/data
 
-
 # environment
-ENV EXPERIMENTROOTPATH=/usr/run
-ENV PROPERTYCHECKER=/usr/src/utils/property_plan_checker/
-ENV PDDLPARSER=/usr/src/utils/pddl_parser/
-ENV VAL=/usr/src/utils/property_plan_checker/
-
 ENV UPLOADPATH=/usr/src/app/dist/out-tsc/data/uploads
-ENV RESULTPATH=/usr/src/app/dist/out-tsc/data/results
-ENV SERVERRESULTPATH=/results
 
 # run
 EXPOSE 3000

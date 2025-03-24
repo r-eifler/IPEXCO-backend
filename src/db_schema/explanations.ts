@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { PlanProperty } from "./plan-properties/plan_property";
+import { array, coerce, date, nativeEnum, object, optional, string, infer as zinfer } from "zod";
 
 export enum QuestionType {
     WHY_PLAN = 'US-WHY', // Why is the task unsolvable?
@@ -61,10 +61,10 @@ export const AnswerSchema = new Schema({
 
 
 export enum ExplanationRunStatus {
-    pending,
-    running,
-    failed,
-    finished
+    PENDING = "PENDING",
+    RUNNING = "RUNNING",
+    FAILED = "FAILED",
+    FINISHED = "FINISHED"
 }
 
 export interface Explanation{
@@ -77,19 +77,33 @@ export interface Explanation{
 export const ExplanationSchema = new Schema({
     question: QuestionSchema,
     answer: AnswerSchema,
-    status: { type: Number, required: true}
+    status: { type: String, required: true}
 }, { timestamps: true});
 
+  
+export const ExplanationRunStatusZ = nativeEnum(ExplanationRunStatus);
 
-export interface GlobalExplanation{
-    createdAt?: Date;
-    MUGS?: string;
-    MGCS?: string;
-    status: ExplanationRunStatus;
-}
+export const GlobalExplanationZ = object({
+	createdAt: coerce.date(),
+	MUGS: optional(array(array(string()))),
+	MGCS: optional(array(array(string()))),
+	status: ExplanationRunStatusZ
+});
+
+export type GlobalExplanation = zinfer<typeof GlobalExplanationZ>;
+
+export const DefinedGlobalExplanationZ = object({
+	createdAt: coerce.date(),
+	MUGS: array(array(string())),
+	MGCS: array(array(string())),
+	status: ExplanationRunStatusZ
+});
+
+export type DefinedGlobalExplanation = zinfer<typeof DefinedGlobalExplanationZ>;
 
 export const GlobalExplanationSchema = new Schema({
-    MUGS: { type: String },
-    MGCS: { type: String },
-    status: { type: Number, required: true}
+    createdAt: { type: Date },
+    MUGS: { type: Object },
+    MGCS: { type: Object },
+    status: { type: String, required: true}
 }, { timestamps: true});

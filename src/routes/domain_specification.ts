@@ -1,14 +1,14 @@
 import express from 'express';
 
 import { auth, authAny } from '../middleware/auth';
-import { DomainSpecification, DomainSpecificationModel } from '../db_schema/domain_specification';
+import { DomainSpecification, DomainSpecificationBaseZ, DomainSpecificationModel, DomainSpecificationZ } from '../db_schema/domain_specification';
 
 export const domainSpecificationRouter = express.Router();
 
 
 domainSpecificationRouter.post('', auth, async (req, res) => {
     try {
-        const domainSpecificationData = req.body.data as DomainSpecification;
+        const domainSpecificationData = DomainSpecificationBaseZ.parse(req.body);
 
         const domainSpecification = new DomainSpecificationModel(domainSpecificationData);
         if (!domainSpecification) {
@@ -16,11 +16,7 @@ domainSpecificationRouter.post('', auth, async (req, res) => {
         }
         const data = await domainSpecification.save();
 
-        res.send({
-            status: true,
-            message: 'domain specification saved',
-            data
-        });
+        res.send(data);
     }
     catch (ex : any) {
         console.log(ex.message);
@@ -33,7 +29,7 @@ domainSpecificationRouter.put('/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
 
-        const domainSpecificationData = req.body.data as DomainSpecification;
+        const domainSpecificationData = DomainSpecificationZ.parse(req.body);
 
         await DomainSpecificationModel.replaceOne({ _id: refId}, domainSpecificationData);
 
@@ -43,11 +39,7 @@ domainSpecificationRouter.put('/:id', auth, async (req, res) => {
             return res.status(403).send('update domain specification failed');
         }
 
-        res.send({
-            status: true,
-            message: 'domain specification updated',
-            data: domainSpecification
-        });
+        res.send(domainSpecification);
 
     } catch (ex : any) {
         console.log(ex.message);
@@ -59,15 +51,14 @@ domainSpecificationRouter.put('/:id', auth, async (req, res) => {
 domainSpecificationRouter.get('', authAny, async (req, res) => {
     try {
 
-        const domainSpecification = await DomainSpecificationModel.find();
+        const domainSpecifications = await DomainSpecificationModel.find();
 
-        if (!domainSpecification) { 
+        if (!domainSpecifications) { 
             return res.status(404).send({ message: 'No domainSpecification found.' });
         }
 
-        res.send({
-            data: domainSpecification
-        });
+        res.send(domainSpecifications);
+
     } catch (ex : any) {
         console.log(ex.message);
         res.status(500).send();
@@ -84,9 +75,8 @@ domainSpecificationRouter.get('/:id', authAny, async (req, res) => {
             return res.status(404).send({ message: 'No domainSpecification found.' });
         }
 
-        res.send({
-            data: domainSpecification
-        });
+        res.send(domainSpecification);
+
     } catch (ex : any) {
         console.log(ex.message);
         res.status(500).send();
@@ -99,13 +89,12 @@ domainSpecificationRouter.delete('/:id', auth, async (req, res) => {
     try{
         const result = await DomainSpecificationModel.deleteOne({ _id: req.params.id});
 
-        if (!result) { 
+        if (result.deletedCount == 1) { 
             return res.status(404).send({ message: 'No domainSpecification found.' });
         }
 
-        res.send({
-            data: result
-        });
+        res.send(true);
+
     } catch (ex : any) {
         console.log(ex.message);
         res.status(500).send();

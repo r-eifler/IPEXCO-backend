@@ -2,7 +2,7 @@ import * as child from 'child_process';
 import { writeFileSync } from 'fs';
 import path from 'path';
 import { environment } from '../app';
-import { PDDLPlanningModel, toPDDL } from '../db_schema/PDDL_model';
+import { PDDLPlanningModel, toPDDL } from '../db_schema/PDDL_task';
 import { Action } from '../db_schema/plan-properties/action_set';
 import { PlanProperty } from '../db_schema/plan-properties/plan_property';
 import { pythonShellCallSimple } from './python-call';

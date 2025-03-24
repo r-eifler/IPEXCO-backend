@@ -1,10 +1,11 @@
-import { BaseProjectModel, Project, ProjectMetaData} from './../db_schema/project';
-import { auth, authAny, AuthenticatedRequest } from '../middleware/auth';
 import express from 'express';
+import { auth, authAny, AuthenticatedRequest } from '../middleware/auth';
+import { BaseProjectModel, Project, ProjectBase, ProjectBaseZ, ProjectMetaData, ProjectZ } from './../db_schema/project';
 
-import { ProjectModel } from '../db_schema/project';
 import { DemoModel } from '../db_schema/demo';
-import { defaultGeneralSetting } from '../db_schema/settings';
+import { IterationStepModel } from '../db_schema/iteration_step';
+import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
+import { ProjectModel } from '../db_schema/project';
 
 export const projectRouter = express.Router();
 
@@ -13,21 +14,16 @@ export const projectRouter = express.Router();
 projectRouter.post('/', auth, async (req: AuthenticatedRequest, res) => {
     let projectId = null;;
     try {
-        const projectData: Project = req.body.data as Project;
-
-        console.log('-------------------------------------------------')
-        console.log(projectData.baseTask)
-        console.log('-------------------------------------------------')
+        const projectBaseData: ProjectBase = ProjectBaseZ.parse(req.body);
 
         if (!req.user) {
             return res.status(401).send('Create project failed.');
         }
 
-        projectData.user = req.user._id;
-        projectData.baseTask.model = JSON.stringify(projectData.baseTask.model)
-        delete projectData._id;
-
-        console.log(projectData)
+        const projectData : ProjectBase & {user: string} = {
+            ...projectBaseData,
+            user: req.user._id
+        }
 
         const projectModel = new ProjectModel(projectData);
 
@@ -42,11 +38,7 @@ projectRouter.post('/', auth, async (req: AuthenticatedRequest, res) => {
         }
         projectId = newProject._id;
         
-        res.send({
-            status: true,
-            message: 'Project created',
-            data: newProject
-        });
+        res.send(newProject);
 
     } catch (ex : any) {
         console.log(ex.message);
@@ -61,13 +53,13 @@ projectRouter.post('/', auth, async (req: AuthenticatedRequest, res) => {
 projectRouter.put('/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
-        const project: Project | null = await BaseProjectModel.findOne({ _id: refId});
+        const project = await BaseProjectModel.findOne({ _id: refId});
 
         if (!project) {
             return res.status(404).send('update project failed');
         }
 
-        const projectData: Project = req.body.data as Project;
+        const projectData = ProjectZ.parse(req.body);
 
         project.name = projectData.name;
         project.description = projectData.description;
@@ -76,11 +68,7 @@ projectRouter.put('/:id', auth, async (req, res) => {
 
         await project.save();
 
-        res.send({
-            status: true,
-            message: 'Project is stored',
-            data: project
-        });
+        res.send(project);
 
     } catch (ex : any) {
         res.send(ex.message);
@@ -97,9 +85,7 @@ projectRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
         return res.status(404).send({ message: 'No project found.' });
     }
 
-    res.send({
-        data: projects
-    });
+    res.send(projects);
 
 });
 
@@ -112,17 +98,16 @@ projectRouter.get('/meta-data', auth, async (req: any, res) => {
         return res.status(404).send({ message: 'No project found.' });
     }
 
-    let metaDataList: ProjectMetaData[] = projects.map(project => ({
-        _id: project._id,
-        updated: project.updated,
-        name: project.name,
-        user: project.user,
-        description: project.description
-    }))
+    let metaDataList: ProjectMetaData[] = projects.filter(p => p._id !== undefined).
+        map(project => ({
+                _id: project._id,
+                public: project.public,
+                name: project.name,
+                user: project.user.toString(),
+            })
+        )   
 
-    res.send({
-        data: metaDataList
-    });
+    res.send(metaDataList);
 
 });
 
@@ -145,9 +130,7 @@ projectRouter.get('/:id', authAny, async (req: AuthenticatedRequest, res) => {
         if (project) { 
 
             if(req.user.role != 'user-study'){
-                return res.send({
-                    data: project
-                });
+                return res.send(project);
             }
             else{
                 return res.status(401).send()
@@ -158,9 +141,7 @@ projectRouter.get('/:id', authAny, async (req: AuthenticatedRequest, res) => {
         const demo = await DemoModel.findOne({ _id: id });
         if (demo) { 
 
-            return res.send({
-                data: demo
-            });
+            return res.send(demo);
         }
 
         return res.status(500).send({ message: 'No project found.' });
@@ -180,16 +161,16 @@ projectRouter.delete('/meta-data/:id', auth, async (req: AuthenticatedRequest, r
         const id = req.params.id;
 
         // // delete iteration steps
-        // const iterationsDeleteResult = await IterationStepModel.deleteMany({ project: id});
-        // if (!iterationsDeleteResult) { 
-        //     return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
-        // }
+        const iterationsDeleteResult = await IterationStepModel.deleteMany({ project: id});
+        if (!iterationsDeleteResult) { 
+            return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
+        }
 
         // // delete properties
-        // const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
-        // if (!propertyDeleteResult) { 
-        //     return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
-        // }
+        const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
+        if (!propertyDeleteResult) { 
+            return res.status(404).send({ message: 'Problem during project deletion occurred' }); 
+        }
 
         // delete project itself
         const projectDeleteResult = await ProjectModel.deleteOne({ _id: id, user: req.user._id });
@@ -197,9 +178,8 @@ projectRouter.delete('/meta-data/:id', auth, async (req: AuthenticatedRequest, r
             return res.status(404).send({ message: 'No project found.' }); 
         }
 
-        res.send({
-            data: projectDeleteResult
-        });
+        res.send(true);
+
     } catch (ex : any) {
         console.log(ex);
         res.status(500).send();

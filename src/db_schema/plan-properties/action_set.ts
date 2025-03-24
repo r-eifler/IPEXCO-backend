@@ -1,15 +1,20 @@
 import mongoose, { Schema } from 'mongoose';
+import { array, object, string, infer as zinfer } from "zod";
 
-export interface Action {
-    name: string;
-    params: string[];
-}
+export const ActionZ = object({
+    name: string(),
+    params: array(string()),
+});
 
-export interface ActionSet {
-    _id: string;
-    name: string;
-    actions: Action[];
-}
+export type Action = zinfer<typeof ActionZ>;
+
+export const ActionSetZ = Object({
+    _id: string(),
+    name: string(),
+    actions: array(ActionZ),
+});
+
+export type ActionSet = zinfer<typeof ActionSetZ>;
 
 export const ActionSchema = new Schema({
     name: { type: String, required: true},

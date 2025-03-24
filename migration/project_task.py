@@ -18,10 +18,19 @@ for project in projectCollection.find():
     print(project['name'])
 
     task = project['baseTask']
-    model = json.loads(task['model'])
-  
-    task['model'] = model
-  
+    print('---')
+    print(type(task))
+    print('---')
+
+    # If task is a string, parse it first
+    if isinstance(task, str):
+        task = json.loads(task)
+
+    # Now task is a dictionary, check if model is a string that needs parsing
+    if isinstance(task['model'], str):
+        model = json.loads(task['model'])
+        task['model'] = model
+
     myquery = { "_id": project['_id'] }
     newvalues = { "$set": { "baseTask": task } }
 

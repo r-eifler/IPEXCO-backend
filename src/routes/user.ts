@@ -83,6 +83,7 @@ userRouter.post('/user-study', async (req, res) => {
 
 userRouter.post('/', async (req, res) => {
     try {
+        console.log("Allow registration: " + environment.allowRegistration);
         if(!environment.allowRegistration){
             return res.status(403).send('No registration possible.');
         }

@@ -1,5 +1,11 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface UserAction {
+    type: string
+    timeStamp?: Date,
+    data?: unknown
+}
+
 export interface UserStudyExecution extends Document{
     user: string;
     createdAt?: Date;
@@ -8,7 +14,7 @@ export interface UserStudyExecution extends Document{
     userStudy: string;
     finished?: boolean;
     accepted?: boolean;
-    timeLog?: string[];
+    timeLog?: UserAction[];
     payment?: number;
 }
 
@@ -18,7 +24,7 @@ const UserStudyExecutionSchema = new Schema({
     finished: {type: Boolean, required: false},
     finishedAt: {type: Date, required: false},
     accepted: {type: Boolean, required: false},
-    timeLog: [{type: String, required: false}],
+    timeLog: [{type: Object, required: false}],
     payment: {type: Number, required: false},
 }, { timestamps: true});
 

@@ -1,34 +1,59 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { ActionSet, ActionSetSchema } from './action_set';
+import { array, boolean, nativeEnum, nullable, number, object, string, infer as zinfer } from "zod";
+import { ActionSetSchema, ActionSetZ } from './action_set';
+
 
 export enum GoalType {
     goalFact= 'G',
     LTL = 'LTL',
-    AS = 'AS'
-  }
-
-export interface PlanProperty extends Document {
-    _id?: string;
-    name: string;
-    project: string;
-    type: string;
-    formula: string;
-    actionSets: [ActionSet];
-    naturalLanguageDescription: string;
-    isUsed: boolean;
-    globalHardGoal: boolean;
-    utility: number;
-    ranking: number;
-    color: string;
-    icon: string;
-    class: string;
+    AS = 'AS',
+    DOMAIN_DEPENDENT = "DOMAIN_DEPENDENT",
 }
+
+export const GoalTypeZ = nativeEnum(GoalType);
+
+export const PlanPropertyDefinitionZ  = object({
+  name: string(),
+  parameters: array(string()),
+});
+
+export type PlanPropertyDefinition = zinfer<typeof PlanPropertyDefinitionZ>;
+
+export const PlanPropertyBaseZ = object({
+    name: string(),
+    definition: nullable(PlanPropertyDefinitionZ),
+    type: GoalTypeZ,
+    formula: string().nullable(),
+    actionSets: array(ActionSetZ).optional(),
+    naturalLanguageDescription: string(),
+    isUsed: boolean(),
+    globalHardGoal: boolean(),
+    utility: number(),
+    color: string(),
+    icon: string(),
+    class: string()
+});
+
+export type PlanPropertyBase = zinfer<typeof PlanPropertyBaseZ>;
+
+export const PlanPropertyOfProjectZ = PlanPropertyBaseZ.merge(object({
+  project: string()
+}));
+
+export type PlanPropertyOfProject = zinfer<typeof PlanPropertyOfProjectZ>;
+
+export const PlanPropertyZ = PlanPropertyOfProjectZ.merge(object({
+  _id: string(),
+}));
+
+export type PlanProperty = zinfer<typeof PlanPropertyZ> & Document;
 
 const PlanPropertySchema = new Schema({
     name: { type: String, required: true},
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
+    definition: { type: Object, required: false},
     type: { type: String, required: true},
-    formula: { type: String, required: true},
+    formula: { type: String, required: false},
     actionSets: [ActionSetSchema],
     naturalLanguageDescription: { type: String, required: true},
     isUsed: { type: Boolean, required: true},

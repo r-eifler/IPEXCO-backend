@@ -1,11 +1,12 @@
-import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
+import { IterationStep, IterationStepBaseZ, IterationStepModel, IterationStepZ, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
 import express from 'express';
 import { auth, authAny, AuthenticatedRequest } from '../middleware/auth';
-import { Demo, DemoModel } from '../db_schema/demo';
+import { Demo, DemoModel, DemoRunStatus } from '../db_schema/demo';
 import { ExplanationRunStatus } from '../db_schema/explanations';
 import { Project, ProjectModel } from '../db_schema/project';
 import { Service, ServiceModel, ServiceType } from '../db_schema/services';
 import { callServices } from '../services/utils';
+import { string} from 'zod';
 
 
 export const iterationStepRouter = express.Router();
@@ -13,7 +14,7 @@ export const iterationStepRouter = express.Router();
 iterationStepRouter.get('/', authAny, async (req: any, res) => {
 
     try{
-        const projectId: string = req.query.projectId as string;
+        const projectId: string = string().parse(req.query.projectId);
         const userId: string = req.user._id;
         const steps = await IterationStepModel.find({ project: projectId, user: userId})
 
@@ -21,9 +22,7 @@ iterationStepRouter.get('/', authAny, async (req: any, res) => {
             return res.status(404).send({ message: 'ERROR: No steps found.' });
         }
 
-        res.send({
-            data: steps
-        });
+        res.send(steps);
     }
     catch (ex : any) {
         console.log(ex.message);
@@ -35,15 +34,13 @@ iterationStepRouter.get('/', authAny, async (req: any, res) => {
 iterationStepRouter.get('/:id', authAny, async (req, res) => {
     try{
         const id =  req.params.id;
-        const run = await IterationStepModel.findOne({ _id: id});
+        const step = await IterationStepModel.findOne({ _id: id});
 
-        if (!run) { 
+        if (!step) { 
             return res.status(404).send({ message: 'No iteration step found.' });
         }
 
-        res.send({
-            data: run
-        });
+        res.send(step);
     }
     catch (ex : any) {
         console.log(ex.message);
@@ -58,9 +55,15 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
             return res.status(401).send('Create iteration step failed.');
         }
         console.log("create iter step");
-        let iterStepData = req.body.data as IterationStep;
-        iterStepData.user = req.user._id;
-        iterStepData.task.model = JSON.stringify(iterStepData.task.model)
+        const iterStepBaseData = IterationStepBaseZ.parse(req.body);
+        let iterStepData = {
+            ...iterStepBaseData,
+            user: req.user._id,
+            status: StepStatus.UNKNOWN,
+        }
+
+        console.log(iterStepData.task);
+
 
         const step = new IterationStepModel(iterStepData);
         if (!step) {
@@ -69,18 +72,18 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
         await step.save();
 
         const demo: Demo | null = await DemoModel.findOne({ _id: iterStepData?.project});
-        if(demo){
+        if(
+            demo !== null && 
+            demo.globalExplanation !== undefined && 
+            demo.globalExplanation.status === ExplanationRunStatus.FINISHED
+        ){
             console.log('Extract explanations from demo.');
             step.globalExplanation = demo.globalExplanation;
-            step.globalExplanation.status = ExplanationRunStatus.finished;
+            step.globalExplanation.status = ExplanationRunStatus.FINISHED;
             await step.save();
         }
 
-        res.send({
-            status: true,
-            message: 'Iteration Step is created.',
-            data: step
-        });
+        res.send(step);
     }
     catch (ex) {
         console.log(ex);
@@ -94,7 +97,7 @@ iterationStepRouter.post('/cancel', authAny, async (req, res) => {
 
     try {
 
-        const id = req.body.iterationStepId;
+        const id = string().parse(req.body);
         console.log('Cancel: ' + id);
 
         const step = await IterationStepModel.findById(id);
@@ -107,10 +110,10 @@ iterationStepRouter.post('/cancel', authAny, async (req, res) => {
             return res.status(404).send({ message: 'No step found.' });
         }
 
-        const forwardCancelToPlanningService = step.plan.status == PlanRunStatus.running;
+        const forwardCancelToPlanningService = step.plan.status == PlanRunStatus.RUNNING;
 
-        step.status = StepStatus.unknown;
-        step.plan.status = PlanRunStatus.canceled;
+        step.status = StepStatus.UNKNOWN;
+        step.plan.status = PlanRunStatus.CANCELED;
         await step.save();
 
         if(forwardCancelToPlanningService){
@@ -121,7 +124,7 @@ iterationStepRouter.post('/cancel', authAny, async (req, res) => {
     
             if (!project) {
                 console.log('[Cancel Plan Computation] Project does not exist.')
-                step.plan.status = PlanRunStatus.failed;
+                step.plan.status = PlanRunStatus.FAILED;
                 await step.save();
                 return res.status(200).send({status: false, message:'Project does not exists.'});
             }
@@ -136,14 +139,14 @@ iterationStepRouter.post('/cancel', authAny, async (req, res) => {
     
             if (services.length === 0) {
                 console.log('[Cancel Plan Computation] No selected planner service selected.')
-                step.plan.status = PlanRunStatus.failed;
+                step.plan.status = PlanRunStatus.FAILED;
                 await step.save();
                 return res.status(200).send({status: false, message: 'No existing planner service selected.'});
             }
     
             const success = await callServices(services, JSON.stringify({id}), '/cancel');
             if(!success){
-                step.plan.status = PlanRunStatus.failed;
+                step.plan.status = PlanRunStatus.FAILED;
                 await step.save();
                 console.log('[Cancel Plan Computation] No selected planner service reachable.')
                 return res.status(201).send({status: false, message:'No selected planner service reachable.'});
@@ -165,23 +168,19 @@ iterationStepRouter.post('/cancel', authAny, async (req, res) => {
 iterationStepRouter.put('/:id', authAny, async (req, res) => {
     try {
         const refId = req.params.id;
-        const step: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+        const step = await IterationStepModel.findOne({ _id: refId});
 
         if (!step) {
             return res.status(404).send('update step failed');
         }
 
-        const stepData: IterationStep = req.body.data as IterationStep;
+        const stepData = IterationStepZ.parse(req.body);
 
         step.status = stepData.status;
 
         await step.save();
 
-        res.send({
-            status: true,
-            message: 'Step updated',
-            data: step
-        });
+        res.send(step);
 
     } catch (ex) {
         res.status(500);
@@ -199,9 +198,7 @@ iterationStepRouter.delete('/:id', auth, async (req, res) => {
             return res.status(404).send({ message: 'No step found.' });
         }
     
-        res.send({
-            data: {deleted: true}
-        });
+        res.send(result.deletedCount === 1);
     } catch (ex) {
         res.status(500);
     }

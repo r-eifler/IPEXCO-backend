@@ -3,7 +3,7 @@ import { auth, authService } from '../middleware/auth';
 
 import { Demo, DemoModel } from '../db_schema/demo';
 import { ExplanationRunStatus } from '../db_schema/explanations';
-import { IterationStep, IterationStepModel } from '../db_schema/iteration_step';
+import { IterationStepModel } from '../db_schema/iteration_step';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Project, ProjectModel } from '../db_schema/project';
 import { ExplainerRequest, ExplainerResponse } from '../db_schema/service_communication';
@@ -19,7 +19,7 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
 
         const refId = req.params.id;
         console.log('Compute conflicts of: ' + refId)
-        const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+        const iterationStep = await IterationStepModel.findOne({ _id: refId});
 
         if (!iterationStep) {
             return res.status(404).send('update step failed');
@@ -28,21 +28,19 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
         // if iteration step belongs to a demo just extract the pre-computed 
         // explanations and store it in the iteration step
         const demo: Demo | null = await DemoModel.findOne({ _id: refId});
-        if(demo){
+        if(demo !== null && demo.globalExplanation !== undefined && 
+            demo.globalExplanation.status === ExplanationRunStatus.FINISHED
+        ){
             console.log('Extract explanations from demo.');
             iterationStep.globalExplanation = demo.globalExplanation;
             await iterationStep.save();
-            res.send({
-                status: true,
-                message: 'Explanations copied from demo.',
-                data: true
-            });
+            return res.send(true);
         }
 
         // compute explanations
         iterationStep.globalExplanation = {
             createdAt: new Date(Date.now()),
-            status: ExplanationRunStatus.running
+            status: ExplanationRunStatus.RUNNING
         }
 
         await iterationStep.save();
@@ -68,9 +66,9 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
 
         const project = await ProjectModel.findById(iterationStep.project) as Project;
         if (!project) {
-            iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
+            iterationStep.globalExplanation.status == ExplanationRunStatus.FAILED;
             await iterationStep.save();
-            return res.status(200).send({status: false, message:'compute explanation failed, project not found'});
+            return res.status(200).send(false);
         }
 
         const services: Service[] = [];
@@ -82,22 +80,22 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
         }
 
         if (services.length === 0) {
-            iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
+            iterationStep.globalExplanation.status == ExplanationRunStatus.FAILED;
             await iterationStep.save();
             console.log('No existing explainer service selected.');
-            return res.status(200).send({status: false, message:'No existing explainer service selected.'});
+            return res.status(200).send(false);
         }
 
         const success = await callServices(services, JSON.stringify(payload), '/explanation');
 
         if(!success){
-            iterationStep.globalExplanation.status == ExplanationRunStatus.failed;
+            iterationStep.globalExplanation.status == ExplanationRunStatus.FAILED;
             await iterationStep.save();
             console.log('No explainer service available.');
-            return res.status(200).send({status: false, message:'No explainer service available.'});
+            return res.status(200).send(false);
         }
 
-        res.status(200).send({status: true, message: 'Explanation computation registered.'})
+        return res.status(200).send(true)
 
     } catch (ex : any) {
         console.log(ex);
@@ -112,14 +110,14 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
     
             // console.log(req.body)
             const refId = req.params.id;
-            const iterationStep: IterationStep | null = await IterationStepModel.findOne({ _id: refId});
+            const iterationStep = await IterationStepModel.findOne({ _id: refId});
     
-            if (!iterationStep) {
+            if (!iterationStep || iterationStep.globalExplanation === undefined) {
                 return res.status(404).send('update step failed');
             }
 
-            if(iterationStep.globalExplanation.status == ExplanationRunStatus.finished ||
-                iterationStep.globalExplanation.status == ExplanationRunStatus.failed
+            if(iterationStep.globalExplanation.status == ExplanationRunStatus.FINISHED ||
+                iterationStep.globalExplanation.status == ExplanationRunStatus.FAILED
                // we could update the result for failed runs if multiple explainer are used 
             ){
                 console.log('Got repeated response for explainer call: ' + iterationStep._id);
@@ -135,15 +133,15 @@ explainerRouter.post('/explain-step/:id', auth, async (req: any, res) => {
             console.log(MUGS)
             console.log(MGCS)
     
-            if(status === ExplanationRunStatus.finished){
-                iterationStep.globalExplanation.status = ExplanationRunStatus.finished;
-                iterationStep.globalExplanation.MUGS = JSON.stringify(MUGS.subsets)
-                iterationStep.globalExplanation.MGCS = JSON.stringify(MGCS.subsets)
+            if(status === ExplanationRunStatus.FINISHED){
+                iterationStep.globalExplanation.status = ExplanationRunStatus.FINISHED;
+                iterationStep.globalExplanation.MUGS = MUGS.subsets
+                iterationStep.globalExplanation.MGCS = MGCS.subsets
             }
     
     
-            if(status === ExplanationRunStatus.finished){
-                iterationStep.globalExplanation.status = ExplanationRunStatus.failed;
+            if(status === ExplanationRunStatus.FAILED){
+                iterationStep.globalExplanation.status = ExplanationRunStatus.FAILED;
             }
     
             iterationStep.save()

@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { nativeEnum, nullable, object, string, infer as zinfer } from "zod";
 
 enum AgentType {
     EXPLANATION_TRANSLATOR = 'EXPLANATION_TRANSLATOR',
@@ -12,15 +13,27 @@ enum PromptType {
     INPUT_DATA = 'INPUT_DATA'
 }
 
-export interface Prompt {
-    _id?: string,
-    name: string,
-    agent: AgentType,
-    type: PromptType,
-    domain: string | null,
-    explainer: string | null,
-    text: string,
-}
+const AgentTypeZ = nativeEnum(AgentType);
+const PromptTypeZ = nativeEnum(PromptType);
+
+export const PromptBaseZ = object({
+    name: string(),
+    agent: AgentTypeZ,
+    type: PromptTypeZ,
+    domain: nullable(string()),
+    explainer: nullable(string()),
+    text: string(),
+});
+
+export type PromptBase = zinfer<typeof PromptBaseZ>;
+
+export const PromptZ = PromptBaseZ.merge(
+    object({
+        _id: string()
+    })
+);
+
+export type Prompt = zinfer<typeof PromptZ>;
 
 const PromptSchema = new Schema({
     name: { type: String, required: true },
@@ -34,14 +47,24 @@ const PromptSchema = new Schema({
 export const PromptModel = mongoose.model<Prompt>('prompt', PromptSchema);
 
 
-export interface OutputSchema {
-    _id?: string,
-    name: string,
-    agent: AgentType,
-    domain: string | null,
-    explainer: string | null,
-    text: string,
-}
+export const OutputSchemaBaseZ = object({
+    name: string(),
+    agent: AgentTypeZ,
+    domain: nullable(string()),
+    explainer: nullable(string()),
+    text: string(),
+});
+
+export type OutputSchemaBase = zinfer<typeof OutputSchemaBaseZ>;
+
+export const OutputSchemaZ = OutputSchemaBaseZ.merge(
+    object({
+        _id: string(),
+    })
+);
+
+export type OutputSchema = zinfer<typeof OutputSchemaZ>;
+
 
 const OutputSchemaSchema = new Schema({
     name: { type: String, required: true },
