@@ -83,6 +83,7 @@ export type OpenAIModelName = "gpt-4o-mini" | "gpt-4o" ;
 // }
 
 export async function initializeAssistants(projectId: string) {
+    console.log("Initializing assistants...");
    
     if (!process.env.OPENAI_API_KEY) {
         throw new Error('OPENAI_API_KEY is not set in the environment variables');

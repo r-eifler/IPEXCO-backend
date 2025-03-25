@@ -159,6 +159,7 @@ LLMRouter.post('/et', authAny, async (req: any, res) => {
 
 LLMRouter.post('/qt', authAny, async (req: any, res) => {
     try {
+        console.log("Trying to find LLMContext...");
         let llmContext: LLMContext | null = await LLMContextModel
             .find({
                 user: req.user._id,
