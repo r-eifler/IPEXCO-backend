@@ -12,7 +12,6 @@ import fs from 'fs/promises';
 import path from 'path';
 import { openai_client } from "./openai_client";
 import { BaseProjectModel } from "../db_schema/project";
-import { AllLLMConfig } from "../db_schema/llm-config";
 import { LLMMessage } from "../db_schema/llm-context";
 import { OutputSchemaModel, PromptModel } from "../db_schema/prompt";
 export type OpenAIModelName = "gpt-4o-mini" | "gpt-4o" ;

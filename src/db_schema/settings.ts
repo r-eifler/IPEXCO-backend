@@ -45,6 +45,8 @@ export const PaymentInfoZ = object({
       maxCompletionTokens: nullable(number()),
       prompts: array(string()),
       outputSchema: array(string()),
+      goalTranslator: boolean(),
+      showReverseTranslation: boolean(),
     }),
     userStudy: object({
         introTask: boolean(),
@@ -78,7 +80,8 @@ export const PaymentInfoZ = object({
         maxCompletionTokens: { type: Number, required: false},
         prompts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'prompt' }],
         outputSchema: [{ type: mongoose.Schema.Types.ObjectId, ref: 'output-schema' }],
-    },
+        goalTranslator: { type: Boolean, required: true},
+        showReverseTranslation: { type: Boolean, required: true},
     userStudy: {
         introTask: { type: Boolean, required: true},
         checkMaxUtility: { type: Boolean, required: true},
@@ -113,6 +116,8 @@ export const defaultGeneralSetting: GeneralSettings = {
       maxCompletionTokens: null,
       prompts: [],
       outputSchema: [],
+      goalTranslator: false,
+      showReverseTranslation: false,
     },
     userStudy: {
         introTask: false,
