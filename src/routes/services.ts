@@ -1,12 +1,12 @@
 import express from 'express';
 
 import { Service, ServiceBaseZ, ServiceModel } from '../db_schema/services';
-import { authAdmin, authAny } from '../middleware/auth';
+import { auth, authAdmin, authAny } from '../middleware/auth';
 
 export const serviceRouter = express.Router();
 
 
-serviceRouter.post('', authAdmin, async (req, res) => {
+serviceRouter.post('', auth, async (req, res) => {
     try {
         const serviceData = ServiceBaseZ.parse(req.body);
 
@@ -25,7 +25,7 @@ serviceRouter.post('', authAdmin, async (req, res) => {
 });
 
 
-serviceRouter.put('/:id', authAdmin, async (req, res) => {
+serviceRouter.put('/:id', auth, async (req, res) => {
     try {
         const refId = req.params.id;
 
