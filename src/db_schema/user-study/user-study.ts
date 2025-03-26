@@ -10,8 +10,36 @@ export enum UserStudyStepType {
   
   export interface UserStudyStep {
     type: UserStudyStepType;
-    name: string;
+    name: string,
     time: number | null;
+    content?: unknown;
+  }
+  
+  export interface UserStudyDescriptionStep extends UserStudyStep{
+    type: UserStudyStepType.description;
+    content: string;
+  }
+  
+  export interface UserStudyFormStep extends UserStudyStep{
+    type: UserStudyStepType.form;
+    content: {
+      link: string,
+      code: string | null
+    };
+  }
+  
+  export interface UserStudyDemoStep extends UserStudyStep{
+    type: UserStudyStepType.demo;
+    content: string;
+  }
+  
+  export interface UserStudyDemoInfoStep extends UserStudyStep{
+    type: UserStudyStepType.demoInfo;
+    content: string;
+  }
+  
+  export interface UserStudyUserManuelStep extends UserStudyStep{
+    type: UserStudyStepType.userManual;
     content: string;
   }
 
@@ -19,7 +47,7 @@ export enum UserStudyStepType {
     type: { type: String, required: true},
     name: { type: String, required: true},
     time: { type: String, required: false},
-    content: { type: String, required: true},
+    content: { type: Object, required: true},
 });
 
 

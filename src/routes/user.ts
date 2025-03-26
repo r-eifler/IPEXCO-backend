@@ -30,6 +30,8 @@ userRouter.post('/user-study', async (req, res) => {
             return res.status(400).send('User Study not available anymore!');
         }
 
+        const prolificId = req.body.prolificId;
+
         const now = new Date();
         const start  = new Date(userStudy?.startDate);
         const end = new Date(userStudy.endDate); 
@@ -67,6 +69,7 @@ userRouter.post('/user-study', async (req, res) => {
             accepted: false,
             timeLog: [],
             payment: 0,
+            prolificId
         }
         const userStudyExecution = new UserStudyExecutionModel(userStudyExecutionData);
         await userStudyExecution.save();

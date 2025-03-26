@@ -16,6 +16,7 @@ export interface UserStudyExecution extends Document{
     accepted?: boolean;
     timeLog?: UserAction[];
     payment?: number;
+    prolificId: string | null
 }
 
 const UserStudyExecutionSchema = new Schema({
@@ -26,6 +27,7 @@ const UserStudyExecutionSchema = new Schema({
     accepted: {type: Boolean, required: false},
     timeLog: [{type: Object, required: false}],
     payment: {type: Number, required: false},
+    prolificId: {type: String, required: false},
 }, { timestamps: true});
 
 export const UserStudyExecutionModel = mongoose.model<UserStudyExecution>('user-study-execution', UserStudyExecutionSchema);
