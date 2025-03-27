@@ -7,8 +7,7 @@ import { LLMContext, LLMContextModel } from '../db_schema/llm-context';
 import { User, UserModel } from '../db_schema/user';
 import { initializeAssistants } from '../llm/initialize_assistants';
 import { BaseProjectModel, ProjectModel } from '../db_schema/project';
-import { Schema } from 'mongoose';
-import { LLMPrompts } from '../llm/translators_interfaces';
+
 
 export const LLMRouter = express.Router();
 

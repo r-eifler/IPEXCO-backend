@@ -180,7 +180,117 @@ Return: {
   "directResponse": null
 }
 
-## End of the examples
+
+
+# Goal Translator Examples
+
+You will be given a goal and a list of allowed predicates and objects from a planning problem and domain.
+Return the LTLf formula corresponding to the goal, followed by a short summary of the goal in natural language (the fewer words the better) that will be used to refer to it. The LTLf formula must be well-formed and must only contain the predicates and objects given to you. Users might reference previous messages they sent or implicit objects. You should infer that when possible based on the provided information and previous messages. If it is not possible to express the property in LTL using the provided objects and predicates, return UNSUPPORTED ; Unsupported property.
+
+## Examples
+
+Goal: make sure p1 visits the packingstation at some point
+Predicates: [(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]
+Objects: [postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]
+Existing Plan Properties: [p0 to cafe, p2 to smith, t1 always above level5]
+Return: {
+  "formula": "F at(p1,packingstation)",
+  "shortName": "p1 visits packingstation",
+  "reverseTranslation": "p1 must be at the packingstation at some point during the plan",
+  "feedback": null
+}
+
+
+
+Goal: and also p2
+Predicates: [(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]
+Objects: [postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]
+Existing Plan Properties: [p0 to cafe, p2 to smith, t1 always above level5]
+Return: {
+  "formula": "& F at(p1,packingstation) F at(p2,packingstation)",
+  "shortName": "p1 and p2 visit packingstation",
+  "reverseTranslation": "p1 and p2 must be at the packingstation at some point during the plan",
+  "feedback": null
+}
+
+
+
+Goal: t1 should never be empty after visiting the bank
+Predicates: [(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]
+Objects: [postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]
+Existing Plan Properties: [p3 to lopez, t2 visits packingstation, p1 and p2 same truck]
+Return: {
+  "formula": "G -> at(t1,bank) ! X empty(t1)",
+  "shortName": "t1 not empty after bank",
+  "reverseTranslation": "t1 must not be empty after visiting the bank",
+  "feedback": null
+}
+
+
+
+Goal: p2 must be delivered before p3
+Predicates: [(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]
+Objects: [postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]
+Existing Plan Properties: [t1 visits bank, p4 to supermarket, p0 to cafe, p2 to smith, p3 to lopez]
+Return: {
+  "formula": "U ! at(p3,lopez) at(p2,smith)",
+  "shortName": "p2 to smith before p3 to lopez",
+  "reverseTranslation": "p2 must be delivered to smith before p3 is delivered lopez",
+  "feedback": null
+}
+
+
+
+Goal: t2 must maintain fuel above level5 throughout the plan
+Predicates: [(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]
+Objects: [postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4, level5]
+Existing Plan Properties: [p1 to cafe, t1 visits jones, p3 and p4 different trucks]
+Return: {
+  "formula": "G | fuel(t2,level5) | fuel(t2,level6) | fuel(t2,level7) | fuel(t2,level8) | fuel(t2,level9) | fuel(t2,level10) | fuel(t2,level11) | fuel(t2,level12) fuel(t2,level13)",
+  "shortName": "t2 always above level5",
+  "reverseTranslation": "It is always the case that t2 fuel is above level5 throughout the plan",
+  "feedback": null
+}
+
+
+
+Goal: p0 and p1 must be transported in the same truck
+Predicates: [(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]
+Objects: [postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]
+Existing Plan Properties: [p1 to cafe, p3 and p4 different trucks]
+Return: {
+  "formula": "G ! | & in(p0,t1) in(p1,t2) & in(p0,t2) in(p1,t1)",
+  "shortName": "p0 and p1 same truck",
+  "reverseTranslation": "It must never be the case that p0 and p1 are in different trucks at the same moment",
+  "feedback": null
+}
+
+
+
+Goal: p0 must be delivered before p1
+Predicates: [(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]
+Objects: [postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]
+Existing Plan Properties: [p0 to supermarket, p1 to taylor]
+Return: {
+  "formula": "U ! at(p1,taylor) at(p0,supermarket)",
+  "shortName": "p0 before p1",
+  "reverseTranslation": "p0 must be delivered to supermarket before p1 is delivered to taylor",
+  "feedback": null
+}
+
+
+
+Goal: do not transport food in t1
+Predicates: [(at ?o - object ?l - location), (in ?p - package ?t - truck), (empty ?t - truck), (fuel ?truck - truck ?level - fuellevel)]
+Objects: [postoffice, supermarket, taylor, cafe, bank, lopez, jones, smith, packingstation, t1, t2, p0, p1, p2, p3, p4]
+Existing Plan Properties: [p0 to supermarket, p1 to taylor]
+Return: {
+  "formula": "",
+  "shortName": "",
+  "reverseTranslation": "",
+  "feedback": "This goal is currently not supported. Please try something else."
+}
+
 
 
 # Explanation Translator Examples
@@ -344,4 +454,4 @@ Return: {
   "output": "You can enforce **bring food to home** but you will lose **do yoga**. Otherwise, you can stop enforcing **do shopping**, or **do bring kid1 home** (but in this case you will also lose **grandma and friend not together in car**.\n"
 }
 
-## End of the examples
+
