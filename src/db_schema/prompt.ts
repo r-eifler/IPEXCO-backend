@@ -5,12 +5,14 @@ enum AgentType {
     EXPLANATION_TRANSLATOR = 'EXPLANATION_TRANSLATOR',
     GOAL_TRANSLATOR = 'GOAL_TRANSLATOR',
     QUESTION_CLASSIFIER = 'QUESTION_CLASSIFIER',
+    NONE = 'NONE'
 }
 
 enum PromptType {
     SYSTEM = 'SYSTEM',
     INSTRUCTION_AND_EXAMPLES  = 'INSTRUCTION_AND_EXAMPLES',
-    INPUT_DATA = 'INPUT_DATA'
+    INPUT_DATA = 'INPUT_DATA',
+    NONE = 'NONE'
 }
 
 const AgentTypeZ = nativeEnum(AgentType);
@@ -41,7 +43,7 @@ const PromptSchema = new Schema({
     type: { type: String },
     domain: { type: mongoose.Schema.Types.ObjectId, ref: 'domain-specification', required: false},
     explainer: { type: mongoose.Schema.Types.ObjectId, ref: 'explainer', required: false },
-    text: { type: String },
+    text: { type: String, required: false},
 }); 
 
 export const PromptModel = mongoose.model<Prompt>('prompt', PromptSchema);

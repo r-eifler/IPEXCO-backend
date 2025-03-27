@@ -9,10 +9,20 @@ export interface visibleLLMMessage{
 }
   
 export interface LLMMessage{
-    role: 'sender' | 'receiver',
+    role: 'sender' | 'receiver' | 'developer',
     content: string,
 }
 
+
+export interface OutputFormat{
+    structured: boolean,
+    schema: string | null
+}
+
+export const OutputFormatSchema = new Schema<OutputFormat>({
+    structured: { type: Boolean, required: true},
+    schema: { type: String, required: false},
+}, { timestamps: true }); 
 
 
 export const visibleLLMMessageSchema = new Schema<visibleLLMMessage>({
@@ -27,35 +37,33 @@ const LLMMessageSchema = new Schema<LLMMessage>({
 }, { timestamps: true }); 
 
 export interface LLMContext extends Document {
-    assistantIdGT: string;
-    assistantIdQT: string;
-    assistantIdET: string;
-    threadIdQT: string;
-    threadIdGT: string;
-    threadIdET: string;
+    project: string | null;
+    user: string | null;
+    iterationStepId: string | null;
     visibleMessages: visibleLLMMessage[];
     visiblePPCreationMessages: visibleLLMMessage[];
     seenByGTMessages: LLMMessage[];
     seenByETMessages: LLMMessage[];
     seenByQTMessages: LLMMessage[];
-    project: string | null;
-    user: string | null;
+    outputFormatQT: OutputFormat;
+    outputFormatET: OutputFormat;
+    outputFormatGT: OutputFormat;
+    settings: any;
 }
 
 export const LLMContextSchema = new Schema({
-    assistantIdGT: { type: String, required: true},
-    assistantIdQT: { type: String, required: true},
-    assistantIdET: { type: String, required: true},
-    threadIdQT: { type: String, required: false},
-    threadIdGT: { type: String, required: false},
-    threadIdET: { type: String, required: false},
+    project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+    iterationStepId: { type: mongoose.Schema.Types.ObjectId, ref: 'iteration-step' },
     visibleMessages: [visibleLLMMessageSchema],
     visiblePPCreationMessages: [visibleLLMMessageSchema],
     seenByGTMessages: [LLMMessageSchema],
     seenByETMessages: [LLMMessageSchema],
     seenByQTMessages: [LLMMessageSchema],
-    project: { type: mongoose.Schema.Types.ObjectId, ref: 'base-project' },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User'},
+    outputFormatQT: OutputFormatSchema,
+    outputFormatET: OutputFormatSchema,
+    outputFormatGT: OutputFormatSchema,
+    settings: { type: Object, required: true},
 }, { timestamps: true}); 
 
 

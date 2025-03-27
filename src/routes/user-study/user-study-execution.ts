@@ -4,8 +4,8 @@ import { UserStudyExecution, UserStudyExecutionModel } from '../../db_schema/use
 import { User, UserModel } from '../../db_schema/user';
 import { error } from 'console';
 import { IterationStepModel } from '../../db_schema/iteration_step';
-import { LLMContext } from '../../db_schema/LLM/llm-context';
-import { LLMContextModel } from '../../db_schema/LLM/llm-context';
+import { LLMContext } from '../../db_schema/llm-context';
+import { LLMContextModel } from '../../db_schema/llm-context';
 
 export const userStudyExecutionRouter = express.Router();
 
