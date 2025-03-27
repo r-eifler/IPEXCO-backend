@@ -82,6 +82,7 @@ export const PaymentInfoZ = object({
         outputSchema: [{ type: mongoose.Schema.Types.ObjectId, ref: 'output-schema' }],
         goalTranslator: { type: Boolean, required: true},
         showReverseTranslation: { type: Boolean, required: true},
+    },
     userStudy: {
         introTask: { type: Boolean, required: true},
         checkMaxUtility: { type: Boolean, required: true},
