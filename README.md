@@ -53,7 +53,7 @@ Optional environment variables:
 
 - `ALLOW_REGISTRATION` set to `true` allows new users to register (default `false`)
 - `ALLOW_USER_STUDY_USERS` set to `true` allows users to participate in a user study
-- `OPENAI_API_KEY`: the API key for the OpenAI service. It is mandatory to set this variable with you own valid key if you want to use the LLM interfaces. These keys are generated from the Open AI Platform (https://platform.openai.com/api-keys).
+- `OPENAI_API_KEY`: the API key for the OpenAI service. It is mandatory to set this variable with your own valid key if you want to use the LLM interfaces. These keys are generated from the Open AI Platform (https://platform.openai.com/api-keys).
 
 
 ### Run
@@ -64,6 +64,6 @@ npm start
 
 ## Platform Usage
 
-For instruction how to use the platform we refer to the 
+For instruction on how to use the platform we refer to the 
 [README](https://github.com/r-eifler/IPEXCO-frontend/blob/dev/README.md) of the 
 front-end repository.
