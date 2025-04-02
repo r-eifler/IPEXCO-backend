@@ -21,21 +21,20 @@ LLMRouter.post('/gt', authAny, async (req: any, res) => {
             .find({
                 user: req.user._id,
                 project: req.body.projectId,
-                iterationStepId: req.body.iterationStepId
             })
             .sort({ createdAt: -1 })
             .limit(1)
             .then(contexts => contexts[0] || null);
 
         if (!llmContext) {
-            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId + ' and iterationStepId ' + req.body.iterationStepId });
+            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
         }
 
         const settings = llmContext.settings;
 
 
-        llmContext.visiblePPCreationMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
+        llmContext.visiblePPCreationMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: null });
         llmContext.seenByGTMessages.push({ role: 'receiver', content: req.body.data });
         await llmContext.save();
         console.log("LLMContext updated and saved")
@@ -68,7 +67,7 @@ LLMRouter.post('/gt', authAny, async (req: any, res) => {
         if (gtResponse) {
             
             const { formula, shortName, reverseTranslation, feedback } = parseGoalTranslation(gtResponse);
-            llmContext.visiblePPCreationMessages.push({ role: 'sender', content: gtResponse, iterationStepId: req.body.iterationStepId });
+            llmContext.visiblePPCreationMessages.push({ role: 'sender', content: gtResponse, iterationStepId: null });
             llmContext.seenByGTMessages.push({ role: 'sender', content: gtResponse });
             await llmContext.save();
             console.log("LLMContext updated with output and saved")
