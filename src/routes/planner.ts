@@ -2,10 +2,10 @@ import express from 'express';
 import { authAny, authService } from '../middleware/auth';
 
 import { DemoModel } from '../db_schema/demo';
-import { IterationStep, IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
+import { IterationStepModel, PlanRunStatus, StepStatus } from '../db_schema/iteration_step';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Project, ProjectModel } from '../db_schema/project';
-import { PlannerRequest, PlannerResponse, PropertyCheckerResponse, PropertyCheckerResponseZ, PropertyCheckRunStatus } from '../db_schema/service_communication';
+import { PlannerRequest, PlannerResponse, PropertyCheckerResponseZ, PropertyCheckRunStatus } from '../db_schema/service_communication';
 import { Service, ServiceModel, ServiceType } from '../db_schema/services';
 import { checkProperties } from '../services/pddl/property_check';
 import { callServices } from '../services/utils';
@@ -22,7 +22,8 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
 
         if (iterationStep == null) {
             console.log('[Plan Computation] Iteration Step does not exist.')
-            return res.status(404).send({status: false, message:'Iteration step does not exist.'});
+            res.status(404).send({status: false, message:'Iteration step does not exist.'});
+            return;
         }
 
         iterationStep.plan = {
@@ -55,7 +56,8 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
             console.log('[Plan Computation] Project does not exist.')
             iterationStep.plan.status = PlanRunStatus.FAILED;
             await iterationStep.save();
-            return res.status(200).send({status: false, message:'Project does not exists.'});
+            res.status(200).send({status: false, message:'Project does not exists.'});
+            return;
         }
 
         const services: Service[] = [];
@@ -70,7 +72,8 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
             console.log('[Plan Computation] No planner service selected.')
             iterationStep.plan.status = PlanRunStatus.FAILED;
             await iterationStep.save();
-            return res.status(200).send({status: false, message: 'No existing planner service selected.'});
+            res.status(200).send({status: false, message: 'No existing planner service selected.'});
+            return;
         }
 
         const success = await callServices(services, JSON.stringify(payload), '/plan');
@@ -78,7 +81,8 @@ plannerRouter.post('/plan-step/:id', authAny, async (req: any, res) => {
             iterationStep.plan.status = PlanRunStatus.FAILED;
             await iterationStep.save();
             console.log('[Plan Computation] No selected planner service reachable.')
-            return res.status(201).send({status: false, message:'No selected planner service reachable.'});
+            res.status(201).send({status: false, message:'No selected planner service reachable.'});
+            return;
         }
 
         res.status(201).send({status: true, message:'Plan computation registered'});
@@ -99,15 +103,18 @@ plannerRouter.post('/plan-step/finished/:id', authService, async (req: any, res)
         const iterationStep = await IterationStepModel.findOne({ _id: refId});
 
         if (!iterationStep) {
-            return res.status(404).send('update step failed');
+            res.status(404).send('update step failed');
+            return;
         }
 
         if (!iterationStep.plan) {
-            return res.status(404).send('update plan failed');
+            res.status(404).send('update plan failed');
+            return;
         }
 
         if (iterationStep.plan.status == PlanRunStatus.CANCELED) {
-            return res.status(200).send('Plan run was canceled.');
+            res.status(200).send('Plan run was canceled.');
+            return;
         }
 
         if (iterationStep.plan.status == PlanRunStatus.UNSOLVABLE || 
@@ -115,7 +122,8 @@ plannerRouter.post('/plan-step/finished/:id', authService, async (req: any, res)
             // TODO we could update failed runs if multiple planner run in parallel
         ) {
             console.log('Got repeated response for plan call: ' + iterationStep._id);
-            return res.status(200).send('Plan run already set.');
+            res.status(200).send('Plan run already set.');
+            return;
         }
 
         const response = req.body as PlannerResponse;
@@ -148,7 +156,8 @@ plannerRouter.post('/plan-step/finished/:id', authService, async (req: any, res)
             checkProperties(iterationStep);
         }
         
-        return res.status(200).send();
+        res.status(200).send();
+        return;
 
     } catch (ex : any) {
         console.log(ex);
@@ -168,15 +177,18 @@ plannerRouter.post('/plan-step/checked/:id', authService, async (req: any, res) 
         const iterationStep = await IterationStepModel.findOne({ _id: refId});
 
         if (!iterationStep) {
-            return res.status(404).send('update step failed');
+            res.status(404).send('update step failed');
+            return;
         }
 
         if (!iterationStep.plan) {
-            return res.status(404).send('update plan failed');
+            res.status(404).send('update plan failed');
+            return;
         }
 
         if (iterationStep.plan.status == PlanRunStatus.CANCELED) {
-            return res.status(200).send('Plan run was canceled.');
+            res.status(200).send('Plan run was canceled.');
+            return;
         }
 
         if (iterationStep.plan.status == PlanRunStatus.UNSOLVABLE || 
@@ -184,7 +196,8 @@ plannerRouter.post('/plan-step/checked/:id', authService, async (req: any, res) 
             iterationStep.plan.status == PlanRunStatus.FAILED 
         ) {
             console.log('Got repeated response for check call: ' + iterationStep._id);
-            return res.status(200).send('Plan run already checked.');
+            res.status(200).send('Plan run already checked.');
+            return;
         }
 
         const response = PropertyCheckerResponseZ.parse(req.body);
@@ -199,7 +212,8 @@ plannerRouter.post('/plan-step/checked/:id', authService, async (req: any, res) 
             iterationStep.plan.status = PlanRunStatus.FAILED;
             iterationStep.plan.actions = undefined;
             await iterationStep.save();
-            return res.status(200).send();
+            res.status(200).send();
+            return;
         }
 
         if(status === PropertyCheckRunStatus.FINISHED){
@@ -224,7 +238,8 @@ plannerRouter.post('/plan-step/checked/:id', authService, async (req: any, res) 
             await iterationStep.save()
         
         }
-        return res.status(200).send();
+        res.status(200).send();
+        return;
 
     } catch (ex : any) {
         console.log(ex);

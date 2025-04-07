@@ -1,8 +1,8 @@
 import express from 'express';
-import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
-import { auth } from '../middleware/auth';
+import { PlanProperty, PlanPropertyBase, PlanPropertyModel, PlanPropertyOfProject } from '../db_schema/plan-properties/plan_property';
+import { auth, AuthenticatedRequest } from '../middleware/auth';
 import { Demo, DemoBaseZ, DemoModel, DemoRunStatus } from './../db_schema/demo';
-import { authAny, AuthenticatedRequest } from './../middleware/auth';
+import { authAny } from './../middleware/auth';
 
 import multer from 'multer';
 import path from 'path';
@@ -50,7 +50,8 @@ demoRouter.post('/image', auth, upload.single('summaryImage'), async (req: any, 
     try {
         console.log(req);
         if (!req.file) {
-            return res.status(400).send('upload failed');
+            res.status(400).send('upload failed');
+            return;
         }
 
         let imageFilePath = '/uploads/' + req.file.filename;
@@ -63,7 +64,8 @@ demoRouter.post('/image', auth, upload.single('summaryImage'), async (req: any, 
 
     } catch (ex) {
         console.log(ex);
-        return res.status(500);
+        res.status(500);
+        return;
     }
 });
 
@@ -88,7 +90,8 @@ demoRouter.post('/', auth, async (req: any, res) => {
 
         if (!demoModel) {
             console.log("create demo failed");
-            return res.status(403).send('create demo failed');
+            res.status(403).send('create demo failed');
+            return;
         }
 
         await demoModel.save();
@@ -97,8 +100,7 @@ demoRouter.post('/', auth, async (req: any, res) => {
 
         for (const pp of planPropertiesData) {
 
-            let ppData: PlanProperty = pp;
-            delete ppData._id;
+            let ppData: PlanPropertyOfProject = pp;
             ppData.project = demoModel._id;
             const newPP = new PlanPropertyModel(ppData);
             await newPP.save();
@@ -132,7 +134,8 @@ demoRouter.post('/', auth, async (req: any, res) => {
             demoModel.globalExplanation.status == ExplanationRunStatus.FAILED;
             await demoModel.save();
             console.log('No existing explainer service selected.');
-            return res.status(200).send(demoModel._id);
+            res.status(200).send(demoModel._id);
+            return;
         }
 
         const success = await callServices(services, JSON.stringify(payload), '/explanation');
@@ -141,7 +144,8 @@ demoRouter.post('/', auth, async (req: any, res) => {
             demoModel.globalExplanation.status == ExplanationRunStatus.FAILED;
             await demoModel.save();
             console.log('No explainer service available.');
-            return res.status(200).send(demoModel._id);
+            res.status(200).send(demoModel._id);
+            return;
         }
     
         res.send(demoModel._id);
@@ -159,7 +163,8 @@ demoRouter.post('/cancel', auth, async (req: AuthenticatedRequest, res) => {
 
     try {
         if (!req.user) {
-            return res.status(401).send();
+            res.status(401).send()
+            return;
         }
 
         const id = string().parse(req.body.demoId);
@@ -168,11 +173,13 @@ demoRouter.post('/cancel', auth, async (req: AuthenticatedRequest, res) => {
         const demo: Demo | null = await DemoModel.findOne({_id: id, user: req.user._id});
 
         if (! demo) { 
-            return res.status(404).send({ message: 'Demo not found.' });
+            res.status(404).send({ message: 'Demo not found.' })
+            return;
         }
 
         if (demo.status !== DemoRunStatus.PENDING && demo.status !== DemoRunStatus.RUNNING) { 
-            return res.status(400).send({ message: 'Demo computation already finished.' });
+            res.status(400).send({ message: 'Demo computation already finished.' });
+            return;
         }
 
         const explainerServiceURL = process.env.EXPLAINER_SERVICE
@@ -195,12 +202,14 @@ demoRouter.post('/cancel', auth, async (req: AuthenticatedRequest, res) => {
         // delete properties
         const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
         if (!propertyDeleteResult) { 
-            return res.status(404).send({ message: 'Demo deletion failed.' });
+            res.status(404).send({ message: 'Demo deletion failed.' });
+            return;
         }
 
         const result = await DemoModel.deleteOne({ _id: id });
         if (!result) { 
-            return res.status(404).send({ message: 'Demo deletion failed.' });
+            res.status(404).send({ message: 'Demo deletion failed.' });
+            return;
         }
 
         res.send(true);
@@ -225,7 +234,8 @@ demoRouter.post('/compute-explanations/:id/finished', async (req: any, res) => {
         const demo: Demo | null = await DemoModel.findOne({ _id: refId});
 
         if (demo === null || demo.globalExplanation === undefined) {
-            return res.status(404).send('update demo failed');
+            res.status(404).send('update demo failed');
+            return;
         }
 
         const response = ExplainerResponseZ.parse(req.body);
@@ -274,7 +284,8 @@ demoRouter.post('/:id/image', auth, upload.single('summaryImage'), async (req, r
         const demo: Demo | null = await DemoModel.findById(refId);
 
         if (!demo) {
-            return res.status(403).send('Demo not found');
+            res.status(403).send('Demo not found');
+            return;
         }
 
 
@@ -308,7 +319,8 @@ demoRouter.put('/:id', auth, async (req, res) => {
         const demo: Demo | null = await DemoModel.findById(refId);
 
         if (!demo) {
-            return res.status(403).send('Demo not found');
+            res.status(403).send('Demo not found');
+            return;
         }
 
         const demoData = DemoBaseZ.parse(req.body);
@@ -326,7 +338,8 @@ demoRouter.put('/:id', auth, async (req, res) => {
         res.send(demo);
     } catch (ex) {
         console.log(ex);
-        return res.status(500);
+        res.status(500);
+        return;
     }
 });
 
@@ -334,7 +347,8 @@ demoRouter.put('/:id', auth, async (req, res) => {
 demoRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
     try {
         if (!req.user) {
-            return res.status(401);
+            res.status(401);
+            return;
         }
 
         let demos = null;
@@ -346,8 +360,9 @@ demoRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
             demos = await DemoModel.find({ projectId: projectId, user: req.user._id});
         }
 
-        if (!demos) 
-            { return res.status(404).send({ message: 'Demos not found.' }); 
+        if (!demos) { 
+            res.status(404).send({ message: 'Demos not found.' });
+            return; 
         }
 
         res.send(demos);
@@ -360,17 +375,20 @@ demoRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
 
 demoRouter.get('/user-study', auth, async (req: AuthenticatedRequest, res) => {
     try {
-        if (!req.user) {
-            return res.status(401);
+        let user = req.user;
+        if (!user) {
+            res.status(401);
+            return;
         }
         const allDemos: Demo[] = await DemoModel.find();
 
         const demos = allDemos.filter(
-            d => d.public || (req.user && d.user.toString() == req.user._id.toString())
+            d => d.public || (req.user && d.user.toString() == user._id.toString())
         );
 
         if (!demos) { 
-            return res.status(404).send({ message: 'No demos found' });
+            res.status(404).send({ message: 'No demos found' });
+            return;
         }
 
         res.send(demos);
@@ -388,8 +406,9 @@ demoRouter.get('/:id', authAny, async (req, res) => {
 
         const demo = await DemoModel.findOne({ _id: demoID});
 
-        if (!demo) 
-            { return res.status(404).send({ message: 'Demo not found.' }); 
+        if (!demo) { 
+            res.status(404).send({ message: 'Demo not found.' });
+            return; 
         }
 
         res.send(demo);
@@ -405,13 +424,17 @@ demoRouter.delete('/:id', auth, async (req: AuthenticatedRequest, res) => {
 
     try {
         if (!req.user) {
-            return res.status(401).send();
+            res.status(401).send();
+            return;
         }
 
         const id = req.params.id;
 
         const demo: Demo | null = await DemoModel.findOne({_id: id, user: req.user._id});
-        if (!demo) { return res.status(404).send({ message: 'Demo not found.' }); }
+        if (!demo) { 
+            res.status(404).send({ message: 'Demo not found.' });
+            return; 
+        }
 
         // if (demo.summaryImage) {
         //     deleteUploadFile(demo.summaryImage);
@@ -422,12 +445,14 @@ demoRouter.delete('/:id', auth, async (req: AuthenticatedRequest, res) => {
         // delete properties
         const propertyDeleteResult = await PlanPropertyModel.deleteMany({ project: id});
         if (!propertyDeleteResult) { 
-            return res.status(404).send({ message: 'Problem during demo deletion occurred' });
+            res.status(404).send({ message: 'Problem during demo deletion occurred' });
+            return;
         }
 
         const result = await DemoModel.deleteOne({ _id: id });
         if (!result) { 
-            return res.status(404).send({ message: 'Demo deletion failed.' });
+            res.status(404).send({ message: 'Demo deletion failed.' });
+            return;
         }
 
         res.send(true);
@@ -451,7 +476,8 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
             demoData.globalExplanation.MGCS == undefined
         ){
             console.log("upload demo failed");
-            return res.status(403).send('upload demo failed');
+            res.status(403).send('upload demo failed');
+            return;
         }
 
         //domain spec
@@ -481,7 +507,8 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
 
         if (!demoModel) {
             console.log("upload demo failed");
-            return res.status(403).send('upload demo failed');
+            res.status(403).send('upload demo failed');
+            return;
         }
 
         await demoModel.save();
@@ -493,15 +520,15 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
 
         for (const pp of planPropertiesData) {
 
-            let ppData: PlanProperty = pp;
-            const old_id = ppData._id;
-            delete ppData._id;
+            let ppData: PlanPropertyOfProject = pp;
+            const old_id = pp._id;
             ppData.project = demoModel._id;
             const newPP = new PlanPropertyModel(ppData);
             const newProperty = await newPP.save();
 
             if(old_id == undefined){
-                return res.status(403);
+                res.status(403);
+                return;
             }
 
             planPropertyIdMapping[old_id] = newProperty._id;
@@ -512,7 +539,8 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
         if(demoModel.globalExplanation === undefined ||
             demoModel.globalExplanation.MUGS == undefined || 
             demoModel.globalExplanation.MGCS == undefined){
-            return res.status(403);
+                res.status(403);
+                return;
         }
 
         const MUGS: string[][] = demoModel.globalExplanation.MUGS;

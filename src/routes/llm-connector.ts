@@ -549,7 +549,8 @@ function parseExplanationTranslation(etResponse: string): ExplanationTranslation
 LLMRouter.get('/llm-context', authAdmin, async (req: any, res) => {
     //todo update
     if (req.query.projectId === undefined) {
-        return res.status(404).send({ message: 'no projectId specified' });
+        res.status(404).send({ message: 'no projectId specified' });
+        return;
     }
     const projectId: string = req.query.projectId as string;
     const user: User = req.user;
@@ -582,10 +583,12 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
 
         let user: User = req.user;
         if (req.body.projectId == undefined) {
-            return res.status(404).send({ message: 'no projectId specified' });
+            res.status(404).send({ message: 'no projectId specified' });
+            return;
         }
         if (req.body.iterationStepId == undefined) {
-            return res.status(404).send({ message: 'no iterationStepId specified' });
+            res.status(404).send({ message: 'no iterationStepId specified' });
+            return;
         }
     
         const projectId = req.body.projectId;
@@ -595,7 +598,8 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
         const llmConfig = settings?.llmConfig;
 
         if(llmConfig == undefined){
-            return res.status(404).send({ message: 'no llmConfig found' });
+            res.status(404).send({ message: 'no llmConfig found' });
+            return;
         }
         
         
