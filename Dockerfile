@@ -33,6 +33,7 @@ VOLUME /usr/src/app/dist/out-tsc/data
 
 # environment
 ENV UPLOADPATH=/usr/src/app/dist/out-tsc/data/uploads
+ENV PDDLPARSER=/usr/src/pddl_parser/
 
 # run
 EXPOSE 3000

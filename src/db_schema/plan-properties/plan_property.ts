@@ -46,7 +46,7 @@ export const PlanPropertyZ = PlanPropertyOfProjectZ.merge(object({
   _id: string(),
 }));
 
-export type PlanProperty = zinfer<typeof PlanPropertyZ> & Document;
+export type PlanProperty = zinfer<typeof PlanPropertyZ>;
 
 const PlanPropertySchema = new Schema({
     name: { type: String, required: true},

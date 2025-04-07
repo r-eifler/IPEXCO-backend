@@ -12,7 +12,8 @@ domainSpecificationRouter.post('', auth, async (req, res) => {
 
         const domainSpecification = new DomainSpecificationModel(domainSpecificationData);
         if (!domainSpecification) {
-            return res.status(500).send('domainSpecification not created');
+            res.status(500).send('domainSpecification not created');
+            return;
         }
         const data = await domainSpecification.save();
 
@@ -36,7 +37,8 @@ domainSpecificationRouter.put('/:id', auth, async (req, res) => {
         const domainSpecification: DomainSpecification | null = await DomainSpecificationModel.findOne({ _id: refId}).lean();
 
         if (!domainSpecification) {
-            return res.status(403).send('update domain specification failed');
+            res.status(403).send('update domain specification failed');
+            return;
         }
 
         res.send(domainSpecification);
@@ -54,7 +56,8 @@ domainSpecificationRouter.get('', authAny, async (req, res) => {
         const domainSpecifications = await DomainSpecificationModel.find();
 
         if (!domainSpecifications) { 
-            return res.status(404).send({ message: 'No domainSpecification found.' });
+            res.status(404).send({ message: 'No domainSpecification found.' });
+            return;
         }
 
         res.send(domainSpecifications);
@@ -72,7 +75,8 @@ domainSpecificationRouter.get('/:id', authAny, async (req, res) => {
         const domainSpecification = await DomainSpecificationModel.findById(req.params.id);
 
         if (!domainSpecification) { 
-            return res.status(404).send({ message: 'No domainSpecification found.' });
+            res.status(404).send({ message: 'No domainSpecification found.' });
+            return;
         }
 
         res.send(domainSpecification);
@@ -90,7 +94,8 @@ domainSpecificationRouter.delete('/:id', auth, async (req, res) => {
         const result = await DomainSpecificationModel.deleteOne({ _id: req.params.id});
 
         if (result.deletedCount == 1) { 
-            return res.status(404).send({ message: 'No domainSpecification found.' });
+            res.status(404).send({ message: 'No domainSpecification found.' });
+            return;
         }
 
         res.send(true);
