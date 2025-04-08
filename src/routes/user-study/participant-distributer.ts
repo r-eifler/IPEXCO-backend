@@ -10,7 +10,8 @@ export const participantDistributerRouter = express.Router();
 participantDistributerRouter.post('/', auth, async (req: AuthenticatedRequest, res) => {
     try {
         if (!req.user) {
-            return res.status(401).send();
+            res.status(401).send();
+            return;
         }
 
         const participantDistributionData = req.body.data
@@ -19,7 +20,8 @@ participantDistributerRouter.post('/', auth, async (req: AuthenticatedRequest, r
         const participantDistribution = new ParticipantDistributionModel(participantDistributionData);
 
         if (!participantDistribution) {
-            return res.status(403).send('user study failed');
+            res.status(403).send('user study failed');
+            return;
         }
 
         const data = await participantDistribution.save();
@@ -50,7 +52,8 @@ participantDistributerRouter.put('/:id', auth, async (req, res) => {
         console.log(participantDistribution);
 
         if (!participantDistribution) {
-            return res.status(403).send('update user study failed');
+            res.status(403).send('update user study failed');
+            return;
         }
 
         res.send({
@@ -68,12 +71,16 @@ participantDistributerRouter.put('/:id', auth, async (req, res) => {
 participantDistributerRouter.get('/', auth, async (req: AuthenticatedRequest, res) => {
     try {
         if (!req.user) {
-            return res.status(401).send();
+            res.status(401).send();
+            return;
         }
 
         const metaStudies = await ParticipantDistributionModel.find({ user: req.user._id});
 
-        if (!metaStudies) { return res.status(404).send({ message: 'Lookup user studies failed.' }); }
+        if (!metaStudies) { 
+            res.status(404).send({ message: 'Lookup user studies failed.' });
+            return;
+        }
 
         res.send({
             data: metaStudies
@@ -92,7 +99,8 @@ participantDistributerRouter.get('/:id/next', async (req: any, res) => {
         const participantDistribution = await ParticipantDistributionModel.findOne({ _id: id });
 
         if (!participantDistribution) { 
-            return res.status(404).send({ message: 'No user study found.' });
+            res.status(404).send({ message: 'No user study found.' });
+            return;
         }
 
         let numUserStudyParticipants: Record<string, number> = {};
@@ -100,7 +108,8 @@ participantDistributerRouter.get('/:id/next', async (req: any, res) => {
             const participants = await UserStudyExecutionModel.find({userStudy: us.userStudy});
 
             if (!participants) { 
-                return res.status(404).send({ message: 'No user study found.' });
+                res.status(404).send({ message: 'No user study found.' });
+                return;
             }
 
             numUserStudyParticipants[us.userStudy] = participants.length;
@@ -118,7 +127,8 @@ participantDistributerRouter.get('/:id/next', async (req: any, res) => {
         }
 
         if (!minProcessedId) { 
-            return res.status(404).send({ message: 'No user study found.' });
+            res.status(404).send({ message: 'No user study found.' });
+            return;
         }
 
         res.send({
@@ -138,7 +148,8 @@ participantDistributerRouter.get('/:id', async (req: any, res) => {
         const participantDistribution = await ParticipantDistributionModel.findOne({ _id: id });
 
         if (!participantDistribution) { 
-            return res.status(404).send({ message: 'No user study found.' });
+            res.status(404).send({ message: 'No user study found.' });
+            return;
         }
 
         res.send({
@@ -158,7 +169,8 @@ participantDistributerRouter.delete('/:id', auth, async (req, res) => {
         const participantDistribution = await ParticipantDistributionModel.deleteOne({ _id: id });
 
         if (!participantDistribution) { 
-            return res.status(404).send({ message: 'No user study found.' });
+            res.status(404).send({ message: 'No user study found.' });
+            return;
         }
 
         res.send({

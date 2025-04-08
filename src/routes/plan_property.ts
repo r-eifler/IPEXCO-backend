@@ -1,8 +1,8 @@
 import express from 'express';
 
-import { PlanProperty, PlanPropertyBaseZ, PlanPropertyModel, PlanPropertyOfProjectZ, PlanPropertyZ } from '../db_schema/plan-properties/plan_property';
-import { auth, authAny } from '../middleware/auth';
 import { string } from 'zod';
+import { PlanProperty, PlanPropertyModel, PlanPropertyOfProjectZ, PlanPropertyZ } from '../db_schema/plan-properties/plan_property';
+import { auth, authAny } from '../middleware/auth';
 
 export const planPropertyRouter = express.Router();
 
@@ -14,7 +14,8 @@ planPropertyRouter.post('/', auth, async (req, res) => {
 
         const planProperty = new PlanPropertyModel(planPropertyData);
         if (!planProperty) {
-            return res.status(403).send('Plan-property could not be found.');
+            res.status(403).send('Plan-property could not be found.');
+            return;
         }
         const data = await planProperty.save();
 
@@ -38,7 +39,8 @@ planPropertyRouter.put('/:id', auth, async (req, res) => {
         const planProperty: PlanProperty | null = await PlanPropertyModel.findOne({ _id: refId}).lean();
 
         if (!planProperty) {
-            return res.status(403).send('update property failed');
+            res.status(403).send('update property failed');
+            return;
         }
 
         res.send(planProperty);
@@ -52,13 +54,15 @@ planPropertyRouter.put('/:id', auth, async (req, res) => {
 planPropertyRouter.get('/', authAny, async (req, res) => {
     try {
         if (req.query.projectId === undefined) {
-            return res.status(404).send({ message: 'no projectId specified' });
+            res.status(404).send({ message: 'no projectId specified' });
+            return;
         }
         const projectId = string().parse(req.query.projectId);
         const properties = await PlanPropertyModel.find({ project: projectId});
 
         if (!properties) { 
-            return res.status(404).send({ message: 'No plan-property found.' });
+            res.status(404).send({ message: 'No plan-property found.' });
+            return;
         }
 
         res.send(properties);
@@ -75,7 +79,8 @@ planPropertyRouter.get('/:id', authAny, async (req, res) => {
         const property = await PlanPropertyModel.findOne({_id: req.params.id});
 
         if (!property) { 
-            return res.status(404).send({ message: 'No plan-property found.' });
+            res.status(404).send({ message: 'No plan-property found.' });
+            return;
         }
 
         res.send(property);
@@ -92,7 +97,8 @@ planPropertyRouter.delete('/:id', auth, async (req, res) => {
         const result = await PlanPropertyModel.deleteOne({ _id: req.params.id});
 
         if (!result) { 
-            return res.status(404).send({ message: 'No plan-property found.' });
+            res.status(404).send({ message: 'No plan-property found.' });
+            return;
         }
 
         res.send(result.deletedCount == 1);
