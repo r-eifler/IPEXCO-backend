@@ -22,6 +22,7 @@ export class Environment {
     public jwtKey = process.env.JWT_KEY ? process.env.JWT_KEY : '';
     public allowRegistration = process.env.ALLOW_REGISTRATION ? process.env.ALLOW_REGISTRATION == 'true' : false;
     public allowUserStudyUsers = process.env.ALLOW_USER_STUDY_USERS ? process.env.ALLOW_USER_STUDY_USERS == 'true' : false;
+    public allowEvaluationUploads= process.env.ALLOW_EVALUATION_UPLOADS ? process.env.ALLOW_EVALUATION_UPLOADS == 'true' : false;
 
     public serviceKey = process.env.SERVICE_KEY ? process.env.SERVICE_KEY : '';
 

@@ -31,6 +31,7 @@ import { domainSpecificationRouter } from './routes/domain_specification';
 import { promptRouter } from './routes/prompt';
 import { serviceRouter } from './routes/services';
 import { planRouter } from './routes/plan';
+import { evalRouter } from './routes/evaluation_instances';
 
 
 
@@ -121,6 +122,9 @@ app.use('/api/run', iterationStepRouter);
 app.use('/api/project', projectRouter);
 
 app.use('/api/llm', LLMRouter);
+
+
+app.use('/api/competition_evaluation', evalRouter);
 
 // catch 404 and forward to error handler
 app.all('*', (req, res, next) => {
