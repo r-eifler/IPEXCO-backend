@@ -94,7 +94,7 @@ export const PropertyCheckerRequestZ = object({
 	callback: string(),
 	model: unknown(),
 	goals: array(PlanPropertyZ),
-	actions: array(ActionZ),
+	actions: array(unknown()),
 });
 
 export type PropertyCheckerRequest = zinfer<typeof PropertyCheckerRequestZ>;

@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { array, coerce, date, nativeEnum, object, string, infer as zinfer } from "zod";
+import { array, coerce, date, nativeEnum, object, string, unknown, infer as zinfer } from "zod";
 import { Explanation, ExplanationSchema, GlobalExplanation, GlobalExplanationSchema, GlobalExplanationZ } from './explanations';
 import { PlanningTask, PlanningTaskSchema, PlanningTaskZ } from './planning_task';
 import { User } from './user';
@@ -29,7 +29,7 @@ export const PlanRunStatusZ = nativeEnum(PlanRunStatus);
 export const PlanZ = object({
     createdAt: date(), 
     status: PlanRunStatusZ,
-    actions: array(ActionZ).nullish(),
+    actions: array(unknown()).nullish(),
     satisfied_properties: array(string()).optional(),
 });
 

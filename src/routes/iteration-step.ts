@@ -57,7 +57,6 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
             res.status(401).send('Create iteration step failed.');
             return;
         }
-        console.log("create iter step");
         const iterStepBaseData = IterationStepBaseZ.parse(req.body);
         let iterStepData = {
             ...iterStepBaseData,
@@ -65,7 +64,7 @@ iterationStepRouter.post('', authAny, async (req: AuthenticatedRequest, res) => 
             status: StepStatus.UNKNOWN,
         }
 
-        console.log(iterStepData.task);
+        // console.log(iterStepData.task);
 
 
         const step = new IterationStepModel(iterStepData);
