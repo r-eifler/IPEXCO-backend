@@ -2,13 +2,23 @@ import { UserModel, User } from './../db_schema/user';
 import * as jwt from 'jsonwebtoken';
 import { Response, Request, NextFunction } from 'express';
 import { environment } from '../app';
+import { Document } from 'mongoose';
 
 const errorMessage = 'Not authorized to access this resource';
 
 export interface AuthenticatedRequest extends Request{
-    user?: User,
+    user?: User & Document,
     token?: string
 }
+
+// declare global {
+//     namespace Express {
+//         interface Request {
+//             user?: User,
+//             token?: string
+//         }
+//     }
+// }
 
 export const authAny = async(req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (! req.header('Authorization')) {
@@ -26,7 +36,8 @@ export const authAny = async(req: AuthenticatedRequest, res: Response, next: Nex
     try {
         const user = await UserModel.findOne({ _id: data._id, 'tokens.token': token });
         if (!user) {
-            return res.status(401).send({ error: errorMessage });
+            res.status(401).send({ error: errorMessage });
+            return;
         }
         req.user = user;
         req.token = token;
@@ -54,10 +65,12 @@ export const auth = async(req: AuthenticatedRequest, res: Response, next: NextFu
     try {
         const user = await UserModel.findOne({ _id: data._id, 'tokens.token': token });
         if (!user) {
-            return res.status(401).send({ error: errorMessage });
+            res.status(401).send({ error: errorMessage });
+            return;
         }
         if (user.role != 'admin' && user.role != 'creator') {
-            return res.status(401).send({ error: errorMessage });
+            res.status(401).send({ error: errorMessage });
+            return;
         }
         req.user = user;
         req.token = token;
@@ -85,10 +98,12 @@ export const authAdmin = async(req: AuthenticatedRequest, res: Response, next: N
     try {
         const user = await UserModel.findOne({ _id: data._id, 'tokens.token': token });
         if (!user) {
-            return res.status(401).send({ error: errorMessage });
+            res.status(401).send({ error: errorMessage });
+            return;
         }
         if (user.role != 'admin') {
-            return res.status(401).send({ error: errorMessage });
+            res.status(401).send({ error: errorMessage });
+            return;
         }
         req.user = user;
         req.token = token;
@@ -100,7 +115,7 @@ export const authAdmin = async(req: AuthenticatedRequest, res: Response, next: N
 };
 
 
-export const authForward = async(req: any, res: Response, next: NextFunction) => {
+export const authForward = async(req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (! req.header('Authorization')) {
         next();
         return;
@@ -144,7 +159,8 @@ export const authService = async(req: Request, res: Response, next: NextFunction
         }
         
         if(token != environment.serviceKey){
-            return res.status(401).send({ error: errorMessage });
+            res.status(401).send({ error: errorMessage });
+            return;
         }
 
         next();

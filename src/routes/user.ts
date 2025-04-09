@@ -1,11 +1,9 @@
-import { authAny, AuthenticatedRequest, authForward} from './../middleware/auth';
-import express from 'express';
+import express, { Response } from 'express';
+import { environment } from '../app';
 import { User, UserData, UserModel } from '../db_schema/user';
-import { auth } from '../middleware/auth';
-import { Response } from 'express';
 import { UserStudy, UserStudyModel } from '../db_schema/user-study/user-study';
 import { UserStudyExecutionModel } from '../db_schema/user-study/user-study-execution';
-import { environment } from '../app';
+import { authAny, AuthenticatedRequest, authForward } from './../middleware/auth';
 
 export const userRouter = express.Router();
 
@@ -14,20 +12,23 @@ userRouter.post('/user-study', async (req, res) => {
     try {
         if(!environment.allowUserStudyUsers){
             console.log('No user study users possible.');
-            return res.status(403).send('No user study users possible.');
+            res.status(403).send('No user study users possible.');
+            return;
         }
 
         const userStudyId = req.body.userStudyId;
         if(userStudyId === null || userStudyId === undefined){
             console.log('No user study specified!')
-            return res.status(400).send('No user study specified!');
+            res.status(400).send('No user study specified!');
+            return 
         }
 
         const userStudy: UserStudy | null = await UserStudyModel.findById(userStudyId);
 
         if(userStudy === null || userStudy?.startDate === undefined || userStudy?.endDate === undefined){
             console.log('User Study not available anymore!')
-            return res.status(400).send('User Study not available anymore!');
+            res.status(400).send('User Study not available anymore!');
+            return;
         }
 
         const prolificId = req.body.prolificId;
@@ -37,7 +38,8 @@ userRouter.post('/user-study', async (req, res) => {
         const end = new Date(userStudy.endDate); 
         if (now < start || now > end){
             console.log('User Study not available anymore!')
-            return res.status(400).send('User Study not available anymore!');
+            res.status(400).send('User Study not available anymore!');
+            return;
         }
 
         console.log('User study valid and running.');
@@ -47,7 +49,7 @@ userRouter.post('/user-study', async (req, res) => {
             role: 'user-study',
             password: '1234567',
         }
-        const user: User = new UserModel(newUser);
+        const user = new UserModel(newUser);
         await user.save();
 
         const stringId =  user._id.toString();
@@ -88,7 +90,8 @@ userRouter.post('/', async (req, res) => {
     try {
         console.log("Allow registration: " + environment.allowRegistration);
         if(!environment.allowRegistration){
-            return res.status(403).send('No registration possible.');
+            res.status(403).send('No registration possible.');
+            return;
         }
         const userExists = await UserModel.findOne({ name: req.body.name});
         if (userExists) {
@@ -122,23 +125,25 @@ userRouter.post('/login', authForward, async(req: AuthenticatedRequest, res: Res
     try {
         if (req.user) {
             if(req.user.role == 'user-study'){
-                return res.status(401).send({ error: 'Login failed! User study users cannot login'});
+                res.status(401).send({ error: 'Login failed! User study users cannot login'});
+                return;
             }
             res.send({ user: req.user, token: req.token });
         }
         const username = req.body.name;
         const password = req.body.password;
         if(username == null || password == null){
-            return res.status(401).send({ error: 'Login failed! Check authentication credentials'});
+            res.status(401).send({ error: 'Login failed! Check authentication credentials'});
+            return;
         }
 
         const user = await (UserModel as any).findByCredentials(username, password);
         if (!user) {
-            return res.send({data: {
+            res.send({data: {
                 user: null,
                 token: null
             }})
-            // return res.status(401).send({ error: 'Login failed! Check authentication credentials'});
+            return 
         }
 
         const token = await user.generateAuthToken();
@@ -164,7 +169,8 @@ userRouter.post('/login', authForward, async(req: AuthenticatedRequest, res: Res
 userRouter.get('', authAny, async(req: AuthenticatedRequest, res) => {
     try {
         if(!req.user){
-            return res.status(400).send();
+            res.status(400).send();
+            return;
         }
         let user = req.user;
         const userData: UserData = {
@@ -179,12 +185,10 @@ userRouter.get('', authAny, async(req: AuthenticatedRequest, res) => {
     }
 });
 
-userRouter.post('/logout', authForward, async (req: any, res) => {
+userRouter.post('/logout', authForward, async (req: AuthenticatedRequest, res) => {
     try {
         if (req.user) {
-            req.user.tokens = req.user.tokens.filter((token: {token: string}) => {
-                return token.token !== req.token;
-            });
+            req.user.tokens = req.user.tokens.filter((token: {token: string}) => token.token !== req.token);
             await req.user.save();
         }
 

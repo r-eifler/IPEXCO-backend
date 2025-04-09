@@ -14,7 +14,8 @@ promptRouter.post('/prompt', auth, async (req, res) => {
 
         const prompt = new PromptModel(promptData);
         if (!prompt) {
-            return res.status(500).send('prompt not created');
+            res.status(500).send('prompt not created');
+            return;
         }
         const data = await prompt.save();
 
@@ -41,7 +42,8 @@ promptRouter.put('/prompt/:id', auth, async (req, res) => {
         const prompt: Prompt | null = await PromptModel.findOne({ _id: refId}).lean();
 
         if (!prompt) {
-            return res.status(403).send('update prompt failed');
+            res.status(403).send('update prompt failed');
+            return;
         }
 
         res.send(prompt);
@@ -59,7 +61,8 @@ promptRouter.get('/prompt', authAny, async (req, res) => {
         const prompts = await PromptModel.find();
 
         if (!prompts) { 
-            return res.status(404).send({ message: 'No prompt found.' });
+            res.status(404).send({ message: 'No prompt found.' });
+            return;
         }
 
         res.send(prompts);
@@ -78,7 +81,8 @@ promptRouter.get('/prompt/:id', authAny, async (req, res) => {
         const prompt = await PromptModel.findById(req.params.id);
 
         if (!prompt) { 
-            return res.status(404).send({ message: 'No prompt found.' });
+            res.status(404).send({ message: 'No prompt found.' });
+            return;
         }
 
         res.send(prompt);
@@ -96,7 +100,8 @@ promptRouter.delete('/prompt/:id', auth, async (req, res) => {
         const result = await PromptModel.deleteOne({ _id: req.params.id});
 
         if (result.deletedCount == 1) { 
-            return res.status(404).send({ message: 'No prompt found.' });
+            res.status(404).send({ message: 'No prompt found.' });
+            return;
         }
 
         res.send(true);
@@ -115,7 +120,8 @@ promptRouter.post('/output-schema', auth, async (req, res) => {
 
         const outputSchema = new OutputSchemaModel(outputSchemaData);
         if (!outputSchema) {
-            return res.status(500).send('output schema not created');
+            res.status(500).send('output schema not created');
+            return;
         }
         const data = await outputSchema.save();
 
@@ -139,7 +145,8 @@ promptRouter.put('/output-schema/:id', auth, async (req, res) => {
         const outputSchema: OutputSchema | null = await OutputSchemaModel.findOne({ _id: refId}).lean();
 
         if (!outputSchema) {
-            return res.status(403).send('update output schema failed');
+            res.status(403).send('update output schema failed');
+            return;
         }
 
         res.send(outputSchema);
@@ -157,7 +164,8 @@ promptRouter.get('/output-schema', authAny, async (req, res) => {
         const outputSchemas = await OutputSchemaModel.find();
 
         if (!outputSchemas) { 
-            return res.status(404).send({ message: 'No output schema found.' });
+            res.status(404).send({ message: 'No output schema found.' });
+            return;
         }
 
         res.send(outputSchemas);
@@ -175,7 +183,8 @@ promptRouter.get('/output-schema/:id', authAny, async (req, res) => {
         const outputSchema = await OutputSchemaModel.findById(req.params.id);
 
         if (!outputSchema) { 
-            return res.status(404).send({ message: 'No output schema found.' });
+            res.status(404).send({ message: 'No output schema found.' });
+            return;
         }
 
         res.send(outputSchema);
@@ -193,7 +202,8 @@ promptRouter.delete('/output-schema/:id', auth, async (req, res) => {
         const result = await OutputSchemaModel.deleteOne({ _id: req.params.id});
 
         if (result.deletedCount == 1) { 
-            return res.status(404).send({ message: 'No prompt found.' });
+            res.status(404).send({ message: 'No prompt found.' });
+            return;
         }
 
         res.send(true);
