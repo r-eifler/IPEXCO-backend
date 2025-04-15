@@ -9,17 +9,16 @@ export interface CallResult{
 
 export function pythonShellCallSimple(scriptPath: string, options: any): Promise<string[]> {
     return new Promise((resolve, reject) => {
-        // @ts-ignore
-        PythonShell.run(scriptPath, options,  (err: any, results: any) => {
-            if (err) {
-                console.log(err);
-                reject(err);
-            }
-            else {
-                console.log('PYTHON CALL SUCC');
-                console.log(results)
-                resolve(results);
-            }
+        PythonShell.run(scriptPath, options).then(
+        (results: any[]) => {
+            // console.log('Python call successful');
+            // console.log(results)
+            resolve(results);
+        },
+        (error: any) => {
+            console.log('Python call failed')
+            console.log(error);
+            reject(error);
         });
     });
 }

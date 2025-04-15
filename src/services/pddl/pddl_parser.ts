@@ -3,6 +3,7 @@ import { writeFileSync } from 'fs';
 import path from 'path';
 import { environment } from '../../app';
 import { pythonShellCallSimple } from '../python-call';
+import { PDDLPlanningModel } from '../../db_schema/PDDL_task';
 
 export class PDDLParser {
     
@@ -28,7 +29,7 @@ export class PDDLParser {
             'utf8')
     }
 
-    async executeRun(): Promise<string[]> {
+    async parse(): Promise<PDDLPlanningModel> {
         const addArgs = [
             path.join(this.runFolder, 'domain.pddl'),
             path.join(this.runFolder, 'problem.pddl'),
@@ -42,9 +43,14 @@ export class PDDLParser {
             args: addArgs,
         };
 
-        console.log(options);
+        // console.log('Python call options:')
+        // console.log(options);
 
-        return await pythonShellCallSimple('main.py', options);
+        const modelLines = await pythonShellCallSimple('main.py', options);
+        const modelString: string = modelLines.reduce((m,l) => m + '\n' + l, '')
+        const modelJSON = JSON.parse(modelString);
+
+        return modelJSON;
     }
 
     private getPythonPath(): string {

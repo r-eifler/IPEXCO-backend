@@ -9,19 +9,19 @@ export const pddlRouter = express.Router();
 
 pddlRouter.post('/model', auth,  async (req, res) => {
     try {
+        console.log("Parse pddl model ...")
         let problemText = req.body.data.problem
         let domainText = req.body.data.domain
        
 
         const parser = new PDDLParser(environment.experimentsRootPath, Date.now().toString(), domainText, problemText)
-        const modelLines = await parser.executeRun()
+        const model = await parser.parse()
 
-        const modelString: string = modelLines.reduce((m,l) => m + '\n' + l, '')
-        const modelJSON = JSON.parse(modelString);
+        console.log('PDDL model parsed')
 
         //TODO metrics
 
-        res.status(200).send({data: modelJSON})
+        res.status(200).send({data: model})
 
     } catch (error) {
         console.log(error);
