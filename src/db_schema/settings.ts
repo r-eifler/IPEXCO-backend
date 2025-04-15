@@ -24,6 +24,13 @@ export const PaymentInfoZ = object({
   
   export const ExplanationInterfaceTypeZ = nativeEnum(ExplanationInterfaceType);
   
+  export enum LLMContextSetup {
+    ITERATION_STEP = 'ITERATION_STEP',
+    PROJECT = 'PROJECT',
+  }
+  
+export const LLMContextSetupZ = nativeEnum(LLMContextSetup);
+  
   export const GeneralSettingsZ = object({
     main: object({
         public: boolean(),
@@ -47,6 +54,7 @@ export const PaymentInfoZ = object({
       outputSchema: array(string()),
       goalTranslator: boolean(),
       showReverseTranslation: boolean(),
+      llmContextSetup: LLMContextSetupZ,
     }),
     userStudy: object({
         introTask: boolean(),
@@ -82,6 +90,7 @@ export const PaymentInfoZ = object({
         outputSchema: [{ type: mongoose.Schema.Types.ObjectId, ref: 'output-schema' }],
         goalTranslator: { type: Boolean, required: true},
         showReverseTranslation: { type: Boolean, required: true},
+        llmContextSetup: { type: String, required: true},
     },
     userStudy: {
         introTask: { type: Boolean, required: true},
@@ -119,6 +128,7 @@ export const defaultGeneralSetting: GeneralSettings = {
       outputSchema: [],
       goalTranslator: false,
       showReverseTranslation: false,
+      llmContextSetup: LLMContextSetup.ITERATION_STEP,
     },
     userStudy: {
         introTask: false,
