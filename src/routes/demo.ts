@@ -1,5 +1,5 @@
 import express from 'express';
-import { PlanProperty, PlanPropertyBase, PlanPropertyModel, PlanPropertyOfProject } from '../db_schema/plan-properties/plan_property';
+import { PlanProperty, PlanPropertyBase, PlanPropertyBaseZ, PlanPropertyModel, PlanPropertyOfProject } from '../db_schema/plan-properties/plan_property';
 import { auth, AuthenticatedRequest } from '../middleware/auth';
 import { Demo, DemoBaseZ, DemoModel, DemoRunStatus } from './../db_schema/demo';
 import { authAny } from './../middleware/auth';
@@ -12,7 +12,7 @@ import { ExplanationRunStatus } from '../db_schema/explanations';
 import { ExplainerRequest, ExplainerResponse, ExplainerResponseZ } from '../db_schema/service_communication';
 import { Service, ServiceModel, ServiceType } from '../db_schema/services';
 import { callServices } from '../services/utils';
-
+import { array } from 'zod';
 
 
 export const demoRouter = express.Router();
@@ -48,7 +48,6 @@ const upload = multer({
 demoRouter.post('/image', auth, upload.single('summaryImage'), async (req: any, res) => {
 
     try {
-        console.log(req);
         if (!req.file) {
             res.status(400).send('upload failed');
             return;
@@ -58,7 +57,7 @@ demoRouter.post('/image', auth, upload.single('summaryImage'), async (req: any, 
         console.log("Image uploaded: " + imageFilePath);
         
         res.send({
-            data: imageFilePath
+            imagePath: imageFilePath
         });
 
 
@@ -96,12 +95,14 @@ demoRouter.post('/', auth, async (req: any, res) => {
 
         await demoModel.save();
         
-        const planPropertiesData: PlanProperty[] = req.body.planProperties;
+        const planPropertiesData: PlanPropertyBase[] = array(PlanPropertyBaseZ).parse(req.body.planProperties);
 
         for (const pp of planPropertiesData) {
 
-            let ppData: PlanPropertyOfProject = pp;
-            ppData.project = demoModel._id;
+            let ppData: PlanPropertyOfProject = {
+                ...pp,
+                project: demoModel._id
+            };
             const newPP = new PlanPropertyModel(ppData);
             await newPP.save();
         }
@@ -141,7 +142,7 @@ demoRouter.post('/', auth, async (req: any, res) => {
         const success = await callServices(services, JSON.stringify(payload), '/explanation');
 
         if(!success){
-            demoModel.globalExplanation.status == ExplanationRunStatus.FAILED;
+            demoModel.globalExplanation.status = ExplanationRunStatus.FAILED;
             await demoModel.save();
             console.log('No explainer service available.');
             res.status(200).send(demoModel._id);
