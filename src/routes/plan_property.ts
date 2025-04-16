@@ -64,7 +64,7 @@ planPropertyRouter.get('/', authAny, async (req, res) => {
             res.status(404).send({ message: 'No plan-property found.' });
             return;
         }
-
+        console.log("#properties: " + properties.length)
         res.send(properties);
 
     } catch (ex : any) {
