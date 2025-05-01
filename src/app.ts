@@ -31,6 +31,7 @@ import { domainSpecificationRouter } from './routes/domain_specification';
 import { promptRouter } from './routes/prompt';
 import { serviceRouter } from './routes/services';
 import { planRouter } from './routes/plan';
+import { flightPlanTreeRouter } from './routes/beluga/flight-plan-tree';
 
 
 
@@ -121,6 +122,10 @@ app.use('/api/run', iterationStepRouter);
 app.use('/api/project', projectRouter);
 
 app.use('/api/llm', LLMRouter);
+
+
+// Beluga
+app.use('/api/flight-plan-forest', flightPlanTreeRouter);
 
 // catch 404 and forward to error handler
 app.all('*', (req, res, next) => {
