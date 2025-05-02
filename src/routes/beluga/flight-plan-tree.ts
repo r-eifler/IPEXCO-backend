@@ -1,5 +1,5 @@
 import express from 'express';
-import { object, string } from 'zod';
+import { object, string, unknown } from 'zod';
 import { FlightPlanTree, FlightPlanTreeBaseZ, FlightPlanTreeModel, FlightPlanTreeZ, FlightSection, FlightSectionBaseZ, FlightSectionModel, FlightSectionZ } from '../../db_schema/beluga/flight-section-tree';
 import { authAny } from '../../middleware/auth';
 import { PlanRunStatus } from '../../db_schema/iteration_step';
@@ -34,7 +34,7 @@ flightPlanTreeRouter.post('', authAny, async (req: any, res) => {
 
 flightPlanTreeRouter.post('/init', authAny, async (req: any, res) => {
     try {
-        const idObject = object({projectId: string()}).parse(req.body);
+        const idObject = object({projectId: string(), initialState: unknown()}).parse(req.body);
 
         const treeData = {
             user: req.user._id,
@@ -57,6 +57,7 @@ flightPlanTreeRouter.post('/init', authAny, async (req: any, res) => {
         const sectionData  = {
             user: req.user._id,
             status: PlanRunStatus.PENDING,
+            startState: idObject.initialState,
             actions: [],
             flightIndex: 0,
             finished: false,
@@ -95,10 +96,31 @@ flightPlanTreeRouter.post('/section', authAny, async (req: any, res) => {
 
         const section = new FlightSectionModel(dataWithUser);
         if (!section) {
-            res.status(500).send('forest not created');
+            res.status(500).send('section not created');
             return;
         }
-        section.save();
+        await section.save();
+
+        const tree = await FlightPlanTreeModel.findById(section.treeId);
+        if (!tree) {
+            res.status(500).send('section not created');
+            return;
+        }
+
+        const branchIndex = tree.selectedBranch; //branches.findIndex(b => b.sectionIdHead == section.predecessorId);
+
+        tree.branches = [
+            ...tree.branches.slice(0,branchIndex),
+            {
+                ...tree.branches[branchIndex],
+                sectionIdHead: section._id,
+            },
+            ...tree.branches.slice(branchIndex + 1),
+        ]
+        tree.selectedSectionId = section._id;
+
+        tree.save()
+
 
         res.send(section);
     }
@@ -107,6 +129,30 @@ flightPlanTreeRouter.post('/section', authAny, async (req: any, res) => {
         res.status(500).send();
     }
 });
+
+
+flightPlanTreeRouter.put('/section/:id', authAny, async (req, res) => {
+    try {
+        const refId = req.params.id;
+        const data = FlightSectionZ.parse(req.body);
+
+        await FlightSectionModel.replaceOne({ _id: refId}, data);
+
+        const section: FlightSection | null = await FlightSectionModel.findOne({ _id: refId}).lean();
+
+        if (!section) {
+            res.status(403).send('update forest failed');
+            return;
+        }
+
+        res.send(section);
+
+    } catch (ex : any) {
+        console.log(ex.message);
+        res.status(500).send();
+    }
+});
+
 
 
 flightPlanTreeRouter.put('/:id', authAny, async (req, res) => {
@@ -131,27 +177,6 @@ flightPlanTreeRouter.put('/:id', authAny, async (req, res) => {
     }
 });
 
-flightPlanTreeRouter.put('/section/:id', authAny, async (req, res) => {
-    try {
-        const refId = req.params.id;
-        const data = FlightSectionZ.parse(req.body);
-
-        await FlightPlanTreeModel.replaceOne({ _id: refId}, data);
-
-        const section: FlightSection | null = await FlightSectionModel.findOne({ _id: refId}).lean();
-
-        if (!section) {
-            res.status(403).send('update forest failed');
-            return;
-        }
-
-        res.send(section);
-
-    } catch (ex : any) {
-        console.log(ex.message);
-        res.status(500).send();
-    }
-});
 
 
 flightPlanTreeRouter.get('', authAny, async (req: any, res) => {
@@ -188,6 +213,26 @@ flightPlanTreeRouter.get('/section', authAny, async (req: any, res) => {
         }
 
         res.send(sections);
+
+    } catch (ex : any) {
+        console.log(ex.message);
+        res.status(500).send();
+    }
+
+});
+
+flightPlanTreeRouter.get('/:id', authAny, async (req: any, res) => {
+    try {
+        const refId = req.params.id;
+        const tree = await FlightPlanTreeModel.findById(refId);
+
+        if (!tree) { 
+            console.log("no tree");
+            res.send(null);
+            return;
+        }
+
+        res.send(tree);
 
     } catch (ex : any) {
         console.log(ex.message);

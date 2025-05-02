@@ -1,6 +1,7 @@
 import { array, boolean, nullable, number, object, optional, record, string, unknown, infer as zinfer } from "zod";
 import { PlanRunStatusZ } from "../iteration_step";
 import mongoose, { Schema } from "mongoose";
+import { PlanMethodSchema, PlanMethodTypeZ, PlanMethodZ } from "./plan_method";
 
 
 export const FlightSectionBaseZ = object({
@@ -10,6 +11,7 @@ export const FlightSectionBaseZ = object({
     predecessorId: nullable(string()),
     treeId: string(),
 
+    planMethod: optional(PlanMethodZ),
     actions: array(unknown()),
     status: PlanRunStatusZ,
     satisfiedProperties: array(string()).optional(),
@@ -64,6 +66,7 @@ const FlightSectionSchema = new Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     treeId: { type: mongoose.Schema.Types.ObjectId, ref: 'flight-plan-tree' },
 
+    planMethod: { type: PlanMethodSchema, required: false},
     actions: [{type: Object, required: false}],
     status: {type: String, required: false},
     satisfiedProperties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property', required: false}],
@@ -79,7 +82,7 @@ const FlightPlanBranchSchema = new Schema({
 const FlightPlanTreeSchema = new Schema({
     branches:  [{ type: FlightPlanBranchSchema}],
     selectedBranch: { type: Number, required: true},
-    selectedSectionId: {type: String, required: false},
+    selectedSectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'flight-plan-section', required: false},
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'project', required: true},
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 });
