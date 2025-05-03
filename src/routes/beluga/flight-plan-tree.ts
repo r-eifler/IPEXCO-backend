@@ -221,6 +221,25 @@ flightPlanTreeRouter.get('/section', authAny, async (req: any, res) => {
 
 });
 
+flightPlanTreeRouter.get('/section/:id', authAny, async (req: any, res) => {
+    try {
+        const refId = req.params.id;
+        const section = await FlightSectionModel.findById(refId);
+        if (!section) { 
+            res.status(403).send('get section failed');
+            return;
+        }
+
+        res.send(section);
+
+    } catch (ex : any) {
+        console.log(ex.message);
+        res.status(500).send();
+    }
+
+});
+
+
 flightPlanTreeRouter.get('/:id', authAny, async (req: any, res) => {
     try {
         const refId = req.params.id;
