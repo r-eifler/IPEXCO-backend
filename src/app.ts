@@ -1,37 +1,36 @@
-import { auth } from './middleware/auth';
-import { userRouter } from './routes/user';
-import createError from 'http-errors';
-import express from 'express';
-import path from 'path';
-import fs from 'fs';
 import cookieParser from 'cookie-parser';
+import express from 'express';
+import createError from 'http-errors';
+import path from 'path';
+import { userRouter } from './routes/user';
 
 import logger from 'morgan';
 import sassMiddleware from 'node-sass-middleware';
 
 import errorMiddleware from './middleware/error.middleware';
 
-import { projectRouter } from './routes/project';
-import { indexRouter } from './routes';
-import { planPropertyRouter } from './routes/plan_property';
-import { iterationStepRouter } from './routes/iteration-step';
-import { demoRouter } from './routes/demo';
-import { userStudyRouter } from './routes/user-study/user-study';
 import { Environment } from './environment';
+import { indexRouter } from './routes';
+import { demoRouter } from './routes/demo';
+import { iterationStepRouter } from './routes/iteration-step';
+import { planPropertyRouter } from './routes/plan_property';
+import { projectRouter } from './routes/project';
+import { userStudyRouter } from './routes/user-study/user-study';
 
 import * as dotenv from "dotenv";
+import { LLMRouter } from './routes/llm-connector';
+import { pddlRouter } from './routes/pddl';
+import { plannerRouter } from './routes/planner';
 import { participantDistributerRouter } from './routes/user-study/participant-distributer';
 import { userStudyExecutionRouter } from './routes/user-study/user-study-execution';
-import { plannerRouter } from './routes/planner';
-import { pddlRouter } from './routes/pddl';
-import { LLMRouter } from './routes/llm-connector';
 
-import { explainerRouter } from './routes/explainer';
+import { flightPlanTreeRouter } from './routes/beluga/flight-plan-tree';
+import { flightSectionPlanRouter } from './routes/beluga/flight-section-plan';
 import { domainSpecificationRouter } from './routes/domain_specification';
+import { explainerRouter } from './routes/explainer';
+import { planRouter } from './routes/plan';
 import { promptRouter } from './routes/prompt';
 import { serviceRouter } from './routes/services';
-import { planRouter } from './routes/plan';
-import { flightPlanTreeRouter } from './routes/beluga/flight-plan-tree';
 
 
 
@@ -126,6 +125,7 @@ app.use('/api/llm', LLMRouter);
 
 // Beluga
 app.use('/api/flight-plan-forest', flightPlanTreeRouter);
+app.use('/api/flight-section-plan', flightSectionPlanRouter);
 
 // catch 404 and forward to error handler
 app.all('*', (req, res, next) => {

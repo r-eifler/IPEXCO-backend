@@ -3,7 +3,6 @@ import { array, object, string, infer as zinfer } from "zod";
 
 export const ActionZ = object({
     name: string(),
-    params: array(string()),
 });
 
 export type Action = zinfer<typeof ActionZ>;
