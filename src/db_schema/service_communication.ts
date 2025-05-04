@@ -3,6 +3,7 @@ import { ExplanationRunStatusZ } from "./explanations";
 import { PlanRunStatusZ } from "./iteration_step";
 import { Action, ActionZ } from "./plan-properties/action_set";
 import { PlanProperty, PlanPropertyZ } from "./plan-properties/plan_property";
+import { BelugaActionZ } from "./beluga/beluga_plan";
 
 
 
@@ -38,7 +39,7 @@ export type SimplePlannerRequest = zinfer<typeof SimplePlannerRequestZ>;
 export const  SimplePlannerResponseZ  = object({
     id: string(),
     status: PlanRunStatusZ,
-    actions: array(ActionZ),
+    actions: array(BelugaActionZ),
     runtime: number().optional() // in sec
 });
 

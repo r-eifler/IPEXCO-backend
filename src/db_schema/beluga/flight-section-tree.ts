@@ -1,17 +1,20 @@
-import { array, boolean, nullable, number, object, optional, record, string, unknown, infer as zinfer } from "zod";
-import { PlanRunStatusZ } from "../iteration_step";
 import mongoose, { Schema } from "mongoose";
-import { PlanMethodSchema, PlanMethodTypeZ, PlanMethodZ } from "./plan_method";
+import { array, nullable, number, object, optional, string, unknown, infer as zinfer } from "zod";
+import { PlanRunStatus, PlanRunStatusZ } from "../iteration_step";
+import { applyActions, BelugaStateZ } from "./beluga_state";
+import { PlanMethodSchema, PlanMethodZ } from "./plan_method";
+import { BelugaProblem } from "./beluga_problem";
+import { BelugaActionZ } from "./beluga_plan";
 
 
 export const FlightSectionBaseZ = object({
     flightIndex: number(),
-    startState: optional(unknown()),
+    startState: optional(BelugaStateZ),
     predecessorId: nullable(string()),
     treeId: string(),
 
     planMethod: optional(PlanMethodZ),
-    actions: array(unknown()),
+    actions: array(BelugaActionZ),
     status: PlanRunStatusZ,
     satisfiedProperties: array(string()).optional(),
 })
@@ -53,6 +56,26 @@ export const FlightPlanTreeZ = FlightPlanTreeBaseZ.merge(object({
 
 export type FlightPlanTree = zinfer<typeof FlightPlanTreeZ>;
 
+export function deriveSuccessor(section: FlightSection, task: BelugaProblem){
+    if(section.startState === undefined){
+        return undefined;
+    }
+    let newStartState = applyActions(section.startState, section.actions, task);
+    if (newStartState == undefined){
+        return undefined;
+    }
+    let suc = {
+        flightIndex: section.flightIndex + 1,
+        startState: newStartState,
+        status: PlanRunStatus.PENDING,
+        predecessorId: section._id,
+        treeId: section.treeId,
+        actions: [],
+        planMethod: section.planMethod,
+        user: section.user
+    }
+    return suc;
+}
 
 
 // Mongo
