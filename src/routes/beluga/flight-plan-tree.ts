@@ -85,6 +85,60 @@ flightPlanTreeRouter.post('/init', authAny, async (req: any, res) => {
     }
 });
 
+
+flightPlanTreeRouter.post('/branch', authAny, async (req: any, res) => {
+    try {
+        const idObject = object({sectionId: string(), branchName: string()}).parse(req.body);
+
+        const section = await FlightSectionModel.findOne({ _id: idObject.sectionId});
+    
+        if (!section) {
+            res.status(500).send('section does not exist');
+            return;
+        }
+
+        const tree = await FlightPlanTreeModel.findOne({ _id: section.treeId});
+
+        if (!tree) {
+            res.status(500).send('tree does not exist');
+            return;
+        }
+
+        const sectionData  = {
+            user: req.user._id,
+            status: PlanRunStatus.PENDING,
+            startState: section.startState,
+            actions: [],
+            flightIndex: section.flightIndex,
+            finished: false,
+            predecessorId: section.predecessorId,
+            treeId: tree._id
+        }
+
+        const newSection = new FlightSectionModel(sectionData);
+        if (!newSection) {
+            res.status(500).send('new section not created');
+            return;
+        }
+        await newSection.save();
+
+        tree.selectedSectionId = newSection._id;
+        tree.selectedBranch = tree.branches.length;
+        tree.branches = [...tree.branches, {
+            name: idObject.branchName,
+            sectionIdHead: newSection._id
+        }];
+
+        tree.save();
+
+        res.send(tree);
+    }
+    catch (ex : any) {
+        console.log(ex.message);
+        res.status(500).send();
+    }
+});
+
 flightPlanTreeRouter.post('/section', authAny, async (req: any, res) => {
     try {
         const data = FlightSectionBaseZ.parse(req.body);
