@@ -7,7 +7,6 @@ import { PlanMethodSchema, PlanMethodTypeZ, PlanMethodZ } from "./plan_method";
 export const FlightSectionBaseZ = object({
     flightIndex: number(),
     startState: optional(unknown()),
-    finished: boolean(),
     predecessorId: nullable(string()),
     treeId: string(),
 
@@ -61,7 +60,6 @@ export type FlightPlanTree = zinfer<typeof FlightPlanTreeZ>;
 const FlightSectionSchema = new Schema({
     flightIndex: { type: Number, required: true},
     startState: {type: Object, required: false},
-    finished:  { type: Boolean, required: true},
     predecessorId: { type: mongoose.Schema.Types.ObjectId, ref: 'flight-plan-section', required: false},
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     treeId: { type: mongoose.Schema.Types.ObjectId, ref: 'flight-plan-tree' },
