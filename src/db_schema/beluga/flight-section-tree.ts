@@ -1,15 +1,54 @@
 import mongoose, { Schema } from "mongoose";
-import { array, nullable, number, object, optional, string, unknown, infer as zinfer } from "zod";
-import { PlanRunStatus, PlanRunStatusZ } from "../iteration_step";
-import { applyActions, BelugaStateZ } from "./beluga_state";
-import { PlanMethodSchema, PlanMethodZ } from "./plan_method";
-import { BelugaProblem } from "./beluga_problem";
+import { array, boolean, nativeEnum, nullable, number, object, optional, record, string, infer as zinfer } from "zod";
+import { PlanRunStatusZ } from "../iteration_step";
 import { BelugaActionZ } from "./beluga_plan";
+import { PlanMethodSchema, PlanMethodZ } from "./plan_method";
+import { BelugaSiteSetUpZ, BelugaSiteStateZ, SiteStatus } from "./site_set_up";
+import { BelugaProblem } from "./beluga_problem";
 
+
+export enum GoalStatus {
+    SOFT = "SOFT",
+    HARD = "HARD"
+  }
+  
+export const GoalStatusZ = nativeEnum(GoalStatus);
+
+export const FlightTargetScheduleZ = object({
+    name: string(),
+    incoming: array(object({
+        jig: string(),
+        status: GoalStatusZ
+    })),
+    outgoing: array(object({
+        jigType: string(),
+        status: GoalStatusZ
+    })),
+})
+
+
+export const ProductionLineTargetScheduleZ = object({
+    name: string(),
+    schedule: array(object({
+        jig: string(),
+        status: GoalStatusZ
+    }))
+})
 
 export const FlightSectionBaseZ = object({
     flightIndex: number(),
-    startState: optional(BelugaStateZ),
+    siteState: BelugaSiteStateZ,
+    siteSetUp: BelugaSiteSetUpZ,
+   
+    incomingUnloaded: array(string()),
+    outgoingLoaded: array(string()),
+    productionLinesDelivered: record(string(),  array(string())),
+
+    flightTargetSchedule: FlightTargetScheduleZ,
+    productionLinesTargetSchedule: array(ProductionLineTargetScheduleZ),
+    maxSwaps: nullable(number()),
+    minEmptyRacks: nullable(number()),
+
     predecessorId: nullable(string()),
     treeId: string(),
 
@@ -17,7 +56,9 @@ export const FlightSectionBaseZ = object({
     actions: array(BelugaActionZ),
     status: PlanRunStatusZ,
     satisfiedProperties: array(string()).optional(),
+    finished: boolean(),
 })
+
 
 export type FlightSectionBase = zinfer<typeof FlightSectionBaseZ>;
 
@@ -56,36 +97,90 @@ export const FlightPlanTreeZ = FlightPlanTreeBaseZ.merge(object({
 
 export type FlightPlanTree = zinfer<typeof FlightPlanTreeZ>;
 
-export function deriveSuccessor(section: FlightSection, task: BelugaProblem){
-    if(section.startState === undefined){
-        return undefined;
+
+
+// Functions
+
+export function getTaskFromSection(section: FlightSection){
+
+    const state = section.siteState;
+    const setUp = section.siteSetUp;
+
+    let task: BelugaProblem = {
+        jigs: state.jigs,
+        racks: setUp.racks.filter(r => r.status == SiteStatus.IN_USE).map(r => ({
+            ...r, 
+            jigs: state.racks[r.name]
+        })),
+        hangars: setUp.hangars.filter(h => h.status == SiteStatus.IN_USE).map(h => ({
+            ...h, 
+            jig: state.hangars[h.name]
+        })),
+        trailers_beluga: setUp.belugaTrailers.filter(h => h.status == SiteStatus.IN_USE).map(t => ({
+            ...t, 
+            jig: state.trailers[t.name]
+        })),
+        trailers_factory: setUp.factoryTrailers.filter(h => h.status == SiteStatus.IN_USE).map(t => ({
+            ...t, 
+            jig: state.trailers[t.name]
+        })),
+        jig_types: setUp.jig_types,
+        production_lines: section.productionLinesTargetSchedule.map(pl => ({
+            ...pl,
+            schedule: pl.schedule.filter(j => j.status == GoalStatus.HARD).map(j => j.jig)
+        })),
+        flights: [{
+            ...section.flightTargetSchedule,
+            incoming: section.flightTargetSchedule.incoming.filter(j => j.status == GoalStatus.HARD).map(j => j.jig),
+            outgoing: section.flightTargetSchedule.outgoing.filter(j => j.status == GoalStatus.HARD).map(j => j.jigType),
+        }]
     }
-    let newStartState = applyActions(section.startState, section.actions, task);
-    if (newStartState == undefined){
-        return undefined;
-    }
-    let suc = {
-        flightIndex: section.flightIndex + 1,
-        startState: newStartState,
-        status: PlanRunStatus.PENDING,
-        predecessorId: section._id,
-        treeId: section.treeId,
-        actions: [],
-        planMethod: section.planMethod,
-        user: section.user
-    }
-    return suc;
+    return task;
 }
+
+// export function deriveSuccessor(section: FlightSection, task: BelugaProblem){
+//     if(section.startState === undefined){
+//         return undefined;
+//     }
+//     let newStartState = applyActions(section.startState, section.actions, task);
+//     if (newStartState == undefined){
+//         return undefined;
+//     }
+//     let suc = {
+//         flightIndex: section.flightIndex + 1,
+//         startState: newStartState,
+//         status: PlanRunStatus.PENDING,
+//         predecessorId: section._id,
+//         treeId: section.treeId,
+//         actions: [],
+//         planMethod: section.planMethod,
+//         user: section.user
+//     }
+//     return suc;
+// }
 
 
 // Mongo
 
 const FlightSectionSchema = new Schema({
     flightIndex: { type: Number, required: true},
-    startState: {type: Object, required: false},
+    siteState: {type: Object, required: true},
+    siteSetUp: {type: Object, required: true},
+
+    incomingUnloaded: [{type: String, required: false}],
+    outgoingLoaded: [{type: String, required: false}],
+    productionLinesDelivered: {type: Map, of: [String], required: true},
+
+    flightTargetSchedule: {type: Object, required: false},
+    productionLinesTargetSchedule: [{type: Object, required: false}],
+    maxSwaps: {type: Number, required: false},
+    minEmptyRacks: {type: Number, required: false},
+
+    
     predecessorId: { type: mongoose.Schema.Types.ObjectId, ref: 'flight-plan-section', required: false},
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     treeId: { type: mongoose.Schema.Types.ObjectId, ref: 'flight-plan-tree' },
+    finished: {type: Boolean, required: true},
 
     planMethod: { type: PlanMethodSchema, required: false},
     actions: [{type: Object, required: false}],

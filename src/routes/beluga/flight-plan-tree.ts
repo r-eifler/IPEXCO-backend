@@ -1,8 +1,9 @@
 import express from 'express';
-import { object, string, unknown } from 'zod';
-import { FlightPlanTree, FlightPlanTreeBaseZ, FlightPlanTreeModel, FlightPlanTreeZ, FlightSection, FlightSectionBaseZ, FlightSectionModel, FlightSectionZ } from '../../db_schema/beluga/flight-section-tree';
-import { authAny } from '../../middleware/auth';
+import { array, object, string } from 'zod';
+import { FlightPlanTree, FlightPlanTreeBaseZ, FlightPlanTreeModel, FlightPlanTreeZ, FlightSection, FlightSectionBase, FlightSectionBaseZ, FlightSectionModel, FlightSectionZ, FlightTargetScheduleZ, ProductionLineTargetScheduleZ } from '../../db_schema/beluga/flight-section-tree';
 import { PlanRunStatus } from '../../db_schema/iteration_step';
+import { authAny } from '../../middleware/auth';
+import { BelugaSiteSetUpZ, BelugaSiteStateZ } from '../../db_schema/beluga/site_set_up';
 
 
 export const flightPlanTreeRouter = express.Router();
@@ -34,7 +35,14 @@ flightPlanTreeRouter.post('', authAny, async (req: any, res) => {
 
 flightPlanTreeRouter.post('/init', authAny, async (req: any, res) => {
     try {
-        const idObject = object({projectId: string(), initialState: unknown()}).parse(req.body);
+        console.log('Init Tree')
+        const initData = object({
+            projectId: string(), 
+            siteState: BelugaSiteStateZ,
+            siteSetUp: BelugaSiteSetUpZ,
+            flightTargetSchedule: FlightTargetScheduleZ,
+            productionLinesTargetSchedule: array(ProductionLineTargetScheduleZ),
+        }).parse(req.body);
 
         const treeData = {
             user: req.user._id,
@@ -44,7 +52,7 @@ flightPlanTreeRouter.post('/init', authAny, async (req: any, res) => {
             }],
             selectedBranch: 0,
             selectedSectionId: null,
-            project: idObject.projectId
+            project: initData.projectId
         }
 
         const tree = new FlightPlanTreeModel(treeData);
@@ -54,19 +62,36 @@ flightPlanTreeRouter.post('/init', authAny, async (req: any, res) => {
         }
         await tree.save();
 
-        const sectionData  = {
+        const sectionData = {
             user: req.user._id,
             status: PlanRunStatus.PENDING,
-            startState: idObject.initialState,
             actions: [],
             flightIndex: 0,
-            finished: false,
             predecessorId: null,
-            treeId: tree._id
+            treeId: tree._id,
+            siteState: initData.siteState,
+            siteSetUp: initData.siteSetUp,
+
+            incomingUnloaded: [],
+            outgoingLoaded: [],
+            productionLinesDelivered: initData.productionLinesTargetSchedule.reduce((acc,c) =>
+                ({...acc, [c.name]: []}),  
+                {}
+            ),
+
+            flightTargetSchedule: initData.flightTargetSchedule,
+            productionLinesTargetSchedule: initData.productionLinesTargetSchedule,
+            maxSwaps: 0,
+            minEmptyRacks: 0,
+
+            finished: false,
         }
 
+        // console.log(sectionData);
+
         const section = new FlightSectionModel(sectionData);
-        if (!section) {
+        if (!section || section._id == null) {
+            tree.deleteOne();
             res.status(500).send('tree not created');
             return;
         }
@@ -107,12 +132,15 @@ flightPlanTreeRouter.post('/branch', authAny, async (req: any, res) => {
         const sectionData  = {
             user: req.user._id,
             status: PlanRunStatus.PENDING,
-            startState: section.startState,
+            siteState: section.siteState,
+            siteSetUp: section.siteSetUp,
+            flightScheduled: undefined,
+            productionLinesScheduled: undefined,
             actions: [],
             flightIndex: section.flightIndex,
-            finished: false,
             predecessorId: section.predecessorId,
-            treeId: tree._id
+            treeId: tree._id,
+            finished: false,
         }
 
         const newSection = new FlightSectionModel(sectionData);

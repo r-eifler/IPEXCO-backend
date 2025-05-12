@@ -1,13 +1,13 @@
 import express from 'express';
-import { deriveSuccessor, FlightPlanTreeModel, FlightSectionModel, FlightSectionZ } from '../../db_schema/beluga/flight-section-tree';
+import { BelugaActionType } from '../../db_schema/beluga/beluga_plan';
+import { BelugaProblemZ } from '../../db_schema/beluga/beluga_problem';
+import { FlightPlanTreeModel, FlightSectionModel, FlightSectionZ, getTaskFromSection } from '../../db_schema/beluga/flight-section-tree';
 import { PlanRunStatus } from '../../db_schema/iteration_step';
-import { SimplePlannerRequest, SimplePlannerResponse, SimplePlannerResponseZ } from '../../db_schema/service_communication';
+import { ProjectModel } from '../../db_schema/project';
+import { PlannerRequest, SimplePlannerResponseZ } from '../../db_schema/service_communication';
 import { ServiceModel } from '../../db_schema/services';
 import { authAny, AuthenticatedRequest, authService } from '../../middleware/auth';
 import { callServices } from '../../services/utils';
-import { BelugaActionType } from '../../db_schema/beluga/beluga_plan';
-import { ProjectModel } from '../../db_schema/project';
-import { BelugaProblemZ } from '../../db_schema/beluga/beluga_problem';
 
 
 
@@ -24,7 +24,8 @@ flightSectionPlanRouter.post('', authAny, async (req: AuthenticatedRequest, res)
         
         console.log("create plan for flight section");
         const sectionData = FlightSectionZ.parse(req.body.section);
-        const task = req.body.task;
+        const task = getTaskFromSection(sectionData)
+        // const task = req.body.task;
         
         await FlightSectionModel.replaceOne({ _id: sectionData._id}, sectionData);
 
@@ -47,10 +48,13 @@ flightSectionPlanRouter.post('', authAny, async (req: AuthenticatedRequest, res)
         }
 
         const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
-        let payload: SimplePlannerRequest = {
-            callback:baseURL + '/api/flight-section-plan/finished/' + section._id,
+        let payload: PlannerRequest = {
+            callback: baseURL + '/api/flight-section-plan/finished/' + section._id,
             model: task,
-            id: section._id
+            id: section._id,
+            goals: [],
+            softGoals: [],
+            hardGoals: []
         }
 
         const success = await callServices([planner], JSON.stringify(payload), '/plan');
@@ -151,13 +155,14 @@ flightSectionPlanRouter.post('/finished/:id', authService, async (req: any, res)
 
                 actions = actions.slice(switch_index + 1)
 
-                let nextSectionData = deriveSuccessor(section, task);
-                if (!nextSectionData) {
-                    res.status(500).send('section not created');
-                    return;
-                }
+                // TODO
+                // let nextSectionData = deriveSuccessor(section, task);
+                // if (!nextSectionData) {
+                //     res.status(500).send('section not created');
+                //     return;
+                // }
 
-                section = new FlightSectionModel(nextSectionData);
+                // section = new FlightSectionModel(nextSectionData);
                 if (!section) {
                     res.status(500).send('section not created');
                     return;
@@ -239,5 +244,4 @@ flightSectionPlanRouter.post('/cancel/:id', authAny, async (req, res) => {
     }
 
 });
-
 
