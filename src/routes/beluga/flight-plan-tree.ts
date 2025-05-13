@@ -132,14 +132,25 @@ flightPlanTreeRouter.post('/branch', authAny, async (req: any, res) => {
         const sectionData  = {
             user: req.user._id,
             status: PlanRunStatus.PENDING,
-            siteState: section.siteState,
-            siteSetUp: section.siteSetUp,
-            flightScheduled: undefined,
-            productionLinesScheduled: undefined,
             actions: [],
             flightIndex: section.flightIndex,
             predecessorId: section.predecessorId,
             treeId: tree._id,
+            siteState: section.siteState,
+            siteSetUp: section.siteSetUp,
+
+            incomingUnloaded: [],
+            outgoingLoaded: [],
+            productionLinesDelivered: section.productionLinesTargetSchedule.reduce((acc,c) =>
+                ({...acc, [c.name]: []}),  
+                {}
+            ),
+
+            flightTargetSchedule: section.flightTargetSchedule,
+            productionLinesTargetSchedule: section.productionLinesTargetSchedule,
+            maxSwaps: section.maxSwaps,
+            minEmptyRacks: section.minEmptyRacks,
+
             finished: false,
         }
 

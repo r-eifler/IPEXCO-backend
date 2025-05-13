@@ -7,22 +7,33 @@ import { BelugaSiteSetUpZ, BelugaSiteStateZ, SiteStatus } from "./site_set_up";
 import { BelugaProblem } from "./beluga_problem";
 
 
-export enum GoalStatus {
-    SOFT = "SOFT",
-    HARD = "HARD"
-  }
+export enum GoalConsiderationStatus {
+    SKIP = "SKIP",
+    CONSIDER = "CONSIDER",
+}
+
+export enum GoalSolvabilityStatus {
+    UNKNOWN = "UNKNOWN",
+    BLOCKED = "BLOCKED",
+    NOT_ON_SITE = "NOT_ON_SITE",
+    UNSOLVABLE = "UNSOLVABLE",
+    SOLVABLE = "SOLVABLE"
+}
   
-export const GoalStatusZ = nativeEnum(GoalStatus);
+export const GoalConsiderationStatusZ = nativeEnum(GoalConsiderationStatus);
+export const GoalSolvabilityStatusZ = nativeEnum(GoalSolvabilityStatus);
 
 export const FlightTargetScheduleZ = object({
     name: string(),
     incoming: array(object({
         jig: string(),
-        status: GoalStatusZ
+        considerationStatus: GoalConsiderationStatusZ,
+        solvabilityStatus: GoalSolvabilityStatusZ,
     })),
     outgoing: array(object({
         jigType: string(),
-        status: GoalStatusZ
+        considerationStatus: GoalConsiderationStatusZ,
+        solvabilityStatus: GoalSolvabilityStatusZ,
     })),
 })
 
@@ -31,7 +42,8 @@ export const ProductionLineTargetScheduleZ = object({
     name: string(),
     schedule: array(object({
         jig: string(),
-        status: GoalStatusZ
+        considerationStatus: GoalConsiderationStatusZ,
+        solvabilityStatus: GoalSolvabilityStatusZ,
     }))
 })
 
@@ -116,23 +128,23 @@ export function getTaskFromSection(section: FlightSection){
             ...h, 
             jig: state.hangars[h.name]
         })),
-        trailers_beluga: setUp.belugaTrailers.filter(h => h.status == SiteStatus.IN_USE).map(t => ({
+        trailers_beluga: setUp.belugaTrailers.filter(t => t.status == SiteStatus.IN_USE).map(t => ({
             ...t, 
             jig: state.trailers[t.name]
         })),
-        trailers_factory: setUp.factoryTrailers.filter(h => h.status == SiteStatus.IN_USE).map(t => ({
+        trailers_factory: setUp.factoryTrailers.filter(t => t.status == SiteStatus.IN_USE).map(t => ({
             ...t, 
             jig: state.trailers[t.name]
         })),
         jig_types: setUp.jig_types,
         production_lines: section.productionLinesTargetSchedule.map(pl => ({
             ...pl,
-            schedule: pl.schedule.filter(j => j.status == GoalStatus.HARD).map(j => j.jig)
+            schedule: pl.schedule.filter(j => j.considerationStatus == GoalConsiderationStatus.CONSIDER).map(j => j.jig)
         })),
         flights: [{
             ...section.flightTargetSchedule,
-            incoming: section.flightTargetSchedule.incoming.filter(j => j.status == GoalStatus.HARD).map(j => j.jig),
-            outgoing: section.flightTargetSchedule.outgoing.filter(j => j.status == GoalStatus.HARD).map(j => j.jigType),
+            incoming: section.flightTargetSchedule.incoming.filter(j => j.considerationStatus == GoalConsiderationStatus.CONSIDER).map(j => j.jig),
+            outgoing: section.flightTargetSchedule.outgoing.filter(j => j.considerationStatus == GoalConsiderationStatus.CONSIDER).map(j => j.jigType),
         }]
     }
     return task;
