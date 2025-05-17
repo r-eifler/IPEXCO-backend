@@ -28,6 +28,16 @@ export function filterUpToFun<T>(collection: T[], filter: (v: T) => boolean){
     return res;
 }
 
+export enum BelugaGoalType {
+    NUM_SWAPS_USED_LEQ = "num_swaps_used_leq",
+    AT_LEAST_ONE_RACK_ALWAYS_EMPTY = "at_least_one_rack_always_empty",
+    LOAD_BELUGA = "load_beluga",
+    UNLOAD_BELUGA = "unload_beluga",
+    DELIVER_TO_PRODUCTION_LINE = "deliver_to_production_line",
+    RACK_MAINTENANCE = "rack_maintenance",
+    TRAILER_MAINTENANCE = "trailer_maintenance" 
+}
+
 export function generateSoftGoals(configuration: BelugaConfiguration){
 
     const goals: SimplePlanProperty[] = []
@@ -37,7 +47,7 @@ export function generateSoftGoals(configuration: BelugaConfiguration){
             _id: 'swaps_' + configuration.maxSwaps.toString(),
             name: "maximal number of swaps",
             definition: {
-            name: "num_swaps_used_leq",
+            name: BelugaGoalType.NUM_SWAPS_USED_LEQ,
             parameters: [configuration.maxSwaps.toString()]
             }
         } 
@@ -49,7 +59,7 @@ export function generateSoftGoals(configuration: BelugaConfiguration){
             _id: 'keep_rack_empty',
             name: "at least one rack empty",
             definition: {
-            name: "at_least_one_rack_always_empty",
+            name: BelugaGoalType.AT_LEAST_ONE_RACK_ALWAYS_EMPTY,
             parameters: []
             }
         } 
@@ -61,7 +71,7 @@ export function generateSoftGoals(configuration: BelugaConfiguration){
             _id: 'load_' + e.jigType + '_' + index + '_' + configuration.flightTargetSchedule.name,
             name: "load beluga",
             definition: {
-            name: "load_beluga",
+            name: BelugaGoalType.LOAD_BELUGA,
             parameters: [
                 e.jigType,
                 configuration.flightTargetSchedule.name,
@@ -77,7 +87,7 @@ export function generateSoftGoals(configuration: BelugaConfiguration){
             _id: 'unload' + e.jig + '_' + index + '_' + configuration.flightTargetSchedule.name,
             name: "unload beluga",
             definition: {
-            name: "unload_beluga",
+            name: BelugaGoalType.UNLOAD_BELUGA,
             parameters: [
                 e.jig,
                 configuration.flightTargetSchedule.name,
@@ -93,7 +103,7 @@ export function generateSoftGoals(configuration: BelugaConfiguration){
             _id: 'deliver' + e.jig + '_' + index + '_' + pl.name,
             name: "deliver to production line beluga",
             definition: {
-            name: "deliver_to_production_line",
+            name: BelugaGoalType.DELIVER_TO_PRODUCTION_LINE,
             parameters: [
                 e.jig,
                 pl.name,
@@ -110,7 +120,7 @@ export function generateSoftGoals(configuration: BelugaConfiguration){
             _id: 'maintenance_' + r.name,
             name: r.name + "in maintenance",
             definition: {
-            name: "rack_maintenance",
+            name: BelugaGoalType.RACK_MAINTENANCE,
             parameters: [
                 r.name
             ]
@@ -126,7 +136,7 @@ export function generateSoftGoals(configuration: BelugaConfiguration){
             _id: 'maintenance_' + t.name,
             name: t.name + "in maintenance",
             definition: {
-            name: "trailer_maintenance",
+            name: BelugaGoalType.TRAILER_MAINTENANCE,
             parameters: [
                 t.name
             ]

@@ -1,5 +1,5 @@
 import express from 'express';
-import { string } from 'zod';
+import { number, string } from 'zod';
 import { FlightSectionModel, FlightSectionZ, getExplanationTaskFromSectionWithFullSite, getTaskFromSection } from '../../db_schema/beluga/flight-section-tree';
 import { generateSoftGoals } from '../../db_schema/beluga/utils';
 import { PlanRunStatus } from '../../db_schema/iteration_step';
@@ -23,8 +23,9 @@ flightSectionExplanationRouter.post('', authAny, async (req: AuthenticatedReques
         }
         
         const sectionData = FlightSectionZ.parse(req.body.section);
+        const configIndex = number().parse(req.body.configIndex);
         const task = getExplanationTaskFromSectionWithFullSite(sectionData)
-        console.log("Call explainer for flight section configuration " + sectionData.configurationIndex);
+        console.log("Call explainer for flight section configuration: " + configIndex);
         
         await FlightSectionModel.replaceOne({ _id: sectionData._id}, sectionData);
 
@@ -34,7 +35,7 @@ flightSectionExplanationRouter.post('', authAny, async (req: AuthenticatedReques
             return;
         }
 
-        section.configurations[sectionData.configurationIndex].explanationStatus = ExplanationRunStatus.RUNNING;
+        section.configurations[configIndex].explanationStatus = ExplanationRunStatus.RUNNING;
         await section.save();
 
         let explainer = await ServiceModel.findById('680fa85730f44ce72b0e1fb8');
@@ -49,9 +50,9 @@ flightSectionExplanationRouter.post('', authAny, async (req: AuthenticatedReques
             return;
         }
 
-        const goals = generateSoftGoals(section.configurations[sectionData.configurationIndex])
+        const goals = generateSoftGoals(section.configurations[configIndex])
 
-        section.configurations[sectionData.configurationIndex].explanations = {
+        section.configurations[configIndex].explanations = {
             MUGS: [],
             MUGScomplete: false,
             MGCS: [],
@@ -63,7 +64,7 @@ flightSectionExplanationRouter.post('', authAny, async (req: AuthenticatedReques
 
         const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
         let payload: ExplainerRequest = {
-            callback: baseURL + '/api/flight-section-explanation/finished/' + section._id +'/' + section.configurationIndex,
+            callback: baseURL + '/api/flight-section-explanation/finished/' + section._id +'/' + configIndex,
             model: task,
             id: section._id,
             goals,
@@ -71,11 +72,11 @@ flightSectionExplanationRouter.post('', authAny, async (req: AuthenticatedReques
             hardGoals: []
         }
 
-        // console.log(JSON.stringify(payload))
+        console.log(JSON.stringify(payload))
 
         const success = await callServices([explainer], JSON.stringify(payload), '/explanation');
         if(!success){
-            section.status = PlanRunStatus.FAILED;
+            section.configurations[configIndex].explanationStatus = ExplanationRunStatus.FAILED;
             await section.save();
             console.log('[Section Explanation Computation] Selected planner service not reachable.');
             res.status(201).send({status: false, message:'No selected planner service reachable.'});
