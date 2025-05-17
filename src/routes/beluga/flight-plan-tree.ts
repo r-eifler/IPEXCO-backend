@@ -133,6 +133,7 @@ flightPlanTreeRouter.post('/branch', authAny, async (req: any, res) => {
         const sectionData  = {
             user: req.user._id,
             treeId: tree._id,
+            predecessorId: section.predecessorId,
 
             flightIndex: section.flightIndex,
             siteState: section.siteState,
