@@ -4,6 +4,7 @@ import { FlightPlanTree, FlightPlanTreeBaseZ, FlightPlanTreeModel, FlightPlanTre
 import { PlanRunStatus } from '../../db_schema/iteration_step';
 import { authAny } from '../../middleware/auth';
 import { BelugaSiteSetUpZ, BelugaSiteStateZ } from '../../db_schema/beluga/site_set_up';
+import { ExplanationRunStatus } from '../../db_schema/explanations';
 
 
 export const flightPlanTreeRouter = express.Router();
@@ -64,26 +65,24 @@ flightPlanTreeRouter.post('/init', authAny, async (req: any, res) => {
 
         const sectionData = {
             user: req.user._id,
-            status: PlanRunStatus.PENDING,
-            actions: [],
-            flightIndex: 0,
             predecessorId: null,
             treeId: tree._id,
+
+            flightIndex: 0,
             siteState: initData.siteState,
-            siteSetUp: initData.siteSetUp,
-
-            incomingUnloaded: [],
-            outgoingLoaded: [],
-            productionLinesDelivered: initData.productionLinesTargetSchedule.reduce((acc,c) =>
-                ({...acc, [c.name]: []}),  
-                {}
-            ),
-
-            flightTargetSchedule: initData.flightTargetSchedule,
-            productionLinesTargetSchedule: initData.productionLinesTargetSchedule,
-            maxSwaps: 0,
-            minEmptyRacks: 0,
-
+            configurationIndex: 0,
+            configurations: [{
+                siteSetUp: initData.siteSetUp,
+                flightTargetSchedule: initData.flightTargetSchedule,
+                productionLinesTargetSchedule: initData.productionLinesTargetSchedule,
+                maxSwaps: 0,
+                minEmptyRacks: 0,
+                explanations: null,
+                explanationStatus: ExplanationRunStatus.PENDING,
+            }],
+            
+            actions: [],
+            status: PlanRunStatus.PENDING,
             finished: false,
         }
 
@@ -129,28 +128,27 @@ flightPlanTreeRouter.post('/branch', authAny, async (req: any, res) => {
             return;
         }
 
+        const configuration = section.configurations[section.configurationIndex];
+
         const sectionData  = {
             user: req.user._id,
-            status: PlanRunStatus.PENDING,
-            actions: [],
-            flightIndex: section.flightIndex,
-            predecessorId: section.predecessorId,
             treeId: tree._id,
+
+            flightIndex: section.flightIndex,
             siteState: section.siteState,
-            siteSetUp: section.siteSetUp,
-
-            incomingUnloaded: [],
-            outgoingLoaded: [],
-            productionLinesDelivered: section.productionLinesTargetSchedule.reduce((acc,c) =>
-                ({...acc, [c.name]: []}),  
-                {}
-            ),
-
-            flightTargetSchedule: section.flightTargetSchedule,
-            productionLinesTargetSchedule: section.productionLinesTargetSchedule,
-            maxSwaps: section.maxSwaps,
-            minEmptyRacks: section.minEmptyRacks,
-
+            configurationIndex: 0,
+            configurations: [{
+                siteSetUp: configuration.siteSetUp,
+                flightTargetSchedule: configuration.flightTargetSchedule,
+                productionLinesTargetSchedule: configuration.productionLinesTargetSchedule,
+                maxSwaps: configuration.maxSwaps,
+                minEmptyRacks: configuration.minEmptyRacks,
+                explanations: null,
+                explanationStatus: ExplanationRunStatus.PENDING,
+            }],
+            
+            actions: [],
+            status: PlanRunStatus.PENDING,
             finished: false,
         }
 

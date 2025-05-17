@@ -1,9 +1,9 @@
-import { any, array, boolean, nativeEnum, number, object, string, unknown, infer as zinfer } from "zod";
+import { any, array, boolean, nativeEnum, nullable, number, object, optional, string, unknown, infer as zinfer } from "zod";
 import { BelugaActionZ } from "./beluga/beluga_plan";
 import { ExplanationRunStatusZ } from "./explanations";
 import { PlanRunStatusZ } from "./iteration_step";
 import { ActionZ } from "./plan-properties/action_set";
-import { PlanPropertyZ } from "./plan-properties/plan_property";
+import { PlanPropertyZ, SimplePlanPropertyZ } from "./plan-properties/plan_property";
 
 
 
@@ -11,12 +11,25 @@ export const PlannerRequestZ = object({
     id: string(),
     callback: string(),
     model: any(),
-    goals: array(PlanPropertyZ),
+    goals: array(SimplePlanPropertyZ),
     softGoals:array(string()), // ids
     hardGoals: array(string()), // ids
 });
 
 export type PlannerRequest = zinfer<typeof PlannerRequestZ>;
+
+export const BelugaPlannerRequestZ = object({
+    id: string(),
+    callback: string(),
+    model: any(),
+    minRacksEmpty: number(),
+    maxNumSwaps: nullable(number()),
+    goals: array(SimplePlanPropertyZ),
+    softGoals:array(string()), // ids
+    hardGoals: array(string()), // ids
+});
+
+export type BelugaPlannerRequest = zinfer<typeof BelugaPlannerRequestZ>;
 
 export const  PlannerResponseZ  = object({
     id: string(),
@@ -50,7 +63,7 @@ export const ExplainerRequestZ = object({
     id: string(),
     callback: string(),
     model: any(),
-    goals: array(PlanPropertyZ),
+    goals: array(SimplePlanPropertyZ),
     softGoals:array(string()), // ids
     hardGoals: array(string()), // ids
 });

@@ -1,10 +1,9 @@
 import express from 'express';
-import { BelugaActionType } from '../../db_schema/beluga/beluga_plan';
-import { BelugaProblemZ } from '../../db_schema/beluga/beluga_problem';
-import { FlightPlanTreeModel, FlightSectionModel, FlightSectionZ, getTaskFromSection } from '../../db_schema/beluga/flight-section-tree';
+import { string } from 'zod';
+import { FlightSectionModel, FlightSectionZ, getTaskFromSection } from '../../db_schema/beluga/flight-section-tree';
 import { PlanRunStatus } from '../../db_schema/iteration_step';
-import { ProjectModel } from '../../db_schema/project';
-import { PlannerRequest, SimplePlannerResponseZ } from '../../db_schema/service_communication';
+import { SimplePlanProperty } from '../../db_schema/plan-properties/plan_property';
+import { BelugaPlannerRequest, PlannerRequest, SimplePlannerResponseZ } from '../../db_schema/service_communication';
 import { ServiceModel } from '../../db_schema/services';
 import { authAny, AuthenticatedRequest, authService } from '../../middleware/auth';
 import { callServices } from '../../services/utils';
@@ -24,7 +23,8 @@ flightSectionPlanRouter.post('', authAny, async (req: AuthenticatedRequest, res)
         
         console.log("create plan for flight section");
         const sectionData = FlightSectionZ.parse(req.body.section);
-        const task = getTaskFromSection(sectionData)
+        const configuration = sectionData.configurations[sectionData.configurationIndex];
+        const task = getTaskFromSection(sectionData);
         // const task = req.body.task;
         
         await FlightSectionModel.replaceOne({ _id: sectionData._id}, sectionData);
@@ -47,14 +47,44 @@ flightSectionPlanRouter.post('', authAny, async (req: AuthenticatedRequest, res)
             return;
         }
 
+        // additional goals 
+        const goals: SimplePlanProperty[] = []
+
+        if(configuration.maxSwaps !== null){
+            let swapsGoal: SimplePlanProperty = {
+                _id: 'swaps',
+               name: "maximal number of swaps",
+               definition: {
+                name: "num_swaps_used_leq",
+                parameters: [configuration.maxSwaps.toString()]
+               }
+            } 
+            goals.push(swapsGoal)
+        }
+
+        if(configuration.minEmptyRacks !== null && configuration.minEmptyRacks > 0){
+            let swapsGoal: SimplePlanProperty = {
+                _id: 'keeprackempty',
+               name: "keep rack empty",
+               definition: {
+                name: "at_least_one_rack_always_empty",
+                parameters: []
+               }
+            } 
+            goals.push(swapsGoal)
+        }
+        
+
         const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
-        let payload: PlannerRequest = {
+        let payload: BelugaPlannerRequest = {
             callback: baseURL + '/api/flight-section-plan/finished/' + section._id,
             model: task,
             id: section._id,
-            goals: [],
+            goals,
             softGoals: [],
-            hardGoals: []
+            hardGoals: goals.map(g => g._id),
+            minRacksEmpty: configuration.minEmptyRacks ?? 0,
+            maxNumSwaps: configuration.maxSwaps
         }
 
         const success = await callServices([planner], JSON.stringify(payload), '/plan');
@@ -109,83 +139,17 @@ flightSectionPlanRouter.post('/finished/:id', authService, async (req: any, res)
 
         if (status == PlanRunStatus.SOLVED){
 
-            const tree = await FlightPlanTreeModel.findById(section.treeId);
-            if (!tree) {
-                res.status(500).send('section not created');
-                return;
-            }
-            const project = await ProjectModel.findById(tree.project);
-            if (!project) {
-                res.status(500).send('section not created');
-                return;
-            }
-            const task = BelugaProblemZ.parse(project.baseTask.model);
-    
-            const branchIndex = tree.branches.findIndex(b => b.sectionIdHead == section?._id);
+            section.status = PlanRunStatus.SOLVED;
+            section.actions =  [...actions];
+            await section.save();
 
-            // cut plan into flight sections
-            // console.log("---------------------------------------------------------")
-            // console.log(actions)
-            // console.log("---------------------------------------------------------")
-            while(true){
-                const switch_index = actions.findIndex(a => a.name == "switch_to_next_beluga");
-                const sectionActions  = actions.slice(0, switch_index == -1 ? undefined : switch_index);
-                // console.log(sectionActions)
-                // console.log("---------------------------")
-
-                section.actions =  [...sectionActions, {name: BelugaActionType.SWITCH_TO_NEXT_BELUGA}]
-                section.status = PlanRunStatus.SOLVED;
-                await section.save();
-
-                if(switch_index == -1){
-
-                    tree.branches = [
-                        ...tree.branches.slice(0,branchIndex),
-                        {
-                            ...tree.branches[branchIndex],
-                            sectionIdHead: section._id,
-                        },
-                        ...tree.branches.slice(branchIndex + 1),
-                    ]                      
-                    await tree.save()
-
-                    res.status(200).send();
-                    return;
-                }
-
-                actions = actions.slice(switch_index + 1)
-
-                // TODO
-                // let nextSectionData = deriveSuccessor(section, task);
-                // if (!nextSectionData) {
-                //     res.status(500).send('section not created');
-                //     return;
-                // }
-
-                // section = new FlightSectionModel(nextSectionData);
-                if (!section) {
-                    res.status(500).send('section not created');
-                    return;
-                }
-
-                // if(actions.length == 0 || actions[actions.length - 1].name != "switch_to_next_beluga"){
-                //     actions = [...actions, {name: "switch_to_next_beluga"}]
-                // }
-            }
+            res.status(200).send();
+            return;
         }
         else {
             section.status = status;
             await section.save();
         }
-
-        // section.status = status;
-        // await section.save();
-
-        // if(status === PlanRunStatus.SOLVED){
-        //     section.actions = actions;           
-        // }
-
-        // await section.save()
         
         res.status(200).send();
         return;
@@ -197,12 +161,11 @@ flightSectionPlanRouter.post('/finished/:id', authService, async (req: any, res)
 });
 
 
-flightSectionPlanRouter.post('/cancel/:id', authAny, async (req, res) => {
+flightSectionPlanRouter.post('/cancel', authAny, async (req, res) => {
 
     try {
-
-        const id = req.params.id;
-        console.log('Cancel: ' + id);
+        console.log(req.body)
+        const id = string().parse(req.body.sectionId);
 
         const section = await FlightSectionModel.findById(id);
 

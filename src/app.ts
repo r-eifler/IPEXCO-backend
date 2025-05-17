@@ -31,6 +31,7 @@ import { explainerRouter } from './routes/explainer';
 import { planRouter } from './routes/plan';
 import { promptRouter } from './routes/prompt';
 import { serviceRouter } from './routes/services';
+import { flightSectionExplanationRouter } from './routes/beluga/flight-section-explanations';
 
 
 
@@ -126,6 +127,7 @@ app.use('/api/llm', LLMRouter);
 // Beluga
 app.use('/api/flight-plan-forest', flightPlanTreeRouter);
 app.use('/api/flight-section-plan', flightSectionPlanRouter);
+app.use('/api/flight-section-explanation', flightSectionExplanationRouter);
 
 // catch 404 and forward to error handler
 app.all('*', (req, res, next) => {

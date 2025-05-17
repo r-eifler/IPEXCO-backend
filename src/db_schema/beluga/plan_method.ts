@@ -25,3 +25,12 @@ export const PlanMethodSchema = new Schema({
   serviceId: { type: mongoose.Schema.Types.ObjectId, ref: 'services', required: false },
   numOptimizedFlights: {type: Number, required: true},
 });
+
+
+export const ExplainMethodZ = object({
+  name: string(),
+  serviceId: optional(string()),
+});
+
+export type ExplainMethod = zinfer<typeof ExplainMethodZ>
+

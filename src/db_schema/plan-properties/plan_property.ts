@@ -67,3 +67,17 @@ const PlanPropertySchema = new Schema({
 
 export const PlanPropertyModel = mongoose.model<PlanProperty>('plan-property', PlanPropertySchema);
 
+
+
+export const SimplePlanPropertyBaseZ = object({
+  name: string(),
+  definition: nullable(PlanPropertyDefinitionZ),
+});
+
+export type SimplePlanPropertyBase = zinfer<typeof SimplePlanPropertyBaseZ>;
+
+export const SimplePlanPropertyZ = SimplePlanPropertyBaseZ.merge(object({
+_id: string(),
+}));
+
+export type SimplePlanProperty = zinfer<typeof SimplePlanPropertyZ>;

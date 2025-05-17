@@ -1,39 +1,24 @@
 import mongoose, { Schema } from "mongoose";
-import { array, boolean, nativeEnum, nullable, number, object, optional, record, string, infer as zinfer } from "zod";
+import { array, boolean, nullable, number, object, optional, record, string, infer as zinfer } from "zod";
+import { ExplanationRunStatusZ } from "../explanations";
 import { PlanRunStatusZ } from "../iteration_step";
+import { SimplePlanPropertyZ } from "../plan-properties/plan_property";
 import { BelugaActionZ } from "./beluga_plan";
+import { BelugaProblem } from "./beluga_problem";
 import { PlanMethodSchema, PlanMethodZ } from "./plan_method";
 import { BelugaSiteSetUpZ, BelugaSiteStateZ, SiteStatus } from "./site_set_up";
-import { BelugaProblem } from "./beluga_problem";
 
-
-export enum GoalConsiderationStatus {
-    SKIP = "SKIP",
-    CONSIDER = "CONSIDER",
-}
-
-export enum GoalSolvabilityStatus {
-    UNKNOWN = "UNKNOWN",
-    BLOCKED = "BLOCKED",
-    NOT_ON_SITE = "NOT_ON_SITE",
-    UNSOLVABLE = "UNSOLVABLE",
-    SOLVABLE = "SOLVABLE"
-}
-  
-export const GoalConsiderationStatusZ = nativeEnum(GoalConsiderationStatus);
-export const GoalSolvabilityStatusZ = nativeEnum(GoalSolvabilityStatus);
 
 export const FlightTargetScheduleZ = object({
     name: string(),
     incoming: array(object({
         jig: string(),
-        considerationStatus: GoalConsiderationStatusZ,
-        solvabilityStatus: GoalSolvabilityStatusZ,
+        skip: boolean(),
     })),
     outgoing: array(object({
         jigType: string(),
-        considerationStatus: GoalConsiderationStatusZ,
-        solvabilityStatus: GoalSolvabilityStatusZ,
+        skip: boolean(),
+        onSite: boolean(),
     })),
 })
 
@@ -42,32 +27,44 @@ export const ProductionLineTargetScheduleZ = object({
     name: string(),
     schedule: array(object({
         jig: string(),
-        considerationStatus: GoalConsiderationStatusZ,
-        solvabilityStatus: GoalSolvabilityStatusZ,
+        skip: boolean(),
+        onSite: boolean(),
     }))
 })
 
-export const FlightSectionBaseZ = object({
-    flightIndex: number(),
-    siteState: BelugaSiteStateZ,
-    siteSetUp: BelugaSiteSetUpZ,
-   
-    incomingUnloaded: array(string()),
-    outgoingLoaded: array(string()),
-    productionLinesDelivered: record(string(),  array(string())),
+export const ExplanationsZ = object({
+    MUGS: array(array(string())),
+    MUGScomplete: boolean(),
+    MGCS: array(array(string())),
+    MGCScomplete: boolean(),
+    goals: record(string(), SimplePlanPropertyZ)
+})
 
+
+export const BelugaConfigurationZ = object({
+    siteSetUp: BelugaSiteSetUpZ,
     flightTargetSchedule: FlightTargetScheduleZ,
     productionLinesTargetSchedule: array(ProductionLineTargetScheduleZ),
     maxSwaps: nullable(number()),
     minEmptyRacks: nullable(number()),
+    explanations: nullable(ExplanationsZ),
+    explanationStatus: ExplanationRunStatusZ
+})
 
+export type BelugaConfiguration = zinfer<typeof BelugaConfigurationZ>;
+
+export const FlightSectionBaseZ = object({
     predecessorId: nullable(string()),
     treeId: string(),
 
+    flightIndex: number(),
+    siteState: BelugaSiteStateZ,
+    configurationIndex: number(),
+    configurations: array(BelugaConfigurationZ),
+    
     planMethod: optional(PlanMethodZ),
     actions: array(BelugaActionZ),
     status: PlanRunStatusZ,
-    satisfiedProperties: array(string()).optional(),
     finished: boolean(),
 })
 
@@ -116,7 +113,8 @@ export type FlightPlanTree = zinfer<typeof FlightPlanTreeZ>;
 export function getTaskFromSection(section: FlightSection){
 
     const state = section.siteState;
-    const setUp = section.siteSetUp;
+    const configuration = section.configurations[section.configurationIndex]
+    const setUp = configuration.siteSetUp;
 
     let task: BelugaProblem = {
         jigs: state.jigs,
@@ -137,67 +135,84 @@ export function getTaskFromSection(section: FlightSection){
             jig: state.trailers[t.name]
         })),
         jig_types: setUp.jig_types,
-        production_lines: section.productionLinesTargetSchedule.map(pl => ({
+        production_lines: configuration.productionLinesTargetSchedule.map(pl => ({
             ...pl,
-            schedule: pl.schedule.filter(j => j.considerationStatus == GoalConsiderationStatus.CONSIDER).map(j => j.jig)
+            schedule: pl.schedule.filter(j => !j.skip).map(j => j.jig)
         })),
         flights: [{
-            ...section.flightTargetSchedule,
-            incoming: section.flightTargetSchedule.incoming.filter(j => j.considerationStatus == GoalConsiderationStatus.CONSIDER).map(j => j.jig),
-            outgoing: section.flightTargetSchedule.outgoing.filter(j => j.considerationStatus == GoalConsiderationStatus.CONSIDER).map(j => j.jigType),
+            ...configuration.flightTargetSchedule,
+            incoming: configuration.flightTargetSchedule.incoming.filter(j => !j.skip).map(j => j.jig),
+            outgoing: configuration.flightTargetSchedule.outgoing.filter(j => !j.skip).map(j => j.jigType),
         }]
     }
     return task;
 }
 
-// export function deriveSuccessor(section: FlightSection, task: BelugaProblem){
-//     if(section.startState === undefined){
-//         return undefined;
-//     }
-//     let newStartState = applyActions(section.startState, section.actions, task);
-//     if (newStartState == undefined){
-//         return undefined;
-//     }
-//     let suc = {
-//         flightIndex: section.flightIndex + 1,
-//         startState: newStartState,
-//         status: PlanRunStatus.PENDING,
-//         predecessorId: section._id,
-//         treeId: section.treeId,
-//         actions: [],
-//         planMethod: section.planMethod,
-//         user: section.user
-//     }
-//     return suc;
-// }
+export function getExplanationTaskFromSectionWithFullSite(section: FlightSection){
+
+    const state = section.siteState;
+    const configuration = section.configurations[section.configurationIndex]
+    const setUp = configuration.siteSetUp;
+
+    let task: BelugaProblem = {
+        jigs: state.jigs,
+        racks: setUp.racks.map(r => ({
+            ...r, 
+            jigs: state.racks[r.name]
+        })),
+        hangars: setUp.hangars.map(h => ({
+            ...h, 
+            jig: state.hangars[h.name]
+        })),
+        trailers_beluga: setUp.belugaTrailers.map(t => ({
+            ...t, 
+            jig: state.trailers[t.name]
+        })),
+        trailers_factory: setUp.factoryTrailers.map(t => ({
+            ...t, 
+            jig: state.trailers[t.name]
+        })),
+        jig_types: setUp.jig_types,
+        production_lines: configuration.productionLinesTargetSchedule.map(pl => ({
+            ...pl,
+            schedule: []
+        })),
+        flights: [{
+            ...configuration.flightTargetSchedule,
+            incoming: [],
+            outgoing: [],
+        }]
+    }
+    return task;
+}
 
 
 // Mongo
 
-const FlightSectionSchema = new Schema({
-    flightIndex: { type: Number, required: true},
-    siteState: {type: Object, required: true},
+const BelugaConfigurationSchema = new Schema({
     siteSetUp: {type: Object, required: true},
-
-    incomingUnloaded: [{type: String, required: false}],
-    outgoingLoaded: [{type: String, required: false}],
-    productionLinesDelivered: {type: Map, of: [String], required: true},
-
     flightTargetSchedule: {type: Object, required: false},
     productionLinesTargetSchedule: [{type: Object, required: false}],
     maxSwaps: {type: Number, required: false},
     minEmptyRacks: {type: Number, required: false},
+    explanations: {type: Object, required: false},
+    explanationStatus: {type: String, required: false},
+});
 
-    
-    predecessorId: { type: mongoose.Schema.Types.ObjectId, ref: 'flight-plan-section', required: false},
+const FlightSectionSchema = new Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    predecessorId: { type: mongoose.Schema.Types.ObjectId, ref: 'flight-plan-section', required: false},
     treeId: { type: mongoose.Schema.Types.ObjectId, ref: 'flight-plan-tree' },
-    finished: {type: Boolean, required: true},
 
+    flightIndex: { type: Number, required: true},
+    siteState: {type: Object, required: true},
+    configurationIndex: { type: Number, required: true},
+    configurations: [{type: BelugaConfigurationSchema, required: false}],
+    
     planMethod: { type: PlanMethodSchema, required: false},
     actions: [{type: Object, required: false}],
     status: {type: String, required: false},
-    satisfiedProperties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'plan-property', required: false}],
+    finished: {type: Boolean, required: true},
 });
 
 export const FlightSectionModel = mongoose.model<FlightSection>('flight-plan-section', FlightSectionSchema);
