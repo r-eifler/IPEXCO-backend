@@ -95,6 +95,32 @@ projectRouter.get('', auth, async (req: AuthenticatedRequest, res) => {
 
 });
 
+projectRouter.get('/user-study', auth, async (req: AuthenticatedRequest, res) => {
+    try {
+        let user = req.user;
+        if (!user) {
+            res.status(401);
+            return;
+        }
+        const allProjects: Project[] = await ProjectModel.find();
+
+        const projects = allProjects.filter(
+            p => p.public || (req.user && p.user.toString() == user._id.toString())
+        );
+
+        if (!projects) { 
+            res.status(404).send({ message: 'No projects found' });
+            return;
+        }
+
+        res.send(projects);
+    } catch (ex) {
+        console.log(ex)
+        res.status(500);
+    }
+
+});
+
 projectRouter.get('/meta-data', auth, async (req: any, res) => {
     if (!req.user) {
         res.status(401).send('Create project failed.');
@@ -137,9 +163,10 @@ projectRouter.get('/:id', authAny, async (req: AuthenticatedRequest, res) => {
         }
 
         const project = await ProjectModel.findOne({ _id: id });
+
         if (project) { 
 
-            if(req.user.role != 'user-study'){
+            if(project.settings.main.public || req.user.role != 'user-study'){
                 res.send(project);
             }
             else{
@@ -201,4 +228,3 @@ projectRouter.delete('/meta-data/:id', auth, async (req: AuthenticatedRequest, r
     }
 
 });
-

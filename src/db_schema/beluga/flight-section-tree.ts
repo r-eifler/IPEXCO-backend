@@ -197,7 +197,7 @@ const BelugaConfigurationSchema = new Schema({
     minEmptyRacks: {type: Number, required: false},
     explanations: {type: Object, required: false},
     explanationStatus: {type: String, required: false},
-});
+}, { timestamps: true});
 
 const FlightSectionSchema = new Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -213,7 +213,7 @@ const FlightSectionSchema = new Schema({
     actions: [{type: Object, required: false}],
     status: {type: String, required: false},
     finished: {type: Boolean, required: true},
-});
+}, { timestamps: true});
 
 export const FlightSectionModel = mongoose.model<FlightSection>('flight-plan-section', FlightSectionSchema);
 

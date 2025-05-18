@@ -19,7 +19,9 @@ export const PaymentInfoZ = object({
     MUGS_VISUALIZATION = "MUGS_VISUALIZATION",
     LLM_CHAT = "LLM_CHAT",
     MUGS_VISUALIZATION_ANSWER = "MUGS_VISUALIZATION_ANSWER",
-    CONFLICT_LIST = "CONFLICT_LIST"
+    CONFLICT_LIST = "CONFLICT_LIST",
+    MANUAL = "MANUAL",
+    AUTOMATIC = "AUTOMATIC"
   };
   
   export const ExplanationInterfaceTypeZ = nativeEnum(ExplanationInterfaceType);
