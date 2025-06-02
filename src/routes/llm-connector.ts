@@ -17,21 +17,37 @@ export const maxDuration = 30;
 LLMRouter.post('/gt', authAny, async (req: any, res) => {
     try {
 
+        console.log("Trying to find LLMContext...");
+        // First try to find context with iterationStepId
         let llmContext: LLMContext | null = await LLMContextModel
             .find({
                 user: req.user._id,
                 project: req.body.projectId,
+                iterationStepId: req.body.iterationStepId
             })
             .sort({ createdAt: -1 })
             .limit(1)
             .then(contexts => contexts[0] || null);
 
+        // If not found, try without iterationStepId
+        if (!llmContext) {
+            llmContext = await LLMContextModel
+                .find({
+                    user: req.user._id,
+                    project: req.body.projectId,
+                })
+                .sort({ createdAt: -1 })
+                .limit(1)
+                .then(contexts => contexts[0] || null);
+        }
+
+        // If still not found, return error
         if (!llmContext) {
             res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
         }
 
-        const settings = llmContext.settings;
+        const settings = llmContext!.settings;
 
 
         llmContext.visiblePPCreationMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: null });
@@ -86,12 +102,8 @@ LLMRouter.post('/gt', authAny, async (req: any, res) => {
 
 LLMRouter.post('/et', authAny, async (req: any, res) => {
     try {
-        console.log("req.body", req.body);
-        if (req.body.projectId == undefined || req.body.iterationStepId == undefined || req.body.originalRequest == undefined) {
-            res.status(404).send({ error: `At least one of the following is missing: projectId (${req.body.projectId}), iterationStepId (${req.body.iterationStepId}), or originalRequest (${req.body.originalRequest})` });
-            return;
-        }
-
+        console.log("Trying to find LLMContext...");
+        // First try to find context with iterationStepId
         let llmContext: LLMContext | null = await LLMContextModel
             .find({
                 user: req.user._id,
@@ -102,12 +114,24 @@ LLMRouter.post('/et', authAny, async (req: any, res) => {
             .limit(1)
             .then(contexts => contexts[0] || null);
 
+        // If not found, try without iterationStepId
         if (!llmContext) {
-            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId + ' and iterationStepId ' + req.body.iterationStepId });
-            return;
+            llmContext = await LLMContextModel
+                .find({
+                    user: req.user._id,
+                    project: req.body.projectId,
+                })
+                .sort({ createdAt: -1 })
+                .limit(1)
+                .then(contexts => contexts[0] || null);
         }
 
-        const settings = llmContext.settings;
+        // If still not found, return error
+        if (!llmContext) {
+            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
+            return;
+        }
+        const settings = llmContext!.settings;
 
         llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
         llmContext.seenByETMessages.push({ role: 'receiver', content: req.body.data });
@@ -158,6 +182,7 @@ LLMRouter.post('/et', authAny, async (req: any, res) => {
 LLMRouter.post('/qt', authAny, async (req: any, res) => {
     try {
         console.log("Trying to find LLMContext...");
+        // First try to find context with iterationStepId
         let llmContext: LLMContext | null = await LLMContextModel
             .find({
                 user: req.user._id,
@@ -168,8 +193,21 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
             .limit(1)
             .then(contexts => contexts[0] || null);
 
+        // If not found, try without iterationStepId
         if (!llmContext) {
-            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId + ' and iterationStepId ' + req.body.iterationStepId });
+            llmContext = await LLMContextModel
+                .find({
+                    user: req.user._id,
+                    project: req.body.projectId,
+                })
+                .sort({ createdAt: -1 })
+                .limit(1)
+                .then(contexts => contexts[0] || null);
+        }
+
+        // If still not found, return error
+        if (!llmContext) {
+            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
             return;
         }
 
@@ -207,8 +245,8 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
 
         } else if (qtOutput.message.content) {
             qtResponse = qtOutput.message.content;
-            llmContext.seenByQTMessages.push({ role: 'receiver', content: qtResponse });
-            await llmContext.save();
+            // llmContext.seenByQTMessages.push({ role: 'receiver', content: qtResponse });
+            // await llmContext.save();
         } else {
             res.status(404).send({ error: 'No QT response found' });
             return;
@@ -288,21 +326,35 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
 
 LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
     try {
-        let llmContext: LLMContext | null = await LLMContextModel
-            .find({
-                user: req.user._id,
-                project: req.body.projectId,
-                iterationStepId: req.body.iterationStepId
-            })
-            .sort({ createdAt: -1 })
-            .limit(1)
-            .then(contexts => contexts[0] || null);
-
-        if (!llmContext) {
-            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId + ' and iterationStepId ' + req.body.iterationStepId });
-            return;
-        }
-
+             // First try to find context with iterationStepId
+             let llmContext: LLMContext | null = await LLMContextModel
+             .find({
+                 user: req.user._id,
+                 project: req.body.projectId,
+                 iterationStepId: req.body.iterationStepId
+             })
+             .sort({ createdAt: -1 })
+             .limit(1)
+             .then(contexts => contexts[0] || null);
+ 
+         // If not found, try without iterationStepId
+         if (!llmContext) {
+             llmContext = await LLMContextModel
+                 .find({
+                     user: req.user._id,
+                     project: req.body.projectId,
+                 })
+                 .sort({ createdAt: -1 })
+                 .limit(1)
+                 .then(contexts => contexts[0] || null);
+         }
+ 
+         // If still not found, return error
+         if (!llmContext) {
+             res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId });
+             return;
+         }
+        
         const settings = llmContext.settings;
 
         console.log("Will push visible messages then save")
@@ -555,20 +607,26 @@ LLMRouter.get('/llm-context', authAdmin, async (req: any, res) => {
     const user: User = req.user;
     const stepId: string = req.query.iterationStepId as string;
     // check if LLMContextModel exists
+
+    const query: any = {
+        user: req.user._id,
+        project: req.body.projectId,
+    };
+    if (req.body.iterationStepId !== undefined) {
+        query.iterationStepId = req.body.iterationStepId;
+    }
+    
     let llmContext: LLMContext | null = await LLMContextModel
-        .find({
-            user: req.user._id,
-            project: req.body.projectId,
-            iterationStepId: req.body.iterationStepId
-        })
+        .find(query)
         .sort({ createdAt: -1 })
         .limit(1)
         .then(contexts => contexts[0] || null);
-
+    
     if (!llmContext) {
-        res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId + ' and iterationStepId ' + req.body.iterationStepId });
+        res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + req.body.projectId + (req.body.iterationStepId ? ' and iterationStepId ' + req.body.iterationStepId : '') });
         return;
     }
+
 
     res.send({
         data: llmContext
@@ -584,9 +642,9 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
         if (req.body.projectId == undefined) {
             return res.status(404).send({ message: 'no projectId specified' });
         }
-        if (req.body.iterationStepId == undefined) {
-            return res.status(404).send({ message: 'no iterationStepId specified' });
-        }
+        // if (req.body.iterationStepId == undefined) {
+        //     return res.status(404).send({ message: 'no iterationStepId specified' });
+        // }
     
         const projectId = req.body.projectId;
         const iterationStepId = req.body.iterationStepId;
