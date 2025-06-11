@@ -141,10 +141,11 @@ app.use((req, res, next) => {
 // Data base connection
 const port = environment.port || 3000;
 const mongodbURL = process.env.MONGO || 'mongodb://localhost/ipexco';
+console.log("Database Name: " + mongodbURL)
 mongoose.connect(mongodbURL, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
       console.log('connected to DB');
-      // mongoose.connection.db.dropDatabase();
+      // mongoose.connection.db.
 
     })
     .catch((err: { message: any; }) => console.log(`something went wrong ${err.message}`));

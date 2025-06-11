@@ -1,13 +1,14 @@
 import express from 'express';
 import { number, string } from 'zod';
-import { FlightSectionModel, FlightSectionZ, getExplanationTaskFromSectionWithFullSite, getTaskFromSection } from '../../db_schema/beluga/flight-section-tree';
+import { FlightPlanTreeModel, FlightSectionModel, FlightSectionZ, getExplanationTaskFromSectionWithFullSite, getTaskFromSection } from '../../db_schema/beluga/flight-section-tree';
 import { generateSoftGoals } from '../../db_schema/beluga/utils';
 import { PlanRunStatus } from '../../db_schema/iteration_step';
 import { ExplainerRequest, ExplainerResponseZ, SimplePlannerResponseZ } from '../../db_schema/service_communication';
-import { ServiceModel } from '../../db_schema/services';
+import { Service, ServiceModel, ServiceType } from '../../db_schema/services';
 import { authAny, AuthenticatedRequest, authService } from '../../middleware/auth';
 import { callServices } from '../../services/utils';
 import { ExplanationRunStatus } from '../../db_schema/explanations';
+import { ProjectModel } from '../../db_schema/project';
 
 
 
@@ -38,15 +39,37 @@ flightSectionExplanationRouter.post('', authAny, async (req: AuthenticatedReques
         section.configurations[configIndex].explanationStatus = ExplanationRunStatus.RUNNING;
         await section.save();
 
-        let explainer = await ServiceModel.findById('680fa85730f44ce72b0e1fb8');
-        // Aries: 680fa8cb30f44ce72b0e1fcd
-        // Simple Beluga planner: 680fa85730f44ce72b0e1fb8
-        // let explainer = await ServiceModel.findById(section.explainMethod?.serviceId);
-        if (!explainer) {
-            section.status = PlanRunStatus.FAILED;
+        let tree = await FlightPlanTreeModel.findById(section.treeId);
+        if (!tree) {
+            section.configurations[configIndex].explanationStatus = ExplanationRunStatus.FAILED;
             await section.save();
-            console.log('[Section Explanation Computation] Explainer does not exist.');
+            console.log('[Explanation Computation] Flight Plan Tree does not exist.');
             res.status(401).send('Explanation could not be created.');
+            return;
+        }
+
+        let project = await ProjectModel.findById(tree.project);
+        if (!project) {
+            section.configurations[configIndex].explanationStatus = ExplanationRunStatus.FAILED;
+            await section.save();
+            console.log('[Explanation Computation] Project does not exist.')
+            res.status(401).send('Explanation could not be created.');
+            return;
+        }
+
+        const services: Service[] = [];
+        for(const serviceId of project.settings.services.services) {
+            const service = await ServiceModel.findById(serviceId);
+            if(service && service.type == ServiceType.EXPLAINER){
+                services.push(service);
+            }
+        }
+
+        if (services.length === 0) {
+            section.configurations[configIndex].explanationStatus = ExplanationRunStatus.FAILED;
+            await section.save();
+            console.log('No existing explainer service selected.');
+            res.status(200).send(false);
             return;
         }
 
@@ -74,7 +97,7 @@ flightSectionExplanationRouter.post('', authAny, async (req: AuthenticatedReques
 
         console.log(JSON.stringify(payload))
 
-        const success = await callServices([explainer], JSON.stringify(payload), '/explanation');
+        const success = await callServices(services, JSON.stringify(payload), '/explanation');
         if(!success){
             section.configurations[configIndex].explanationStatus = ExplanationRunStatus.FAILED;
             await section.save();

@@ -63,6 +63,8 @@ flightPlanTreeRouter.post('/init', authAny, async (req: any, res) => {
         }
         await tree.save();
 
+        const hasEmptyRack = initData.siteSetUp.racks.reduce((acc, c) => acc || initData.siteState.racks[c.name]?.length == 0, false);
+
         const sectionData = {
             user: req.user._id,
             predecessorId: null,
@@ -76,7 +78,7 @@ flightPlanTreeRouter.post('/init', authAny, async (req: any, res) => {
                 flightTargetSchedule: initData.flightTargetSchedule,
                 productionLinesTargetSchedule: initData.productionLinesTargetSchedule,
                 maxSwaps: 0,
-                minEmptyRacks: 0,
+                minEmptyRacks: 1 ? hasEmptyRack : 0,
                 explanations: null,
                 explanationStatus: ExplanationRunStatus.PENDING,
             }],
@@ -128,7 +130,8 @@ flightPlanTreeRouter.post('/branch', authAny, async (req: any, res) => {
             return;
         }
 
-        const configuration = section.configurations[section.configurationIndex];
+        // const configuration = section.configurations[section.configurationIndex];
+        const configuration = section.configurations[0];
 
         const sectionData  = {
             user: req.user._id,

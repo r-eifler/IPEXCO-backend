@@ -21,7 +21,8 @@ export const PaymentInfoZ = object({
     MUGS_VISUALIZATION_ANSWER = "MUGS_VISUALIZATION_ANSWER",
     CONFLICT_LIST = "CONFLICT_LIST",
     MANUAL = "MANUAL",
-    AUTOMATIC = "AUTOMATIC"
+    AUTOMATIC = "AUTOMATIC",
+    MIXED = "MIXED"
   };
   
   export const ExplanationInterfaceTypeZ = nativeEnum(ExplanationInterfaceType);
