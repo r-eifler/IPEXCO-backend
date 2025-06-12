@@ -1,13 +1,11 @@
 import express from 'express';
-import { auth, authAny, AuthenticatedRequest, authService } from '../middleware/auth';
-import { Demo, DemoModel } from '../db_schema/demo';
-import { ExplanationRunStatus } from '../db_schema/explanations';
-import { Project, ProjectModel } from '../db_schema/project';
-import { Service, ServiceModel, ServiceType } from '../db_schema/services';
-import { callServices } from '../services/utils';
-import { PlanBaseZ, PlanModel } from '../db_schema/plan';
 import { PlanRunStatus } from '../db_schema/iteration_step';
+import { PlanBaseZ, PlanModel } from '../db_schema/plan';
+import { ProjectModel } from '../db_schema/project';
 import { SimplePlannerRequest, SimplePlannerResponse } from '../db_schema/service_communication';
+import { ServiceModel } from '../db_schema/services';
+import { auth, authAny, AuthenticatedRequest, authService } from '../middleware/auth';
+import { callServices } from '../services/utils';
 
 
 export const planRouter = express.Router();
@@ -20,7 +18,8 @@ planRouter.get('/', authAny, async (req: any, res) => {
         const plans = await PlanModel.find({ project: projectId, user: userId})
 
         if (!plans) { 
-            return res.status(404).send({ message: 'ERROR: No plans found.' });
+            res.status(404).send({ message: 'ERROR: No plans found.' });
+            return;
         }
 
         res.send(plans);
@@ -38,7 +37,8 @@ planRouter.get('/:id', authAny, async (req, res) => {
         const run = await PlanModel.findOne({ _id: id});
 
         if (!run) { 
-            return res.status(404).send({ message: 'No plan step found.' });
+            res.status(404).send({ message: 'No plan step found.' });
+            return;
         }
 
         res.send({
@@ -55,7 +55,8 @@ planRouter.post('', authAny, async (req: AuthenticatedRequest, res) => {
 
     try {
         if (!req.user) {
-            return res.status(401).send('Create plan failed.');
+            res.status(401).send('Create plan failed.');
+            return;
         }
         console.log("create plan");
         let planBase = PlanBaseZ.parse(req.body);
@@ -67,7 +68,8 @@ planRouter.post('', authAny, async (req: AuthenticatedRequest, res) => {
 
         const plan = new PlanModel(planData);
         if (!plan) {
-            return res.status(401).send('Plan could not be created.');
+            res.status(401).send('Plan could not be created.');
+            return;
         }
         await plan.save();
 
@@ -75,16 +77,18 @@ planRouter.post('', authAny, async (req: AuthenticatedRequest, res) => {
         if (!project) {
             plan.status = PlanRunStatus.FAILED;
             await plan.save();
-            console.log('[Plan Computation] Project does not exist.')
-            return res.status(401).send('Plan could not be created.');
+            console.log('[Plan Computation] Project does not exist.');
+            res.status(401).send('Plan could not be created.');
+            return;
         }
 
         let planner = await ServiceModel.findById(plan.planner);
         if (!planner) {
             plan.status = PlanRunStatus.FAILED;
             await plan.save();
-            console.log('[Plan Computation] Planner does not exist.')
-            return res.status(401).send('Plan could not be created.');
+            console.log('[Plan Computation] Planner does not exist.');
+            res.status(401).send('Plan could not be created.');
+            return;
         }
 
         const baseURL = process.env.BASE_URL || 'http://host.docker.internal:3000'
@@ -98,8 +102,9 @@ planRouter.post('', authAny, async (req: AuthenticatedRequest, res) => {
         if(!success){
             plan.status = PlanRunStatus.FAILED;
             await plan.save();
-            console.log('[Plan Computation] Selected planner service not reachable.')
-            return res.status(201).send({status: false, message:'No selected planner service reachable.'});
+            console.log('[Plan Computation] Selected planner service not reachable.');
+            res.status(201).send({status: false, message:'No selected planner service reachable.'});
+            return;
         }
 
         res.send(plan);
@@ -121,18 +126,21 @@ planRouter.post('/finished/:id', authService, async (req: any, res) => {
         const plan = await PlanModel.findOne({ _id: refId});
 
         if (!plan) {
-            return res.status(404).send('update plan failed');
+            res.status(404).send('update plan failed');
+            return;
         }
 
         if (plan.status == PlanRunStatus.CANCELED) {
-            return res.status(200).send('Plan run was canceled.');
+            res.status(200).send('Plan run was canceled.');
+            return;
         }
 
         if (plan.status == PlanRunStatus.UNSOLVABLE || 
             plan.status == PlanRunStatus.FAILED 
         ) {
             console.log('Got repeated response for plan call: ' + plan._id);
-            return res.status(200).send('Plan run already set.');
+            res.status(200).send('Plan run already set.');
+            return;
         }
 
         const response = req.body as SimplePlannerResponse;
@@ -148,7 +156,8 @@ planRouter.post('/finished/:id', authService, async (req: any, res) => {
 
         await plan.save()
         
-        return res.status(200).send();
+        res.status(200).send();
+        return;
 
     } catch (ex : any) {
         console.log(ex);
@@ -167,7 +176,8 @@ planRouter.post('/cancel/:id', authAny, async (req, res) => {
         const plan = await PlanModel.findById(id);
 
         if (!plan) {
-            return res.status(404).send({ message: 'No plan found.' });
+            res.status(404).send({ message: 'No plan found.' });
+            return;
         }
 
         const forwardCancelToPlanningService = plan.status == PlanRunStatus.RUNNING;
@@ -181,7 +191,8 @@ planRouter.post('/cancel/:id', authAny, async (req, res) => {
             let planner = await ServiceModel.findById(plannerId)
 
             if (!planner) {
-                return res.status(200).send(false);
+                res.status(200).send(false);
+                return;
             }
 
     
@@ -189,8 +200,9 @@ planRouter.post('/cancel/:id', authAny, async (req, res) => {
             if(!success){
                 plan.status = PlanRunStatus.FAILED;
                 await plan.save();
-                console.log('[Cancel Plan Computation] No selected planner service reachable.')
-                return res.status(201).send(false);
+                console.log('[Cancel Plan Computation] No selected planner service reachable.');
+                res.status(201).send(false);
+                return;
             }
         }
 
@@ -209,7 +221,8 @@ planRouter.delete('/:id', auth, async (req, res) => {
         const result = await PlanModel.deleteOne({ _id: req.params.id });
 
         if (!result) {
-            return res.status(404).send({ message: 'No plan found.' });
+            res.status(404).send({ message: 'No plan found.' });
+            return;
         }
     
         res.send({

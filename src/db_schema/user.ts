@@ -10,7 +10,8 @@ export interface UserData{
     role: UserRole;
 }
 
-export interface User extends Document{
+export interface User{
+    _id: string;
     name: string;
     role: UserRole;
     password: string | null;
@@ -30,7 +31,7 @@ const UserSchema =  new Schema<User>({
 
 UserSchema.pre('save', async function (next) {
     // Hash the password before saving the user model
-    const user = this as User;
+    const user = this;
     if (user.password != null && user.isModified('password')) {
         user.password = await bcrypt.hash(user.password, 8);
     }
