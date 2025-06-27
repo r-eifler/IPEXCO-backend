@@ -7,7 +7,7 @@ export async function callServices(services: Service[], payload: string, path: s
 
     for(const service of services){
 
-        // console.log(service);
+        console.log(service);
 
         const request = new Request(service.url + path, 
             {

@@ -1,5 +1,6 @@
 import cookieParser from 'cookie-parser';
 import express from 'express';
+import multer from 'multer';
 import createError from 'http-errors';
 import path from 'path';
 import { userRouter } from './routes/user';
@@ -30,6 +31,7 @@ import { planRouter } from './routes/plan';
 import { promptRouter } from './routes/prompt';
 import { serviceRouter } from './routes/services';
 import { flightSectionExplanationRouter } from './routes/beluga/flight-section-explanations';
+import { policyTestsRouter } from './routes/beluga/policy-tests';
 
 
 
@@ -41,6 +43,7 @@ const results_folder = path.join(__dirname, 'data/results');
 const uploads_folder = path.join(__dirname, 'data/uploads');
 const images_folder = path.join(__dirname, 'data/images')
 
+// export const upload = multer({dest: path.join(__dirname, 'data/uploads')})
 
 // create folders if not already exist
 console.log('---> statically served path');
@@ -82,6 +85,8 @@ app.use(cookieParser());
 
 
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'data', 'uploads')));
+console.log("Serve statically: " + path.join(__dirname, 'data', 'upload'))
 
 // app.use(auth);
 app.use('/', indexRouter);
@@ -121,6 +126,7 @@ app.use('/api/llm', LLMRouter);
 app.use('/api/flight-plan-forest', flightPlanTreeRouter);
 app.use('/api/flight-section-plan', flightSectionPlanRouter);
 app.use('/api/flight-section-explanation', flightSectionExplanationRouter);
+app.use('/api/policy-testing', policyTestsRouter);
 
 // catch 404 and forward to error handler
 app.all('*', (req, res, next) => {

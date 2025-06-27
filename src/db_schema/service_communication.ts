@@ -1,9 +1,10 @@
 import { any, array, boolean, nativeEnum, nullable, number, object, optional, string, unknown, infer as zinfer } from "zod";
-import { BelugaActionZ } from "./beluga/beluga_plan";
+import { BelugaAction, BelugaActionZ } from "./beluga/beluga_plan";
 import { ExplanationRunStatusZ } from "./explanations";
 import { PlanRunStatusZ } from "./iteration_step";
 import { ActionZ } from "./plan-properties/action_set";
 import { PlanPropertyZ, SimplePlanPropertyZ } from "./plan-properties/plan_property";
+import { BelugaProblem } from "./beluga/beluga_problem";
 
 
 
@@ -120,3 +121,45 @@ export const PropertyCheckerResponseZ = object({
 });
 
 export type PropertyCheckerResponse = zinfer<typeof PropertyCheckerResponseZ>;
+
+
+export interface JSONInstanceTesterRequest  {
+    id: string,
+    test_start_callback: string,
+    test_result_callback: string,
+    final_callback: string,
+    modelName: string,
+    modelURL: string, // content of ASNet policy file, file is to big to be send as part of the body
+    problem: unknown, //content of json problem file
+    num_fuzz_states: number, // number of states to generate in fuzzer
+    additional_states?: unknown[]
+}
+
+
+export enum TesterRunStatus {
+    PENDING = "PENDING",
+    RUNNING = "RUNNING",
+    COMPLETED = "COMPLETED",
+    CANCELED = "CANCELED",
+    FAILED = "FAILED",
+}
+
+export interface InstanceTesterResponse  {
+    id: string, // InstanceTesterRequest id
+    status: TesterRunStatus,
+}
+
+export interface TestStartResponse {
+    id: string, // InstanceTesterRequest id
+    state_id: number,
+    test_id: number,
+    state_values: BelugaProblem, // array of state values (relative to grounding)
+    policy_trace: BelugaAction[], // array of action indices (relative to grounding)
+    policy_cost: number,
+}
+
+export interface TestResultResponse  {
+    id: string, // InstanceTesterRequest id
+    state_id: number,
+    is_bug: boolean, // shows whether state could be classified as bug (bugs are not guaranteed to be detected)
+}

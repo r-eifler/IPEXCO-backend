@@ -1,12 +1,21 @@
-import { array, boolean, nativeEnum, number, object, string, unknown, infer as zinfer } from "zod";
-import { BelugaStateZ } from "./beluga_state";
-import { BelugaActionZ } from "./beluga_plan";
 import mongoose, { Schema } from "mongoose";
+import { array, boolean, nativeEnum, number, object, string, infer as zinfer } from "zod";
+import { BelugaActionZ } from "./beluga_plan";
+import { BelugaStateZ } from "./beluga_state";
+import { BelugaProblemZ } from "./beluga_problem";
+
+export const FileUploadZ = object({
+   filename: string(),
+   originalname: string()
+})
+
+export type FileUpload = zinfer<typeof FileUploadZ>;
+
 
 
 export const PolicyZ = object({
    name: string(),
-   model: unknown()
+   modelFileName: string()
 })
 
 export type Policy = zinfer<typeof PolicyZ>;
@@ -22,26 +31,44 @@ export enum TestRunStatus {
 
 export const TestRunStatusZ = nativeEnum(TestRunStatus);
 
+export enum TestStateGenerationMethod{
+    MANUAL = "MANUAL",
+    FUZZING = "FUZZING"
+}
+
+export const TestStateGenerationMethodZ = nativeEnum(TestStateGenerationMethod);
+
+
 export const TestCaseZ = object({
     stateID: number(),
     testID: number(),
-    state: BelugaStateZ,
+    state: BelugaProblemZ,
     policyTrace: array(BelugaActionZ),
-    policyCost: number(),
+    policyCost: number().nullable(),
     classifiedAdBug: boolean(),
     status: TestRunStatusZ,
+    method: TestStateGenerationMethodZ,
 })
 
 export type TestCase = zinfer<typeof TestCaseZ>;
 
 
 
-export const TestCollectionZ = object({
+export const TestCollectionBaseZ = object({
    name: string(),
+   project: string(),
    policy: PolicyZ,
    numFuzzStates: number(),
+   status: TestRunStatusZ,
    testCases: array(TestCaseZ)
 })
+
+
+export type TestCollectionBase = zinfer<typeof TestCollectionBaseZ>;
+
+export const TestCollectionZ = TestCollectionBaseZ.merge(object({
+  _id: string(),
+}));
 
 export type TestCollection = zinfer<typeof TestCollectionZ>;
 
@@ -49,26 +76,29 @@ export type TestCollection = zinfer<typeof TestCollectionZ>;
 
 const PolicySchema = new Schema({
    name: {type: String, required: true},
-   model: {type: Object, required: true},
+   modelFileName: {type: String, required: true},
 });
 
 
 const TestCaseSchema = new Schema({
-   stateID: {type: Number, required: true},
-   testID: {type: Number, required: true},
-   state: {type: Object, required: true},
+   stateID: {type: Number, required: false},
+   testID: {type: Number, required: false},
+   state: {type: Object, required: false},
    policyTrace: [{type: Object}],
-   policyCost: {type: Number, required: true},
-   classifiedAdBug: {type: Boolean, required: true},
-   status: {type: String, required: true},
+   policyCost: {type: Number, required: false},
+   classifiedAdBug: {type: Boolean, required: false},
+   status: {type: String, required: false},
+   method: {type: String, required: false},
 });
 
 
 const TestCollectionSchema = new Schema({
    name: {type: String, required: true},
+   project: { type: mongoose.Schema.Types.ObjectId, ref: 'project', required: true},
    policy: {type: PolicySchema, required: true},
    numFuzzStates: {type: Number, required: true},
-   testCases: [{type: TestCaseSchema}]
+   testCases: [{type: TestCaseSchema}],
+   status: {type: String, required: true},
 });
 
 export const TestCollectionModel = mongoose.model<TestCollection>('policy-tests', TestCollectionSchema);
