@@ -1,7 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 import { array, boolean, nativeEnum, number, object, string, infer as zinfer } from "zod";
 import { BelugaActionZ } from "./beluga_plan";
-import { BelugaStateZ } from "./beluga_state";
 import { BelugaProblemZ } from "./beluga_problem";
 
 export const FileUploadZ = object({
@@ -10,7 +9,6 @@ export const FileUploadZ = object({
 })
 
 export type FileUpload = zinfer<typeof FileUploadZ>;
-
 
 
 export const PolicyZ = object({
@@ -38,13 +36,12 @@ export enum TestStateGenerationMethod{
 
 export const TestStateGenerationMethodZ = nativeEnum(TestStateGenerationMethod);
 
-
 export const TestCaseZ = object({
     stateID: number(),
-    testID: number(),
-    state: BelugaProblemZ,
-    policyTrace: array(BelugaActionZ),
-    policyCost: number().nullable(),
+    testID: number().optional(),
+    state: BelugaProblemZ.optional(),
+    policyTrace: array(BelugaActionZ).optional(),
+    policyCost: number().nullable().optional(),
     classifiedAdBug: boolean(),
     status: TestRunStatusZ,
     method: TestStateGenerationMethodZ,
@@ -54,24 +51,23 @@ export type TestCase = zinfer<typeof TestCaseZ>;
 
 
 
-export const TestCollectionBaseZ = object({
+export const TestSuiteBaseZ = object({
    name: string(),
    project: string(),
    policy: PolicyZ,
    numFuzzStates: number(),
    status: TestRunStatusZ,
+   flightSection: string(),
    testCases: array(TestCaseZ)
 })
 
+export type TestSuiteBase = zinfer<typeof TestSuiteBaseZ>;
 
-export type TestCollectionBase = zinfer<typeof TestCollectionBaseZ>;
-
-export const TestCollectionZ = TestCollectionBaseZ.merge(object({
+export const TestSuiteZ = TestSuiteBaseZ.merge(object({
   _id: string(),
 }));
 
-export type TestCollection = zinfer<typeof TestCollectionZ>;
-
+export type TestSuite = zinfer<typeof TestSuiteZ>;
 
 
 const PolicySchema = new Schema({
@@ -92,13 +88,14 @@ const TestCaseSchema = new Schema({
 });
 
 
-const TestCollectionSchema = new Schema({
+const TestSuiteSchema = new Schema({
    name: {type: String, required: true},
    project: { type: mongoose.Schema.Types.ObjectId, ref: 'project', required: true},
    policy: {type: PolicySchema, required: true},
    numFuzzStates: {type: Number, required: true},
    testCases: [{type: TestCaseSchema}],
+   flightSection: { type: mongoose.Schema.Types.ObjectId, ref: 'flight-plan-section', required: true},
    status: {type: String, required: true},
 });
 
-export const TestCollectionModel = mongoose.model<TestCollection>('policy-tests', TestCollectionSchema);
+export const TestCollectionModel = mongoose.model<TestSuite>('policy-tests', TestSuiteSchema);

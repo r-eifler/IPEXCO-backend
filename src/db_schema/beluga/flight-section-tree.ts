@@ -123,15 +123,15 @@ export function getTaskFromSection(section: FlightSection){
             jigs: state.racks[r.name]
         })),
         hangars: setUp.hangars.filter(h => h.status == SiteStatus.IN_USE).map(h => ({
-            ...h, 
+            name: h.name, 
             jig: state.hangars[h.name]
         })),
         trailers_beluga: setUp.belugaTrailers.filter(t => t.status == SiteStatus.IN_USE).map(t => ({
-            ...t, 
+            name: t.name, 
             jig: state.trailers[t.name]
         })),
         trailers_factory: setUp.factoryTrailers.filter(t => t.status == SiteStatus.IN_USE).map(t => ({
-            ...t, 
+            name: t.name,  
             jig: state.trailers[t.name]
         })),
         jig_types: setUp.jig_types,

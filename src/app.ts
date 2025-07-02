@@ -33,6 +33,7 @@ import { serviceRouter } from './routes/services';
 import { flightSectionExplanationRouter } from './routes/beluga/flight-section-explanations';
 import { policyTestsRouter } from './routes/beluga/policy-tests';
 
+import mongoose from 'mongoose';
 
 
 dotenv.config();
@@ -71,7 +72,6 @@ export const environment = new Environment();
 
 const app = express();
 const cors = require('cors');
-const mongoose = require('mongoose');
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -148,7 +148,7 @@ app.use((req, res, next) => {
 const port = environment.port || 3000;
 const mongodbURL = process.env.MONGO || 'mongodb://localhost/ipexco';
 console.log("Database Name: " + mongodbURL)
-mongoose.connect(mongodbURL, { useNewUrlParser: true, useUnifiedTopology: true })
+mongoose.connect(mongodbURL)
     .then(() => {
       console.log('connected to DB');
       // mongoose.connection.db.
