@@ -66,6 +66,7 @@ policyTestsRouter.post('/:id/start-fuzzing', authAny, async (req: any, res) => {
         }
 
         testSuite.status = TestRunStatus.RUNNING;
+        testSuite.numFuzzStates = numberOfFuzzedStates;
         await testSuite.save();
 
         let project = await ProjectModel.findById(testSuite.project);
