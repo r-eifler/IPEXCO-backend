@@ -7,7 +7,6 @@ import fs from 'fs';
 import cookieParser from 'cookie-parser';
 
 import logger from 'morgan';
-import sassMiddleware from 'node-sass-middleware';
 
 import errorMiddleware from './middleware/error.middleware';
 
@@ -81,12 +80,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-app.use(sassMiddleware({
-  src: path.join(__dirname, 'public'),
-  dest: path.join(__dirname, 'public'),
-  indentedSyntax: true, // true = .sass and false = .scss
-  sourceMap: true
-}));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // app.use(auth);
