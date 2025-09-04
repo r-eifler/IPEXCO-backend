@@ -277,10 +277,10 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
                 return;
             }
 
-            if (used == "ALREADY-USED" && untranslatedGoal[0] != "") {
+            if (used == "ALREADY-USED" && plan_property_name != "") {
 
                 planProperty = await PlanPropertyModel.findOne({
-                    name: untranslatedGoal[0],
+                    name: plan_property_name,
                     project: req.body.projectId
                 });
                 if (planProperty == null) {
