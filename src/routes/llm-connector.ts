@@ -1,7 +1,7 @@
 import express from 'express';
 import { auth, authAdmin, authAny } from '../middleware/auth';
 import { processEtRequest, processGtRequest, processQtRequest } from './llm-process-requests';
-import { PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
+import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Question, QuestionType } from '../db_schema/explanations';
 import { LLMContext, LLMContextModel } from '../db_schema/llm-context';
 import { User, UserModel } from '../db_schema/user';
@@ -239,7 +239,7 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
         let qtResponse;
         if (qtOutput.message.refusal) {
             qtResponse = qtOutput.message.refusal;
-            llmContext.seenByQTMessages.push({ role: 'receiver', content: qtResponse });
+            llmContext.seenByQTMessages.push({ role: 'sender', content: qtResponse });
             await llmContext.save();
             res.status(200).send({ data: { qtResponse, questionType: "DIRECT-USER" } });
 
@@ -265,55 +265,71 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
 
         console.log("output of parseQuestionTranslation", { questionType, untranslatedGoal, used, reverseTranslationQT, directResponse })
 
-        let planProperty;
+        let planProperties: PlanProperty[] = [];
 
-        if (used == "ALREADY-USED" && untranslatedGoal != "") {
-
-            planProperty = await PlanPropertyModel.findOne({
-                name: untranslatedGoal,
+        for (let plan_property_name of untranslatedGoal) {
+            let planProperty = await PlanPropertyModel.findOne({
+                name: plan_property_name,
                 project: req.body.projectId
             });
             if (planProperty == null) {
                 res.status(404).send({ error: 'No plan property found' });
                 return;
             }
-            console.log("Because used is ALREADY-USED, planProperty is", planProperty)
-        } else if (used == 'NEVER-USED' && !['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
-            console.log("used is NEVER-USED, therefore returning directResponse")
-            directResponse = directResponse || "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
-            res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER" } });
-            return;
-        } else if (used == 'NO-ARGUMENT-REQUIRED' && !['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
-            console.log("used is unexpectedly NO-ARGUMENT-REQUIRED, therefore returning directResponse")
-            let directResponse = "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
-            res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER" } });
-            return;
-        } else if (used == 'NO-ARGUMENT-REQUIRED' && ['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
-            console.log("used is NO-ARGUMENT-REQUIRED and its expected because of questionType", questionType, "therefore continuing")
-        } else if (used == 'NEVER-USED' && ['US-WHY', 'US-HOW'].includes(questionType)) {
-            console.log("used is NEVER-USED but questionType is ", questionType, ", this is unexpected, but continuing as if it was NO-ARGUMENT-REQUIRED")
-        } else if (used == 'NEVER-USED' && ['DIRECT-USER', 'DIRECT-ET'].includes(questionType)) {
-            console.log("used is NEVER-USED but questionType is ", questionType, ", this is unexpected, but continuing as if it was NO-ARGUMENT-REQUIRED")
-        } else {
-            res.status(404).send({ error: 'No valid used found' });
-            return;
+
+            if (used == "ALREADY-USED" && plan_property_name != "") {
+
+                planProperty = await PlanPropertyModel.findOne({
+                    name: plan_property_name,
+                    project: req.body.projectId
+                });
+                if (planProperty == null) {
+                    res.status(404).send({ error: 'No plan property found' });
+                    return;
+                }
+                console.log("Because used is ALREADY-USED, planProperty is", planProperty)
+            } else if (used == 'NEVER-USED' && !['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
+                console.log("used is NEVER-USED, therefore returning directResponse")
+                directResponse = directResponse || "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
+                res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER" } });
+                return;
+            } else if (used == 'NO-ARGUMENT-REQUIRED' && !['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
+                console.log("used is unexpectedly NO-ARGUMENT-REQUIRED, therefore returning directResponse")
+                let directResponse = "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
+                res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER" } });
+                return;
+            } else if (used == 'NO-ARGUMENT-REQUIRED' && ['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
+                console.log("used is NO-ARGUMENT-REQUIRED and its expected because of questionType", questionType, "therefore continuing")
+            } else if (used == 'NEVER-USED' && ['US-WHY', 'US-HOW'].includes(questionType)) {
+                console.log("used is NEVER-USED but questionType is ", questionType, ", this is unexpected, but continuing as if it was NO-ARGUMENT-REQUIRED")
+            } else if (used == 'NEVER-USED' && ['DIRECT-USER', 'DIRECT-ET'].includes(questionType)) {
+                console.log("used is NEVER-USED but questionType is ", questionType, ", this is unexpected, but continuing as if it was NO-ARGUMENT-REQUIRED")
+            } else {
+                res.status(404).send({ error: 'No valid used found' });
+                return;
+            }
+            planProperties.push(planProperty);
         }
 
-        let ppId = planProperty?._id;
+        let ppIds = planProperties.map(pp => pp._id);
 
-        const question: Question = {
+        let questions: Question[] = [];
+        for (let ppId of ppIds) {
+            let question: Question = {
             iterationStepId: req.body.iterationStepId,
-            questionType: questionType as QuestionType,
-            propertyId: ppId
-        };
+                questionType: questionType as QuestionType,
+                propertyId: ppId
+            };
+            questions.push(question);
+        }
 
         console.log("Sending data", { qtResponse })
         res.status(200).send({
             data: {
                 qtResponse,
                 questionType: questionType as QuestionType,
-                goal: ppId,
-                question: question,
+                goals: ppIds,
+                questions: questions,
                 reverseTranslationQT: reverseTranslationQT,
             }
         });
@@ -325,6 +341,10 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
 });
 
 LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
+    /*
+    Currently doesn't support multiple goals.
+    */
+
     try {
              // First try to find context with iterationStepId
              let llmContext: LLMContext | null = await LLMContextModel
@@ -383,13 +403,13 @@ LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
         let qtResponse;
         if (qtOutput.message.refusal) {
             qtResponse = qtOutput.message.refusal;
-            llmContext.seenByQTMessages.push({ role: 'receiver', content: qtResponse });
+            llmContext.seenByQTMessages.push({ role: 'sender', content: qtResponse });
             await llmContext.save();
             res.status(200).send({ data: { qtResponse, questionType: "DIRECT-USER" } });
 
         } else if (qtOutput.message.content) {
             qtResponse = qtOutput.message.content;
-            llmContext.seenByQTMessages.push({ role: 'receiver', content: qtResponse });
+            llmContext.seenByQTMessages.push({ role: 'sender', content: qtResponse });
             await llmContext.save();
         } else {
             res.status(404).send({ error: 'No QT response found' });
@@ -413,10 +433,10 @@ LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
         let reverseTranslationGT;
     
 
-        if (used == "ALREADY-USED" && untranslatedGoal != "") {
+        if (used == "ALREADY-USED" && untranslatedGoal[0] != "") {
 
             planProperty = await PlanPropertyModel.findOne({
-                name: untranslatedGoal,
+                name: untranslatedGoal[0],
                 project: req.body.projectId
             });
             if (planProperty == null) {
@@ -438,13 +458,13 @@ LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
             let gtResponse;
             if (gtOutput.message.refusal) {
                 gtResponse = gtOutput.message.refusal;
-                llmContext.seenByGTMessages.push({ role: 'receiver', content: gtResponse });
+                llmContext.seenByGTMessages.push({ role: 'sender', content: gtResponse });
                 await llmContext.save();
                 res.status(200).send({ data: { gtResponse } });
 
             } else if (gtOutput.message.content) {
                 gtResponse = gtOutput.message.content;
-                llmContext.seenByGTMessages.push({ role: 'receiver', content: gtResponse });
+                llmContext.seenByGTMessages.push({ role: 'sender', content: gtResponse });
                 await llmContext.save();
             } else {
                 res.status(404).send({ error: 'No GT response found' });
@@ -526,7 +546,7 @@ LLMRouter.post('/qt-then-gt', authAny, async (req: any, res) => {
 
 interface QuestionTranslation {
     questionType: string;
-    questionArgument: string;
+    questionArgument: string[];
     used: string;
     reverseTranslation: string;
     directResponse: string;
@@ -543,7 +563,7 @@ function parseQuestionTranslation(qtResponse: string): QuestionTranslation {
         console.log("qtResponse", qtResponse)
         return {
             questionType: '',
-            questionArgument: '',
+            questionArgument: [''],
             used: '',
             reverseTranslation: '',
             directResponse: 'Error parsing question translation. Please try again.'
@@ -652,7 +672,9 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
         const projectId = req.body.projectId;
         const iterationStepId = req.body.iterationStepId;
         const settings = await getSettingsfromProjectId(projectId);
-
+        console.log("projectId", projectId)
+        console.log("iterationStepId", iterationStepId)
+        console.log("settings", settings)
         const llmConfig = settings?.llmConfig;
 
         if(llmConfig == undefined){
@@ -716,9 +738,11 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
 
 async function getSettingsfromProjectId(projectId: string) {
     try {
-        const project = await ProjectModel.findById(projectId);
+        let project = await ProjectModel.findById(projectId);
+        console.log("project", project)
         if (project == null) {
-            const project = await BaseProjectModel.findById(projectId);
+            project = await BaseProjectModel.findById(projectId);
+            console.log("project", project)
             if (project == null) {
                 throw new Error('No project found');
             }
