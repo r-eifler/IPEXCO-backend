@@ -88,7 +88,6 @@ async function processAnyRequest(
         
         // Log to database
         try {
-            console.log("Logging to LLMRequestLogModel database");
             const llmRequestLog = new LLMRequestLogModel({
                 requestType,
                 input,
