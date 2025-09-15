@@ -59,6 +59,7 @@ async function processAnyRequest(
                 JSON.parse(outputFormat.schema);
             } catch (schemaError) {
                 // Schema validation failed, but continue processing
+                console.log('Schema validation failed:', schemaError);
             }
         }
 
@@ -87,7 +88,7 @@ async function processAnyRequest(
         
         // Log to database
         try {
-            await LLMRequestLogModel.create({
+            const llmRequestLog = new LLMRequestLogModel({
                 requestType,
                 input,
                 previousMessagesCount: previousMessages.length,
@@ -116,6 +117,8 @@ async function processAnyRequest(
                 user: contextInfo?.user || undefined,
                 iterationStepId: contextInfo?.iterationStepId || undefined
             });
+            
+            await llmRequestLog.save();
         } catch (logError) {
             // If logging fails, fall back to console logging to avoid breaking the main functionality
             console.error('Failed to log LLM request to database:', logError);
