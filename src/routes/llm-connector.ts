@@ -272,7 +272,7 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
                 name: plan_property_name,
                 project: req.body.projectId
             });
-            if (planProperty == null) {
+            if (planProperty == null && plan_property_name != "") {
                 res.status(404).send({ error: 'No plan property found' });
                 return;
             }
@@ -308,7 +308,9 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
                 res.status(404).send({ error: 'No valid used found' });
                 return;
             }
-            planProperties.push(planProperty);
+            if (planProperty != null) {
+                planProperties.push(planProperty);
+            }
         }
 
         let ppIds = planProperties.map(pp => pp._id);
