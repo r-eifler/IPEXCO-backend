@@ -1,9 +1,12 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import { LLMMessage, LLMMessageSchema } from '../db_schema/llm-context';
+
 
 export interface LLMRequestLog extends Document {
     requestType: 'QT' | 'GT' | 'ET' | 'GENERIC'; // Question Translation, Goal Translation, Explanation Translation, or Generic
     input: string;
     previousMessagesCount: number;
+    previousMessages: LLMMessage[];
     outputFormat: {
         structured: boolean;
         schema?: string;
@@ -36,6 +39,7 @@ const LLMRequestLogSchema = new Schema({
     requestType: { type: String, required: true, enum: ['QT', 'GT', 'ET', 'GENERIC'] },
     input: { type: String, required: true },
     previousMessagesCount: { type: Number, required: true },
+    previousMessages: { type: [LLMMessageSchema], required: false },
     outputFormat: {
         structured: { type: Boolean, required: true },
         schema: { type: String, required: false }
