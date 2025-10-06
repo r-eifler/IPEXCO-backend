@@ -257,8 +257,8 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
         // Parse QT response and prepare GT input
         let { questionType, questionArgument: untranslatedGoal, used, reverseTranslation: reverseTranslationQT, directResponse } = parseQuestionTranslation(qtResponse);
 
-        if (directResponse != null) {
-            console.log("directResponse is not null, therefore returning directResponse")
+        if (directResponse != null && directResponse.trim() !== '') {
+            console.log("directResponse is not null and not empty, therefore returning directResponse")
             res.status(200).send({ data: { directResponse, questionType } });
             return;
         }
@@ -290,12 +290,12 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
                 console.log("Because used is ALREADY-USED, planProperty is", planProperty)
             } else if (used == 'NEVER-USED' && !['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
                 console.log("used is NEVER-USED, therefore returning directResponse")
-                directResponse = directResponse || "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
+                directResponse = directResponse || "I wasn't able to match your question to a specific planning goal. Please try rephrasing your question with more specific details about the goals or objectives you're interested in."
                 res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER" } });
                 return;
             } else if (used == 'NO-ARGUMENT-REQUIRED' && !['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
                 console.log("used is unexpectedly NO-ARGUMENT-REQUIRED, therefore returning directResponse")
-                let directResponse = "I couldn't understand the goal you are asking about. Can you rephrase it or try a different question?"
+                let directResponse = "I wasn't able to match your question to a specific planning goal. Please try rephrasing your question with more specific details about the goals or objectives you're interested in."
                 res.status(200).send({ data: { directResponse, questionType: "DIRECT-USER" } });
                 return;
             } else if (used == 'NO-ARGUMENT-REQUIRED' && ['DIRECT-USER', 'DIRECT-ET', 'US-HOW', 'US-WHY'].includes(questionType)) {
@@ -323,6 +323,14 @@ LLMRouter.post('/qt', authAny, async (req: any, res) => {
                 propertyId: ppId
             };
             questions.push(question);
+        }
+
+        if (questions.length == 0 || ["US-WHY", "US-HOW", "DIRECT-ET", "DIRECT-USER"].includes(questionType)) {
+            questions.push({
+                iterationStepId: req.body.iterationStepId,
+                questionType: questionType as QuestionType,
+                propertyId: undefined
+            });
         }
 
         console.log("Sending data", { qtResponse })

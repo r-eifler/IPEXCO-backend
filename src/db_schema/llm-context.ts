@@ -31,7 +31,7 @@ export const visibleLLMMessageSchema = new Schema<visibleLLMMessage>({
     iterationStepId: { type: mongoose.Schema.Types.ObjectId, ref: 'iteration-step' },
 }, { timestamps: true }); 
 
-const LLMMessageSchema = new Schema<LLMMessage>({
+export const LLMMessageSchema = new Schema<LLMMessage>({
     role: { type: String, required: true},
     content: { type: String, required: true},
 }, { timestamps: true }); 

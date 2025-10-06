@@ -75,6 +75,7 @@ async function processAnyRequest(
             max_completion_tokens: settings.maxCompletionTokens,
             messages: [...messages, { role: Role.user, content: input }],
             response_format: outputFormat.structured && outputFormat.schema ? JSON.parse(outputFormat.schema) : undefined,
+            
         });
 
         success = true;
@@ -92,6 +93,7 @@ async function processAnyRequest(
                 requestType,
                 input,
                 previousMessagesCount: previousMessages.length,
+                previousMessages: previousMessages,
                 outputFormat: {
                     structured: outputFormat.structured,
                     schema: outputFormat.schema || undefined
