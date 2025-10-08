@@ -103,6 +103,8 @@ demoRouter.post('/', auth, async (req: any, res) => {
                 ...pp,
                 project: demoModel._id
             };
+            delete (ppData as any)._id;
+            
             const newPP = new PlanPropertyModel(ppData);
             await newPP.save();
         }
@@ -521,16 +523,21 @@ demoRouter.post('/upload', auth, async (req: any, res) => {
 
         for (const pp of planPropertiesData) {
 
-            let ppData: PlanPropertyOfProject = pp;
             const old_id = pp._id;
-            ppData.project = demoModel._id;
-            const newPP = new PlanPropertyModel(ppData);
-            const newProperty = await newPP.save();
-
+            
             if(old_id == undefined){
                 res.status(403);
                 return;
             }
+
+            let ppData: PlanPropertyOfProject = {
+                ...pp,
+                project: demoModel._id
+            };
+            delete (ppData as any)._id;
+            
+            const newPP = new PlanPropertyModel(ppData);
+            const newProperty = await newPP.save();
 
             planPropertyIdMapping[old_id] = newProperty._id;
         }
