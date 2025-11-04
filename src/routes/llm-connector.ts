@@ -725,7 +725,7 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
             seenByGTMessages: seenByGTMessages,
             seenByETMessages: seenByETMessages,
             seenByQTMessages: seenByQTMessages,
-            seenByQuestionSuggestionMessages: [],
+            seenByQuestionSuggestionMessages: seenByQuestionSuggestionMessages,
             outputFormatQT: {structured: true, schema: outputFormatQT},
             outputFormatET: {structured: true, schema: outputFormatET},
             outputFormatGT: {structured: true, schema: outputFormatGT},
