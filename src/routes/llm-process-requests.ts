@@ -35,6 +35,42 @@ export async function processEtRequest(input: string, llmContext: LLMContext, se
     });
 }
 
+export async function processQuestionSuggestionRequest(input: string, llmContext: LLMContext, settings: any) {
+    const context = llmContext.seenByQuestionSuggestionMessages;
+    const outputFormat: OutputFormat = {
+        structured: true,
+        schema: `{
+            "type": "json_schema",
+            "json_schema": {
+                "name": "question_suggestion",
+                "strict": true,
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "questionSuggestion": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            },
+                            "description": "A list of maximum 3 questions suggestions"
+                        }
+                    },
+                    "required": [
+                        "questionSuggestion"
+                    ],
+                    "additionalProperties": false
+                }
+            }
+        }`   
+    };
+    
+    return await processAnyRequest(input, context, outputFormat, settings, 'GENERIC', {
+        project: llmContext.project,
+        user: llmContext.user,
+        iterationStepId: llmContext.iterationStepId
+    });
+}
+
 async function processAnyRequest(
     input: string, 
     previousMessages: LLMMessage[], 
