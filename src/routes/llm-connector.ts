@@ -1,12 +1,13 @@
 import express from 'express';
 import { auth, authAdmin, authAny } from '../middleware/auth';
-import { processEtRequest, processGtRequest, processQtRequest } from './llm-process-requests';
+import { processEtRequest, processGtRequest, processQtRequest, processQuestionSuggestionRequest } from './llm-process-requests';
 import { PlanProperty, PlanPropertyModel } from '../db_schema/plan-properties/plan_property';
 import { Question, QuestionType } from '../db_schema/explanations';
 import { LLMContext, LLMContextModel } from '../db_schema/llm-context';
 import { User, UserModel } from '../db_schema/user';
 import { initializeAssistants } from '../llm/initialize_assistants';
 import { BaseProjectModel, ProjectModel } from '../db_schema/project';
+import { IterationStepModel, StepStatus } from '../db_schema/iteration_step';
 
 
 export const LLMRouter = express.Router();
@@ -133,7 +134,7 @@ LLMRouter.post('/et', authAny, async (req: any, res) => {
         }
         const settings = llmContext!.settings;
 
-        llmContext.visibleMessages.push({ role: 'receiver', content: req.body.originalRequest, iterationStepId: req.body.iterationStepId });
+    
         llmContext.seenByETMessages.push({ role: 'receiver', content: req.body.data });
         await llmContext.save();
         console.log("LLMContext updated and saved")
@@ -712,7 +713,7 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
         //     }
         // }
 
-        const { seenByGTMessages, seenByETMessages, seenByQTMessages, outputFormatQT, outputFormatET, outputFormatGT } = await initializeAssistants(projectId);
+        const { seenByGTMessages, seenByETMessages, seenByQTMessages, seenByQuestionSuggestionMessages, outputFormatQT, outputFormatET, outputFormatGT } = await initializeAssistants(projectId);
 
         console.log("Creating LLMContextModel...");
         const llmContext = new LLMContextModel({
@@ -724,6 +725,7 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
             seenByGTMessages: seenByGTMessages,
             seenByETMessages: seenByETMessages,
             seenByQTMessages: seenByQTMessages,
+            seenByQuestionSuggestionMessages: seenByQuestionSuggestionMessages,
             outputFormatQT: {structured: true, schema: outputFormatQT},
             outputFormatET: {structured: true, schema: outputFormatET},
             outputFormatGT: {structured: true, schema: outputFormatGT},
@@ -746,6 +748,180 @@ LLMRouter.post('/create-llm-context', authAny, async (req: any, res) => {
 
 });
 
+LLMRouter.post('/question-suggestion', authAny, async (req: any, res) => {
+    try {
+        const { projectId, iterationStepId } = req.body;
+        
+        console.log('Question suggestion request received:', { projectId, iterationStepId });
+        
+        // Find LLMContext (same pattern as other routes)
+        let llmContext: LLMContext | null = await LLMContextModel
+            .find({
+                user: req.user._id,
+                project: projectId,
+                iterationStepId: iterationStepId
+            })
+            .sort({ createdAt: -1 })
+            .limit(1)
+            .then(contexts => contexts[0] || null);
+
+        // If not found, try without iterationStepId
+        if (!llmContext) {
+            llmContext = await LLMContextModel
+                .find({
+                    user: req.user._id,
+                    project: projectId,
+                })
+                .sort({ createdAt: -1 })
+                .limit(1)
+                .then(contexts => contexts[0] || null);
+        }
+
+        // If still not found, return error
+        if (!llmContext) {
+            res.status(404).send({ error: 'No LLMContext found for user ' + req.user._id + ' and project ' + projectId });
+            return;
+        }
+
+        const settings = llmContext.settings;
+
+        // Fetch iteration step
+        const iterationStep = await IterationStepModel.findById(iterationStepId);
+        if (!iterationStep) {
+            res.status(404).send({ error: 'Iteration step not found' });
+            return;
+        }
+
+        // Get all plan properties for the project
+        const planProperties = await PlanPropertyModel.find({ project: projectId }) as PlanProperty[];
+
+        // Get enforced goals (hardGoals)
+        const enforcedGoalIds = iterationStep.hardGoals.map(id => id.toString());
+        const enforcedGoals = planProperties.filter(pp => 
+            pp._id && enforcedGoalIds.includes(pp._id.toString())
+        );
+
+        // Get soft goals (softGoals)
+        const softGoalIds = iterationStep.softGoals.map(id => id.toString());
+        const softGoals = planProperties.filter(pp => 
+            pp._id && softGoalIds.includes(pp._id.toString())
+        );
+
+        // Determine if solvable
+        const isSolvable = iterationStep.status === StepStatus.SOLVABLE;
+
+        // Get satisfied and unsatisfied goals (only if solvable)
+        let satisfiedGoals: PlanProperty[] = [];
+        let unsatisfiedGoals: PlanProperty[] = [];
+
+        if (isSolvable && iterationStep.plan && iterationStep.plan.satisfied_properties) {
+            const satisfiedPropertyIds = iterationStep.plan.satisfied_properties.map(id => id.toString());
+            satisfiedGoals = enforcedGoals.concat(softGoals).filter(pp => 
+                pp._id && satisfiedPropertyIds.includes(pp._id.toString())
+            );
+            unsatisfiedGoals = softGoals.filter(pp => 
+                pp._id && !satisfiedPropertyIds.includes(pp._id.toString())
+            );
+        }
+
+        // Format goals for the prompt
+        const formatGoals = (goals: PlanProperty[]) => {
+            if (goals.length === 0) return "[]";
+            return goals.map(goal => goal.name).join(", ");
+        };
+
+        const enforcedGoalsStr = formatGoals(enforcedGoals);
+        const satisfiedGoalsStr = isSolvable ? formatGoals(satisfiedGoals) : "N/A (task is not solvable)";
+        const unsatisfiedGoalsStr = isSolvable ? formatGoals(unsatisfiedGoals) : "N/A (task is not solvable)";
+
+        // Get all previous questions and responses from visibleMessages (from all iterationStepIds)
+        const previousMessages = llmContext.visibleMessages || [];
+        
+        const formatPreviousMessages = (messages: typeof llmContext.visibleMessages) => {
+            if (messages.length === 0) return "None";
+            return messages.map(msg => {
+                const roleLabel = msg.role === 'receiver' ? 'User' : 'Assistant';
+                return `${roleLabel}: ${msg.content}`;
+            }).join('\n');
+        };
+        
+        const previousQuestionsAndResponsesStr = formatPreviousMessages(previousMessages);
+        
+        // Debug logging
+        console.log('Total visibleMessages:', previousMessages.length);
+
+        const input = `Based on the current planning context and iteration step, suggest relevant questions that the user might want to ask about the plan or planning process.
+
+Context:
+- Iteration step: ${iterationStep.name}
+- Enforced Goals: [${enforcedGoalsStr}]
+- Solvable: ${isSolvable}
+${isSolvable ? `- Satisfied Goals: [${satisfiedGoalsStr}]
+- Unsatisfied Goals: [${unsatisfiedGoalsStr}]` : ''}
+- Previous questions and responses from the user: 
+${previousQuestionsAndResponsesStr}
+
+Use the following format:
+[
+    "question1",
+    "question2",
+    "question3"
+]`;
+
+
+        
+
+        // Process the request using OpenAI
+        const output = await processQuestionSuggestionRequest(input, llmContext, settings);
+        
+        if (output == undefined) {
+            res.status(500).send({ error: `undefined output of processQuestionSuggestionRequest` });
+            return;
+        }
+
+        let questionSuggestionArray: string[] = [];
+        
+        if (output.message.refusal) {
+            console.log("questionSuggestion is refusal", output.message.refusal)
+            res.status(200).send({ data: { questionSuggestion: [] } });
+            return;
+        } else if (output.message.content) {
+            try {
+                // Parse the JSON string response
+                const parsedContent = JSON.parse(output.message.content);
+                // Extract the questionSuggestion array
+                questionSuggestionArray = parsedContent.questionSuggestion || [];
+                console.log("questionSuggestion array:", questionSuggestionArray);
+                
+                // Initialize the array if it doesn't exist on the context
+                if (!llmContext.seenByQuestionSuggestionMessages) {
+                    llmContext.seenByQuestionSuggestionMessages = [];
+                }
+                
+                // Save the interaction to context (receiver first, then sender)
+                llmContext.seenByQuestionSuggestionMessages.push({ role: 'receiver', content: input });
+                llmContext.seenByQuestionSuggestionMessages.push({ role: 'sender', content: output.message.content });
+                await llmContext.save();
+                
+                res.status(200).send({ data: { questionSuggestion: questionSuggestionArray } });
+                return;
+            } catch (parseError) {
+                console.error('Error parsing question suggestion JSON:', parseError);
+                console.log('Raw content:', output.message.content);
+                res.status(500).send({ error: 'Failed to parse question suggestion response' });
+                return;
+            }
+        } else {
+            res.status(404).send({ error: 'No question suggestion response found' });
+            return;
+        }
+        
+    } catch (error) {
+        console.error('Error in question suggestion:', error);
+        res.status(500).send({ error: 'Internal server error' });
+    }
+});
+
 async function getSettingsfromProjectId(projectId: string) {
     try {
         let project = await ProjectModel.findById(projectId);
@@ -763,3 +939,4 @@ async function getSettingsfromProjectId(projectId: string) {
         throw new Error('No project found');
     }
 }
+
