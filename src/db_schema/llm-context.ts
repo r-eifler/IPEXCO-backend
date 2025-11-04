@@ -45,6 +45,7 @@ export interface LLMContext extends Document {
     seenByGTMessages: LLMMessage[];
     seenByETMessages: LLMMessage[];
     seenByQTMessages: LLMMessage[];
+    seenByQuestionSuggestionMessages: LLMMessage[];
     outputFormatQT: OutputFormat;
     outputFormatET: OutputFormat;
     outputFormatGT: OutputFormat;
@@ -60,6 +61,7 @@ export const LLMContextSchema = new Schema({
     seenByGTMessages: [LLMMessageSchema],
     seenByETMessages: [LLMMessageSchema],
     seenByQTMessages: [LLMMessageSchema],
+    seenByQuestionSuggestionMessages: { type: [LLMMessageSchema], default: [] },
     outputFormatQT: OutputFormatSchema,
     outputFormatET: OutputFormatSchema,
     outputFormatGT: OutputFormatSchema,
